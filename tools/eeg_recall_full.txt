@@ -1,0 +1,40 @@
+Device: cpu  (BIOT IIIC classifier loaded from biot_iiic.pt)
+
+BIOT / IIIC evaluation — 1883 windows (patient-disjoint held-out split)
+
+Headline (imbalance-aware):
+  Balanced accuracy : 0.278
+  Cohen's kappa     : 0.147
+  Macro F1          : 0.265
+  Weighted F1       : 0.323
+  KL divergence     : 1.333   (true votes || predicted, lower is better)
+  Raw accuracy      : 0.315   (reported last — misleading under imbalance)
+
+Per-class:
+  class     prec    rec     f1  support
+  SZ       0.181  0.388  0.247      116
+  LPD      0.343  0.284  0.311      328
+  GPD      0.410  0.463  0.435      408
+  LRDA     0.311  0.239  0.270      473
+  GRDA     0.372  0.291  0.327      525
+  Other    0.000  0.000  0.000       33
+
+Confusion matrix (rows = true, cols = predicted):
+             SZ    LPD    GPD   LRDA   GRDA  Other
+  SZ         45     16     21     15     15      4
+  LPD        41     93     73     70     25     26
+  GPD        48     19    189     15     94     43
+  LRDA       74     76     66    113    115     29
+  GRDA       36     53    107    150    153     26
+  Other       5     14      5      0      9      0
+
+Binary screen — harmful pattern (any of the 5) vs Other:
+  abnormal-detection RECALL    : 0.931   (128 harmful windows missed as 'Other')
+  abnormal-detection precision : 0.981
+  specificity (Other correct)  : 0.000
+  seizure flagged as harmful   : 112/116 = 0.966  (routed for review, even if mislabelled)
+  NOTE: 6-way TYPE accuracy stays modest (IIIC is inter-rater-ambiguous);
+  this screen must not be used to RULE OUT a seizure by type — only to route.
+
+Reproduce:
+  python tools/eval_eeg.py --hms-dir data/hms --weights backend/models_weights/biot/biot_iiic.pt --limit 12000 --seed 0

@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   Theme palettes. :root = light, .dark = dark-neon. Tailwind custom
+   colors (tailwind.config.js) read the --rgb-* channel triplets; inline
+   styles and plain CSS use the derived full-color variables.
+   ===================================================================== */
+:root {
+  color-scheme: light;
+
+  --rgb-bg: 244 246 251;        /* #f4f6fb */
+  --rgb-panel: 255 255 255;     /* #ffffff */
+  --rgb-paneldeep: 238 241 248; /* #eef1f8 */
+  --rgb-edge: 221 227 239;      /* #dde3ef */
+  --rgb-ink: 255 255 255;       /* text on accent fills (accents are deep in light) */
+  --rgb-hi: 15 23 42;           /* #0f172a */
+  --rgb-mid: 71 85 105;         /* #475569 */
+  --rgb-low: 91 100 119;        /* #5b6477 */
+  --rgb-neuro: 13 148 136;      /* #0d9488 */
+  --rgb-violet: 124 58 237;     /* #7c3aed */
+  --rgb-cardio: 225 29 72;      /* #e11d48 */
+  --rgb-amber: 217 119 6;       /* #d97706 */
+  --rgb-blue: 37 99 235;        /* #2563eb */
+
+  --bg: rgb(var(--rgb-bg));
+  --panel: rgb(var(--rgb-panel));
+  --paneldeep: rgb(var(--rgb-paneldeep));
+  --edge: rgb(var(--rgb-edge));
+  --ink: rgb(var(--rgb-ink));
+  --text-hi: rgb(var(--rgb-hi));
+  --text-mid: rgb(var(--rgb-mid));
+  --text-low: rgb(var(--rgb-low));
+  --neuro: rgb(var(--rgb-neuro));
+  --violet: rgb(var(--rgb-violet));
+  --cardio: rgb(var(--rgb-cardio));
+  --amber: rgb(var(--rgb-amber));
+  --blue: rgb(var(--rgb-blue));
+
+  /* readable text on translucent accent tints (badges, chips) */
+  --neuro-fg: #0f766e;
+  --violet-fg: #6d28d9;
+  --cardio-fg: #be123c;
+  --amber-fg: #92400e;
+  --blue-fg: #1d4ed8;
+
+  --glow-strong: rgba(13, 148, 136, 0.16);
+  --glow-soft: rgba(13, 148, 136, 0.07);
+  --input-bg: #ffffff;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --rgb-bg: 7 7 15;             /* #07070f */
+  --rgb-panel: 17 17 34;        /* #111122 */
+  --rgb-paneldeep: 10 10 15;    /* #0a0a0f */
+  --rgb-edge: 30 30 46;         /* #1e1e2e */
+  --rgb-ink: 7 7 15;            /* text on accent fills (accents are neon in dark) */
+  --rgb-hi: 244 244 250;        /* #f4f4fa */
+  --rgb-mid: 185 185 208;       /* #b9b9d0 */
+  --rgb-low: 138 138 168;       /* #8a8aa8 */
+  --rgb-neuro: 0 255 204;       /* #00ffcc */
+  --rgb-violet: 168 85 247;     /* #a855f7 */
+  --rgb-cardio: 244 63 94;      /* #f43f5e */
+  --rgb-amber: 251 191 36;      /* #fbbf24 */
+  --rgb-blue: 96 165 250;       /* #60a5fa */
+
+  --neuro-fg: #00ffcc;
+  --violet-fg: #c084fc;
+  --cardio-fg: #fb7185;
+  --amber-fg: #fcd34d;
+  --blue-fg: #93c5fd;
+
+  --glow-strong: rgba(0, 255, 200, 0.25);
+  --glow-soft: rgba(0, 255, 200, 0.12);
+  --input-bg: #0d0d18;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-hi);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--paneldeep); }
+::-webkit-scrollbar-thumb {
+  background: #c3cce0;
+  border-radius: 6px;
+  border: 2px solid var(--paneldeep);
+}
+::-webkit-scrollbar-thumb:hover { background: #a9b5cf; }
+.dark ::-webkit-scrollbar-thumb { background: linear-gradient(#00ffcc55, #a855f755); }
+.dark ::-webkit-scrollbar-thumb:hover { background: linear-gradient(#00ffcc99, #a855f799); }
+
+::selection { background: rgb(var(--rgb-neuro) / 0.25); }
+.dark ::selection { background: #00ffcc44; color: #fff; }
+
+/* ---- reusable theme utilities ---- */
+.font-mono { font-family: 'Space Mono', monospace; }
+
+.glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(244, 246, 251, 0.85));
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--edge);
+}
+.dark .glass {
+  background: linear-gradient(135deg, rgba(17, 17, 34, 0.85), rgba(10, 10, 15, 0.85));
+}
+.holo-panel {
+  background: linear-gradient(135deg, #ffffff, #f3f6fc);
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+}
+.dark .holo-panel {
+  background: linear-gradient(135deg, #111122, #0a0a0f);
+  box-shadow: none;
+}
+.neon-text {
+  color: var(--neuro-fg);
+}
+.dark .neon-text {
+  text-shadow: 0 0 12px rgba(0, 255, 200, 0.6);
+}
+.neon-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--rgb-neuro) / 0.55), transparent);
+}
+.hover-glow { transition: box-shadow .25s, border-color .25s, transform .25s; }
+.hover-glow:hover {
+  border-color: var(--neuro) !important;
+  box-shadow: 0 0 24px var(--glow-strong), 0 0 56px var(--glow-soft);
+  transform: translateY(-2px);
+}
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.animate-fade-up { animation: fadeUp .5s cubic-bezier(.23,1,.32,1) both; }
+
+/* inputs: themed globally so every form flips with the theme */
+input, select, textarea {
+  background-color: var(--input-bg);
+  color: var(--text-hi);
+  border-color: var(--edge);
+  accent-color: var(--neuro);
+}
+input::placeholder, textarea::placeholder { color: var(--text-low); }
+
+/* =====================================================================
+   Dark-theme shim — remaps the light Tailwind utilities the older
+   components use, so they go dark without rewriting each file. Scoped
+   under .dark: without the class, the stock light utilities ARE the
+   light theme. Plain (unlayered) rules override @layer utilities.
+   ===================================================================== */
+
+/* surfaces */
+.dark .bg-white { background-color: #111122; }
+.dark .bg-gray-50 { background-color: #0d0d18; }
+.dark .bg-gray-100 { background-color: #16162a; }
+.dark .bg-gray-200 { background-color: #1e1e2e; }
+
+/* tinted soft backgrounds -> translucent neon tints */
+.dark .bg-blue-50 { background-color: rgba(96,165,250,0.10); }
+.dark .bg-blue-50\/50 { background-color: rgba(96,165,250,0.07); }
+.dark .bg-purple-50 { background-color: rgba(168,85,247,0.12); }
+.dark .bg-indigo-50 { background-color: rgba(129,140,248,0.12); }
+.dark .bg-indigo-50\/50 { background-color: rgba(129,140,248,0.07); }
+.dark .bg-rose-50 { background-color: rgba(244,63,94,0.12); }
+.dark .bg-rose-50\/50 { background-color: rgba(244,63,94,0.07); }
+.dark .bg-amber-50 { background-color: rgba(251,191,36,0.12); }
+.dark .bg-red-50 { background-color: rgba(244,63,94,0.12); }
+.dark .bg-green-50 { background-color: rgba(0,255,200,0.10); }
+
+/* text — floor raised vs the first dark theme: the old #61617a/#7c7c98
+   greys failed contrast on #07070f (the "grey text doesn't show" bug) */
+.dark .text-gray-900 { color: #f1f1f8; }
+.dark .text-gray-800 { color: #e2e2ee; }
+.dark .text-gray-700 { color: #c9c9dc; }
+.dark .text-gray-600 { color: #ababc6; }
+.dark .text-gray-500 { color: #9595b2; }
+.dark .text-gray-400 { color: #8585a3; }
+
+/* borders / dividers */
+.dark .border-gray-100 { border-color: #16162a; }
+.dark .border-gray-200 { border-color: #1e1e2e; }
+.dark .border-gray-300 { border-color: #26263a; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1b1b2c; }
+
+/* hovers that assumed a light background */
+.dark .hover\:bg-gray-100:hover { background-color: #1a1a2e; }
+.dark .hover\:bg-red-50:hover { background-color: rgba(244,63,94,0.12); }
+
+/* primary-action blues (pages that hardcode blue buttons) -> neon */
+.dark .bg-blue-600, .dark .bg-blue-700 { background-color: #00ffcc; color: #07070f; }
+.dark .hover\:bg-blue-700:hover { background-color: #33ffd6; }
+.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800 { color: #00ffcc; }
+.dark .text-blue-900 { color: #aef9ec; }
+.dark .text-blue-100, .dark .text-blue-200 { color: #b9b9d0; }
+
+/* common accent text on dark */
+.dark .text-purple-700, .dark .text-purple-600 { color: #c084fc; }
+.dark .text-red-600, .dark .text-red-700 { color: #fb7185; }
+.dark .text-red-800, .dark .text-red-900 { color: #fda4af; }
+.dark .text-green-600, .dark .text-green-700 { color: #00ffcc; }
+.dark .text-green-800, .dark .text-green-900 { color: #aef9ec; }
+.dark .text-amber-600, .dark .text-amber-700 { color: #fcd34d; }
+.dark .text-amber-800, .dark .text-amber-900 { color: #fde68a; }
+
+/* tinted borders that assumed pastel-on-white */
+.dark .border-red-200 { border-color: rgba(244,63,94,0.35); }
+.dark .border-green-200 { border-color: rgba(0,255,200,0.35); }
+.dark .border-amber-200 { border-color: rgba(251,191,36,0.35); }
+
+/* =====================================================================
+   Light-theme safety shim — utilities chosen during the dark-only era
+   that would be unreadable on white. Converted components use text-hi /
+   text-ink instead; these rules only catch stragglers.
+   ===================================================================== */
+:root:not(.dark) .text-white { color: var(--text-hi); }
+:root:not(.dark) .text-gray-100,
+:root:not(.dark) .text-gray-200,
+:root:not(.dark) .text-gray-300 { color: #475569; }
+:root:not(.dark) .hover\:text-white:hover { color: var(--text-hi); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+}

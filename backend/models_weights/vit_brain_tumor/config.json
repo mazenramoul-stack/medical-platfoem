@@ -1,0 +1,64 @@
+{
+  "architectures": [
+    "SwinForImageClassification"
+  ],
+  "attention_probs_dropout_prob": 0.0,
+  "depths": [
+    2,
+    2,
+    6,
+    2
+  ],
+  "drop_path_rate": 0.1,
+  "dtype": "float32",
+  "embed_dim": 96,
+  "encoder_stride": 32,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.0,
+  "hidden_size": 768,
+  "id2label": {
+    "0": "glioma_tumor",
+    "1": "meningioma_tumor",
+    "2": "no_tumor",
+    "3": "pituitary_tumor"
+  },
+  "image_size": 224,
+  "initializer_range": 0.02,
+  "label2id": {
+    "glioma_tumor": 0,
+    "meningioma_tumor": 1,
+    "no_tumor": 2,
+    "pituitary_tumor": 3
+  },
+  "layer_norm_eps": 1e-05,
+  "mlp_ratio": 4.0,
+  "model_type": "swin",
+  "num_channels": 3,
+  "num_heads": [
+    3,
+    6,
+    12,
+    24
+  ],
+  "num_layers": 4,
+  "out_features": [
+    "stage4"
+  ],
+  "out_indices": [
+    4
+  ],
+  "patch_size": 4,
+  "path_norm": true,
+  "problem_type": "single_label_classification",
+  "qkv_bias": true,
+  "stage_names": [
+    "stem",
+    "stage1",
+    "stage2",
+    "stage3",
+    "stage4"
+  ],
+  "transformers_version": "5.10.1",
+  "use_absolute_embeddings": false,
+  "window_size": 7
+}

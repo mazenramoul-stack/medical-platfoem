@@ -1,0 +1,47 @@
+E:\MASTER\medical-platform\backend\venv\lib\site-packages\requests\__init__.py:109: RequestsDependencyWarning: urllib3 (2.7.0) or chardet (7.4.3)/charset_normalizer (3.4.7) doesn't match a supported version!
+  warnings.warn(
+Creating test database for alias 'default'...
+
+This version of djongo does not support "NULL, NOT NULL column validation check" fully. Visit https://nesdis.github.io/djongo/support/
+This version of djongo does not support "schema validation using CONSTRAINT" fully. Visit https://nesdis.github.io/djongo/support/
+This version of djongo does not support "COLUMN DROP NOT NULL " fully. Visit https://nesdis.github.io/djongo/support/
+This version of djongo does not support "DROP CASCADE" fully. Visit https://nesdis.github.io/djongo/support/
+This version of djongo does not support "schema validation using KEY" fully. Visit https://nesdis.github.io/djongo/support/
+This version of djongo does not support "schema validation using REFERENCES" fully. Visit https://nesdis.github.io/djongo/support/
+This version of djongo does not support "schema validation using NULL" fully. Visit https://nesdis.github.io/djongo/support/
+This version of djongo does not support "column type validation" fully. Visit https://nesdis.github.io/djongo/support/
+System check identified no issues (0 silenced).
+..E:\MASTER\medical-platform\backend\venv\lib\site-packages\neurokit2\signal\signal_period.py:84: NeuroKitWarning: Too few peaks detected to compute the rate. Returning empty vector.
+  warn(
+E:\MASTER\medical-platform\backend\apps\inference\ecg_pipeline.py:167: RuntimeWarning: Mean of empty slice
+  mean_hr = float(np.nanmean(hr_values))
+E:\MASTER\medical-platform\backend\venv\lib\site-packages\numpy\lib\nanfunctions.py:1215: RuntimeWarning: Mean of empty slice
+  return np.nanmean(a, axis, out=out, keepdims=keepdims)
+E:\MASTER\medical-platform\backend\venv\lib\site-packages\neurokit2\hrv\hrv_time.py:156: RuntimeWarning: Mean of empty slice
+  out["MeanNN"] = np.nanmean(rri)
+E:\MASTER\medical-platform\backend\venv\lib\site-packages\numpy\lib\nanfunctions.py:1879: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+HRV time-domain failed: index 0 is out of bounds for axis 0 with size 0
+Loading ecglib pathology models (first time � downloading weights)...
+densenet1d121 model trained on 12-lead 10 second ECG records with 500 frequency to detect AFIB. z_norm normalization was applied to all the records during preprocessing.
+densenet1d121 model trained on 12-lead 10 second ECG records with 500 frequency to detect 1AVB. z_norm normalization was applied to all the records during preprocessing.
+ECG 1AVB: fine-tuned weights loaded (E:\MASTER\medical-platform\backend\models_weights\ecg_finetuned\1AVB.pt)
+densenet1d121 model trained on 12-lead 10 second ECG records with 500 frequency to detect STACH. z_norm normalization was applied to all the records during preprocessing.
+densenet1d121 model trained on 12-lead 10 second ECG records with 500 frequency to detect SBRAD. z_norm normalization was applied to all the records during preprocessing.
+densenet1d121 model trained on 12-lead 10 second ECG records with 500 frequency to detect RBBB. z_norm normalization was applied to all the records during preprocessing.
+ECG RBBB: fine-tuned weights loaded (E:\MASTER\medical-platform\backend\models_weights\ecg_finetuned\RBBB.pt)
+densenet1d121 model trained on 12-lead 10 second ECG records with 500 frequency to detect LBBB. z_norm normalization was applied to all the records during preprocessing.
+densenet1d121 model trained on 12-lead 10 second ECG records with 500 frequency to detect PVC. z_norm normalization was applied to all the records during preprocessing.
+ECG PVC: fine-tuned weights loaded (E:\MASTER\medical-platform\backend\models_weights\ecg_finetuned\PVC.pt)
+Loading U-Net model (first time � downloading weights ~30MB)...
+.Using cache found in C:\Users\MAZEN/.cache\torch\hub\mateuszbuda_brain-segmentation-pytorch_master
+Loading fine-tuned ViT model from local dir: E:\MASTER\medical-platform\backend\models_weights\vit_brain_tumor
+Some weights of SwinForImageClassification were not initialized from the model checkpoint at E:\MASTER\medical-platform\backend\models_weights\vit_brain_tumor and are newly initialized: ['swin.encoder.layers.0.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.0.blocks.1.attention.self.relative_position_index', 'swin.encoder.layers.1.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.1.blocks.1.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.1.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.2.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.3.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.4.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.5.attention.self.relative_position_index', 'swin.encoder.layers.3.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.3.blocks.1.attention.self.relative_position_index']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+....
+----------------------------------------------------------------------
+Ran 7 tests in 14.561s
+
+OK
+Destroying test database for alias 'default'...
+

@@ -1,0 +1,80 @@
+# ====================================================================
+# Secrets / config — NEVER commit (.env holds SECRET_KEY, DB creds)
+# ====================================================================
+backend/.env
+*.env
+!*.env.example
+
+# ====================================================================
+# Patient data / PHI — uploads, masks, overlays, generated PDF reports
+# ====================================================================
+backend/media/
+backend/staticfiles/
+backend/static_root/
+
+# ====================================================================
+# Datasets (large) — HMS, PTB-XL, EchoNet, LGG, etc.
+# ====================================================================
+data/
+*.edf
+
+# ====================================================================
+# Model weights (large binaries) — host separately, download on setup.
+# Keep small config/README sidecars (config.json, README.md) tracked.
+# ====================================================================
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.h5
+backend/models_weights/**/*.zip
+
+# ====================================================================
+# Python
+# ====================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/venv/
+venv/
+.venv/
+env/
+
+# ====================================================================
+# Django
+# ====================================================================
+*.sqlite3
+db.sqlite3
+
+# ====================================================================
+# Node / frontend
+# ====================================================================
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ====================================================================
+# Tool outputs (regenerable: `graphify update .`)
+# ====================================================================
+graphify-out/
+
+# ====================================================================
+# IDE / OS / logs
+# ====================================================================
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+.claude/settings.local.json
+*.log
+*.tmp

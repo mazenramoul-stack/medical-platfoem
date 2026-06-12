@@ -1,0 +1,33 @@
+Some weights of SwinForImageClassification were not initialized from the model checkpoint at E:\MASTER\medical-platform\backend\models_weights\vit_brain_tumor and are newly initialized: ['swin.encoder.layers.0.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.0.blocks.1.attention.self.relative_position_index', 'swin.encoder.layers.1.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.1.blocks.1.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.1.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.2.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.3.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.4.attention.self.relative_position_index', 'swin.encoder.layers.2.blocks.5.attention.self.relative_position_index', 'swin.encoder.layers.3.blocks.0.attention.self.relative_position_index', 'swin.encoder.layers.3.blocks.1.attention.self.relative_position_index']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Loading fine-tuned ViT model from local dir: E:\MASTER\medical-platform\backend\models_weights\vit_brain_tumor
+Device: cpu  (ViT loaded)
+
+  ...200 images
+  ...400 images
+  ...600 images
+  ...800 images
+  ...1000 images
+  ...1200 images
+  ...1400 images
+  ...1600 images
+
+Cached 1600 predictions -> E:\MASTER\medical-platform\tools\mri_preds.json
+
+MRI tumor-detection recall — 1600 images (1200 with tumor, 400 healthy)
+
+Baseline (plain argmax):
+  tumor-detection recall : 0.9833   (20 tumors called 'notumor')
+  healthy correctly clear: 400/400
+
+With notumor-confidence safety gate (accept 'notumor' only if conf >= gate,
+else flag 'possible tumor — review'):
+    gate  tumor recall  missed  healthy flagged
+    0.50        0.9833      20         0/400
+    0.90        0.9925       9         0/400
+    0.95        0.9925       9         0/400
+    0.99        0.9983       2         2/400
+    0.99        0.9983       2         3/400
+    1.00        1.0000       0        17/400
+
+('healthy flagged' = false alarms on truly-healthy scans — the precision cost.)

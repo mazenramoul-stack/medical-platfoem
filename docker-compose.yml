@@ -1,0 +1,70 @@
+# Optional containerised setup for the Multimodal Medical AI Platform.
+#
+# NOT TESTED end-to-end in this repo — the Dockerfiles are starting points,
+# not production manifests. Building the backend image will take 10-20 minutes
+# and produce a ~4 GB image because of torch + ecglib weights. Verify before
+# relying on it for demos.
+#
+# Usage:
+#   docker compose up --build
+#
+# Stop:
+#   docker compose down
+
+services:
+
+  mongodb:
+    image: mongo:7
+    container_name: medical-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongo:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medical-backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      # Persist model weight caches across container restarts.
+      - torch_cache:/root/.cache/torch
+      - hf_cache:/root/.cache/huggingface
+    environment:
+      - SECRET_KEY=docker-dev-secret-change-me
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - DB_HOST=mongodb
+      - DB_PORT=27017
+      - DB_NAME=medical_platform
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medical-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules    # let the image's node_modules win
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+
+volumes:
+  torch_cache:
+  hf_cache:

@@ -1,0 +1,16 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.env.*
+db.sqlite3
+db.sqlite3-journal
+media/mri/*
+media/ecg/*
+media/reports/*
+!media/mri/.gitkeep
+!media/ecg/.gitkeep
+.pytest_cache/
+.mypy_cache/
+*.log

@@ -1,0 +1,25 @@
+Loading EchoNet-Dynamic models (segmentation + EF)...
+Device: cpu  (EchoNet EF model loaded)
+
+  ...50 videos
+  ...100 videos
+  ...150 videos
+  ...200 videos
+  ...250 videos
+  ...300 videos
+  ...350 videos
+  ...400 videos
+
+Cached 400 EF pairs -> E:\MASTER\medical-platform\tools\echo_ef_pairs.json
+
+EchoNet EF — 400 videos (TEST split)
+  MAE 4.01 %   RMSE 5.30 %
+
+Reduced EF < 50 %  (83 truly reduced of 400)
+  flag at EF<50 (no margin): recall 0.783  precision 0.878  missed 18
+  flag at EF<55 (+5 margin): recall 0.952  precision 0.675  missed 4  (target recall >= 0.95)
+
+Reduced EF < 40 %  (49 truly reduced of 400)
+  flag at EF<40 (no margin): recall 0.857  precision 0.894  missed 7
+  flag at EF<46 (+6 margin): recall 0.980  precision 0.774  missed 1  (target recall >= 0.95)
+

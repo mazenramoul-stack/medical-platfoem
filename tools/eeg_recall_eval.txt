@@ -1,0 +1,32 @@
+Device: cpu  (BIOT IIIC classifier loaded from biot_iiic.pt)
+
+BIOT / IIIC evaluation — 485 windows (patient-disjoint held-out split)
+
+Headline (imbalance-aware):
+  Balanced accuracy : 0.434
+  Cohen's kappa     : 0.343
+  Macro F1          : 0.427
+  Weighted F1       : 0.455
+  KL divergence     : 1.160   (true votes || predicted, lower is better)
+  Raw accuracy      : 0.462   (reported last — misleading under imbalance)
+
+Per-class:
+  class     prec    rec     f1  support
+  SZ       0.591  0.487  0.534      113
+  LPD      0.419  0.323  0.365       96
+  GPD      0.481  0.646  0.551       79
+  LRDA     0.329  0.353  0.340       68
+  GRDA     0.491  0.596  0.538       94
+  Other    0.280  0.200  0.233       35
+
+Confusion matrix (rows = true, cols = predicted):
+             SZ    LPD    GPD   LRDA   GRDA  Other
+  SZ         55      8     21     11     13      5
+  LPD        17     31     14     20     11      3
+  GPD         9     15     51      2      1      1
+  LRDA        4      9      5     24     24      2
+  GRDA        3      5     10     13     56      7
+  Other       5      6      5      3      9      7
+
+Reproduce:
+  python tools/eval_eeg.py --hms-dir data/hms --weights backend/models_weights/biot/biot_iiic.pt --limit 4000 --seed 0

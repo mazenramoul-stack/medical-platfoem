@@ -1,0 +1,120 @@
+{
+  "run": "ECG per-pathology fine-tune (ecglib DenseNet-1D, PTB-XL fold 10)",
+  "baseline_reference": {
+    "mean_auc": 0.978,
+    "macro_balanced_acc": 0.884,
+    "macro_f1": 0.71
+  },
+  "pathologies": [
+    "AFIB",
+    "1AVB",
+    "STACH",
+    "SBRAD",
+    "RBBB",
+    "LBBB",
+    "PVC"
+  ],
+  "config": {
+    "epochs": 8,
+    "batch_size": 64,
+    "lr": 0.0001,
+    "patience": 3,
+    "seed": 0,
+    "min_likelihood": 0.0,
+    "auc_tolerance": 0.005,
+    "train_folds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "val_fold": 9,
+    "test_fold": 10
+  },
+  "macro_balanced_acc_baseline": 0.9417800178968726,
+  "macro_balanced_acc_deployed": 0.94562507795196,
+  "macro_f1_baseline": 0.5678734527165478,
+  "macro_f1_deployed": 0.5960941450812195,
+  "macro_auc_deployed": 0.9796610556438125,
+  "kept": [
+    "1AVB",
+    "RBBB",
+    "PVC"
+  ],
+  "per_pathology": {
+    "AFIB": {
+      "base_bal_acc": 0.947,
+      "base_auc": 0.975,
+      "base_f1": 0.779,
+      "ft_bal_acc": 0.9429,
+      "ft_auc": 0.9766,
+      "ft_f1": 0.7692,
+      "kept": false,
+      "reason": "bal_acc not improved"
+    },
+    "1AVB": {
+      "base_bal_acc": 0.898,
+      "base_auc": 0.96,
+      "base_f1": 0.2998,
+      "ft_bal_acc": 0.9085,
+      "ft_auc": 0.9717,
+      "ft_f1": 0.4396,
+      "kept": true,
+      "reason": "passed no-regression rule"
+    },
+    "STACH": {
+      "base_bal_acc": 0.9665,
+      "base_auc": 0.9905,
+      "base_f1": 0.5806,
+      "ft_bal_acc": 0.9643,
+      "ft_auc": 0.9929,
+      "ft_f1": 0.8508,
+      "kept": false,
+      "reason": "bal_acc not improved"
+    },
+    "SBRAD": {
+      "base_bal_acc": 0.891,
+      "base_auc": 0.9502,
+      "base_f1": 0.3229,
+      "ft_bal_acc": 0.8703,
+      "ft_auc": 0.9517,
+      "ft_f1": 0.3195,
+      "kept": false,
+      "reason": "bal_acc not improved"
+    },
+    "RBBB": {
+      "base_bal_acc": 0.9605,
+      "base_auc": 0.9934,
+      "base_f1": 0.7196,
+      "ft_bal_acc": 0.967,
+      "ft_auc": 0.9948,
+      "ft_f1": 0.805,
+      "kept": true,
+      "reason": "passed no-regression rule"
+    },
+    "LBBB": {
+      "base_bal_acc": 0.958,
+      "base_auc": 0.9823,
+      "base_f1": 0.4552,
+      "ft_bal_acc": 0.9552,
+      "ft_auc": 0.9825,
+      "ft_f1": 0.4357,
+      "kept": false,
+      "reason": "bal_acc not improved"
+    },
+    "PVC": {
+      "base_bal_acc": 0.9717,
+      "base_auc": 0.9917,
+      "base_f1": 0.8178,
+      "ft_bal_acc": 0.9815,
+      "ft_auc": 0.9932,
+      "ft_f1": 0.7902,
+      "kept": true,
+      "reason": "passed no-regression rule"
+    }
+  }
+}
