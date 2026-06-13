@@ -126,9 +126,10 @@ The core is **correct**: every list/retrieve/destroy queryset filters by `patien
 uploads resolve `get_object_or_404(Patient, …, doctor=request.user)`. No IDOR in the JSON layer. Two minor
 issues:
 
-- 🟢 **`/history/` silently omits echo & eeg** (`patients/views.py:23-37`) — returns only `mri_analyses` and
-  `ecg_analyses`, but README documents four modalities and the reverse relations exist. Add them (or iterate a
-  modality registry).
+- ✅ **`/history/` now returns all four modalities** (`patients/views.py`) — previously omitted echo & eeg;
+  fixed to serialize `echo_analyses` and `eeg_analyses` alongside MRI/ECG (request context preserved for signed
+  media URLs), so the documented aggregate matches the four-modality README. Doctor-scoping is inherited from
+  `get_object()`; regression test in `tests/test_doctor_isolation.py::PatientHistoryAggregateTest`.
 - 🟢 **The envelope guarantee isn't enforced at the call site** (`inference/__init__.py:37-49`) —
   `run_inference_with_timeout` catches only `TimeoutError`; any other exception escaping a pipeline would 500.
   It holds today only because each `analyze_*` wraps its whole body in `try/except`. Wrap `future.result()` in

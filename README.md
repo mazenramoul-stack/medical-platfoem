@@ -391,7 +391,7 @@ All endpoints are JSON unless noted. Authenticated requests carry
 | GET    | `/{id}/` | ✓ | 404 if not yours |
 | PATCH  | `/{id}/` | ✓ | 404 if not yours |
 | DELETE | `/{id}/` | ✓ | Cascades the patient's MRI/ECG/Echo/EEG; reports survive via null FK |
-| GET    | `/{id}/history/` | ✓ | `{patient_id, patient_name, mri_analyses[], ecg_analyses[], …}` |
+| GET    | `/{id}/history/` | ✓ | `{patient_id, patient_name, mri_analyses[], ecg_analyses[], echo_analyses[], eeg_analyses[]}` |
 
 ### MRI — `/api/mri/`
 
