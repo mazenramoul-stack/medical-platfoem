@@ -68,6 +68,35 @@ Per-modality detail and reproduce commands are in each section below.
 
 ---
 
+## 0.5 Statistical robustness — bootstrap 95% CIs (June 2026)
+
+Headline numbers are single-split point estimates; to show they are stable (not lucky
+splits) every one carries a **95% confidence interval** from 2,000 bootstrap resamples
+of the *cached per-record predictions* (no model re-run needed). Reproduce:
+`python tools/bootstrap_cis.py --boot 2000 --seed 0`.
+
+| Modality | Metric | Point | 95% CI |
+|---|---|---:|---|
+| MRI | 4-class accuracy (n=1,600) | 95.4% | **[94.3, 96.4]** |
+| MRI | macro F1 (4-class) | 0.954 | [0.942, 0.963] |
+| MRI | tumour-detection recall (gate 0.99) | 0.998 | [0.996, 1.000] |
+| ECG | macro ROC-AUC (PTB-XL fold 10, n=2,198) | 0.980 | **[0.973, 0.985]** |
+| ECG | macro recall (recall-first) | 0.982 | [0.972, 0.992] |
+| Echo | EF MAE (n=400) | 4.01% | **[3.68, 4.35]** |
+| Echo | EF R² | 0.831 | [0.789, 0.863] |
+| Echo | reduced-EF recall (flag EF<55) | 0.952 | [0.898, 0.989] |
+| EEG | balanced accuracy (n=1,883) | 0.278 | **[0.257, 0.299]** |
+
+**EEG above-chance significance.** A permutation test (2,000 label shuffles) puts the
+6-class chance line at ~0.167 (95th percentile 0.186); the observed **0.278** sits well
+outside it: **p = 0.0005**. So the IIIC head is **significantly above chance** — it is
+genuinely learning, not noise — even though it is far from the ~0.5 frozen-encoder
+ceiling. The CIs are all narrow, confirming the headline numbers are statistically
+stable. (Per-pathology ECG AUCs with CIs are printed by the script, e.g. SBRAD
+0.950 [0.913, 0.974], RBBB 0.995 [0.992, 0.997].)
+
+---
+
 ## 1. ECG pathology classification (ecglib DenseNet-1D, 7 models)
 
 **Dataset:** PTB-XL (PhysioNet v1.0.3), official held-out **test fold 10**.

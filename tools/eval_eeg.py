@@ -89,6 +89,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=4000, help="max windows indexed (match training)")
     ap.add_argument("--test-frac", type=float, default=0.2, help="patient-level test fraction (match training)")
     ap.add_argument("--seed", type=int, default=0, help="split seed (match training)")
+    ap.add_argument("--save-preds", default=None,
+                    help="dump {y_true, y_pred} to this JSON (for tools/bootstrap_cis.py)")
     args = ap.parse_args()
 
     if not Path(args.weights).exists():
@@ -123,6 +125,13 @@ def main() -> int:
     if n == 0:
         print("No test windows could be loaded (parquet files missing?).", file=sys.stderr)
         return 1
+
+    if args.save_preds:
+        import json
+        with open(args.save_preds, "w") as f:
+            json.dump({"y_true": [int(x) for x in y_true],
+                       "y_pred": [int(x) for x in y_pred]}, f)
+        print(f"Saved {n} (y_true, y_pred) pairs -> {args.save_preds}\n")
 
     c = _confusion(np.array(y_true), np.array(y_pred))
     m = _metrics_from_confusion(c)
