@@ -17,12 +17,12 @@ export default function Anatomy3DPanel({ accent, highlight }) {
   const { t } = useI18n();
   const { colors } = useTokens();
 
-  // Grade the highlight by confidence: a continuous green→amber→red scale so the
-  // colour reflects each finding's probability (low % = green, high % = red).
-  // Visible on the grey non-problem structures + dark scene.
+  // Degree of GREEN by confidence: same green hue everywhere, but a brighter,
+  // stronger glow for a higher-probability finding (and a fainter legend dot for
+  // a lower one). Reads clearly on the grey non-problem structures.
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
-  const probColor = (p) => `hsl(${Math.round((1 - clamp01(p)) * 130)}, 80%, 55%)`;
-  const probIntensity = (p) => 0.7 + 1.0 * clamp01(p);
+  const probIntensity = (p) => 0.6 + 1.1 * clamp01(p);
+  const dotOpacity = (p) => 0.45 + 0.55 * clamp01(p);
 
   // id -> { color, intensity } for the 3D model.
   const highlightMap = useMemo(() => {
@@ -31,7 +31,7 @@ export default function Anatomy3DPanel({ accent, highlight }) {
       // Rate finding → no localized site: gently glow the whole heart "examined".
       for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: colors.neuro, intensity: 0.55 };
     } else {
-      for (const r of highlight.regions || []) m[r.id] = { color: probColor(r.probability), intensity: probIntensity(r.probability) };
+      for (const r of highlight.regions || []) m[r.id] = { color: colors.neuro, intensity: probIntensity(r.probability) };
     }
     return m;
     // colors change with theme; highlight changes with the result
@@ -68,12 +68,11 @@ export default function Anatomy3DPanel({ accent, highlight }) {
               <ul className="space-y-2">
                 {(highlight.findings || []).map((f) => {
                   const label = t(`anatomy3d.findings.${f.code}`);
-                  const dot = probColor(f.probability);
                   return (
                     <li key={f.code} className="flex items-center gap-2 text-sm text-gray-800">
                       <span
                         className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ background: dot, boxShadow: `0 0 8px ${dot}` }}
+                        style={{ background: colors.neuro, opacity: dotOpacity(f.probability), boxShadow: `0 0 8px ${colors.neuro}` }}
                       />
                       <span className="font-medium">{label === `anatomy3d.findings.${f.code}` ? f.code : label}</span>
                       <span className="text-xs text-gray-400 tabular-nums">· {(f.probability * 100).toFixed(1)}%</span>

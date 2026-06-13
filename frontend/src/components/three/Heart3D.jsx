@@ -111,7 +111,8 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
   // be glowed via `highlight` without lighting up the others.
   const mats = useMemo(() => {
     const muscle = mix(accent, '#7f1d1d', 0.55);
-    const common = { roughness: 0.42, metalness: 0.05, clearcoat: 0.7, clearcoatRoughness: 0.3 };
+    // Translucent ("glassy") so the highlighted structure glows through the heart.
+    const common = { roughness: 0.42, metalness: 0.05, clearcoat: 0.7, clearcoatRoughness: 0.3, transparent: true, opacity: 0.6 };
     const muscleMat = () => new THREE.MeshPhysicalMaterial({
       color: muscle, emissive: new THREE.Color(accent), emissiveIntensity: 0.1, ...common,
     });
