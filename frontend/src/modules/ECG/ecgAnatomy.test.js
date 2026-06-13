@@ -43,14 +43,18 @@ describe('mapEcgToHighlight', () => {
     expect(ids(mapEcgToHighlight(ecgWith(['1AVB'])))).toContain('av-node');
   });
 
-  it('treats STACH as a rate-only finding on the SA node (no wall)', () => {
+  it('treats STACH as a rate-only finding with NO localized structure', () => {
     const h = mapEcgToHighlight(ecgWith(['STACH']));
-    expect(ids(h)).toEqual(['sa-node']);
+    expect(ids(h)).toEqual([]); // rate findings do not pinpoint a site
     expect(h.rateOnly).toBe(true);
+    expect(h.normal).toBe(false);
+    expect(h.findingCodes).toContain('STACH');
   });
 
-  it('treats SBRAD as a rate-only finding', () => {
-    expect(mapEcgToHighlight(ecgWith(['SBRAD'])).rateOnly).toBe(true);
+  it('treats SBRAD as a rate-only finding with no structure', () => {
+    const h = mapEcgToHighlight(ecgWith(['SBRAD']));
+    expect(h.rateOnly).toBe(true);
+    expect(ids(h)).toEqual([]);
   });
 
   it('returns no regions and normal=true when nothing is detected', () => {
@@ -60,9 +64,9 @@ describe('mapEcgToHighlight', () => {
     expect(h.rateOnly).toBe(false);
   });
 
-  it('unions regions across multiple findings; structural wins over rate-only', () => {
+  it('unions structural regions across findings; rate findings add no site', () => {
     const h = mapEcgToHighlight(ecgWith(['RBBB', 'AFIB', 'STACH']));
-    expect(ids(h)).toEqual(['la', 'ra', 'rv', 'sa-node']);
+    expect(ids(h)).toEqual(['la', 'ra', 'rv']); // STACH contributes no region
     expect(h.rateOnly).toBe(false); // a structural finding is present
     expect(h.findingCodes.sort()).toEqual(['AFIB', 'RBBB', 'STACH']);
   });

@@ -17,13 +17,21 @@ export default function Anatomy3DPanel({ accent, highlight }) {
   const { t } = useI18n();
   const { colors } = useTokens();
 
-  const sevColor = (s) => (s === 'high' ? colors.danger : s === 'medium' ? colors.warning : colors.cardio);
-  const sevIntensity = (s) => (s === 'high' ? 0.95 : s === 'medium' ? 0.6 : 0.35);
+  // Bright green (the app's neuro accent) reads clearly on the dark-red heart and
+  // the dark scene — far more visible than a red glow on red muscle. Severity is
+  // conveyed by glow intensity + the legend text, not hue.
+  const glowColor = colors.neuro;
+  const sevIntensity = (s) => (s === 'high' ? 1.7 : s === 'medium' ? 1.2 : 0.8);
 
   // id -> { color, intensity } for the 3D model.
   const highlightMap = useMemo(() => {
     const m = {};
-    for (const r of highlight.regions || []) m[r.id] = { color: sevColor(r.severity), intensity: sevIntensity(r.severity) };
+    if (highlight.rateOnly) {
+      // Rate finding → no localized site: gently glow the whole heart "examined".
+      for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: glowColor, intensity: 0.6 };
+    } else {
+      for (const r of highlight.regions || []) m[r.id] = { color: glowColor, intensity: sevIntensity(r.severity) };
+    }
     return m;
     // colors change with theme; highlight changes with the result
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,23 +61,33 @@ export default function Anatomy3DPanel({ accent, highlight }) {
             <p className="text-sm text-success font-medium">{t('anatomy3d.none')}</p>
           ) : (
             <>
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                  {t('anatomy3d.implicated')}
+              {highlight.rateOnly ? (
+                <p className="flex items-start gap-2 text-sm text-gray-800">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0 mt-1.5"
+                    style={{ background: glowColor, boxShadow: `0 0 8px ${glowColor}` }}
+                  />
+                  <span>{t('anatomy3d.rateNote')}</span>
+                </p>
+              ) : (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    {t('anatomy3d.implicated')}
+                  </div>
+                  <ul className="space-y-2">
+                    {highlight.regions.map((r) => (
+                      <li key={r.id} className="flex items-center gap-2 text-sm text-gray-800">
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ background: glowColor, boxShadow: `0 0 8px ${glowColor}` }}
+                        />
+                        <span className="font-medium">{t(`anatomy3d.regions.${r.id}`)}</span>
+                        <span className="text-xs text-gray-400">· {t(`anatomy3d.severity.${r.severity}`)}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-2">
-                  {highlight.regions.map((r) => (
-                    <li key={r.id} className="flex items-center gap-2 text-sm text-gray-800">
-                      <span
-                        className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ background: sevColor(r.severity), boxShadow: `0 0 8px ${sevColor(r.severity)}` }}
-                      />
-                      <span className="font-medium">{t(`anatomy3d.regions.${r.id}`)}</span>
-                      <span className="text-xs text-gray-400">· {t(`anatomy3d.severity.${r.severity}`)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              )}
 
               {highlight.findingCodes?.length > 0 && (
                 <ul className="space-y-1 text-xs text-gray-600">
@@ -78,12 +96,6 @@ export default function Anatomy3DPanel({ accent, highlight }) {
                     return <li key={code}>• {label === `anatomy3d.findings.${code}` ? code : label}</li>;
                   })}
                 </ul>
-              )}
-
-              {highlight.rateOnly && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                  {t('anatomy3d.rateNote')}
-                </p>
               )}
             </>
           )}

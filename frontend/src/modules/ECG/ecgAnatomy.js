@@ -23,8 +23,10 @@ const ECG_PATHOLOGY_MAP = {
   PVC: { regions: ['lv', 'rv'], rateOnly: false },
   AFIB: { regions: ['la', 'ra'], rateOnly: false },
   '1AVB': { regions: ['av-node'], rateOnly: false },
-  STACH: { regions: ['sa-node'], rateOnly: true },
-  SBRAD: { regions: ['sa-node'], rateOnly: true },
+  // Rate findings have NO localized site — they contribute no structural region.
+  // The UI shows the whole heart "examined" (no pinpoint) for these.
+  STACH: { regions: [], rateOnly: true },
+  SBRAD: { regions: [], rateOnly: true },
 };
 
 const SEVERITY_RANK = { none: 0, low: 1, medium: 2, high: 3 };
@@ -58,12 +60,14 @@ export function mapEcgToHighlight(ecg) {
   const bySeverity = new Map(); // region id -> highest severity seen
   const findingCodes = [];
   let anyStructural = false;
+  let anyRate = false;
 
   for (const { code, probability } of detected) {
     findingCodes.push(code);
     const entry = ECG_PATHOLOGY_MAP[code];
     if (!entry) continue;
-    if (!entry.rateOnly) anyStructural = true;
+    if (entry.rateOnly) anyRate = true;
+    else anyStructural = true;
     const severity = severityFor(probability);
     for (const id of entry.regions) {
       const prev = bySeverity.get(id);
@@ -78,7 +82,8 @@ export function mapEcgToHighlight(ecg) {
     regions,
     findingCodes,
     beatsPerMinute,
-    rateOnly: regions.length > 0 && !anyStructural,
+    // a rate finding with no co-occurring structural finding → no localized site
+    rateOnly: anyRate && !anyStructural,
     normal: false,
   };
 }
