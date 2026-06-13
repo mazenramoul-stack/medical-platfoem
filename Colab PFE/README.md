@@ -58,7 +58,7 @@ balanced accuracy, matching the encoder authors' published level.”**
 
 ### Why there is no Echo or U-Net notebook
 
-- **Echo** (EF MAE 3.19 %, Dice 0.897) already matches the published
+- **Echo** (EF MAE 4.01 %, R² 0.831 on 400 TEST videos; Dice 0.897) already matches the published
   EchoNet-Dynamic paper. It is a regression task — “percent accuracy” does
   not apply, and there is nothing for a GPU to win back.
 - **MRI U-Net segmentation** (Dice 0.852) is within a few points of the source

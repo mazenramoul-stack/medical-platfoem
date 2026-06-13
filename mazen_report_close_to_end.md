@@ -163,6 +163,8 @@ Your validation is, by student-project standards, **unusually honest and reprodu
 ECG (macro F1 0.727) and MRI (95.4%) headlines from the committed artifacts and they matched exactly. But:
 
 ### 🟠 HIGH — The Echo EF headline is a 40-video cherry-pick *(verifier interrupted — I reproduced this myself)*
+> ✅ **RESOLVED (June 2026):** every doc now headlines the **400-video** figure (EF MAE **4.01 %** / R² **0.831**, recomputed from the committed `tools/echo_ef_pairs.json`); the 40-video 3.19 % is demoted to a transparency footnote across README, VALIDATION, METHODOLOGY-area docs, the walkthroughs, the Colab README, and the defence narrative. The analysis below describes the *pre-fix* state.
+
 `VALIDATION.md:334` headlines **MAE 3.19% / R² 0.860**, measured on **40 videos** (`VALIDATION.md:327-328`).
 The repo's own committed `tools/echo_ef_pairs.json` contains **400** true/pred pairs. I recomputed:
 

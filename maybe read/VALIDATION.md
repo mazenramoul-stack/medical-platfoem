@@ -523,8 +523,9 @@ serving an untrained head.)
    malformed inputs degrade results.
 7. **Scalability** — inference is synchronous in the request thread (no queue);
    echo video inference is especially slow on CPU (~10–40 s/video).
-8. **Echo numbers are on TEST-split subsets** (40 videos EF, 30 traced frames Dice)
-   for speed; rerun without `--limit` for the full 1,277-video figure.
+8. **Echo numbers are on a TEST-split subset** (400 videos EF — the headline —
+   plus 30 traced frames for Dice) for speed; rerun without `--limit` for the
+   full 1,277-video figure. (An earlier 40-video subset gave a flattering 3.19 %.)
 9. **EEG metrics are frozen-encoder, subset-trained.** The BIOT IIIC head was
    fine-tuned on a 1,451-EEG balanced subset (not the full 17 k-EEG HMS) with the
    encoder **frozen**, giving honest-but-modest numbers (balanced-acc 0.28, κ 0.15 on

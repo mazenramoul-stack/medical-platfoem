@@ -174,7 +174,7 @@ I also strip the `module.` prefix from the checkpoint keys (they were saved from
 and raises a clear `FileNotFoundError` if they're missing. So the echo endpoint failing on a fresh
 checkout is **expected**, not a bug.
 
-**Validation:** EF **MAE 3.19%**, R² 0.86; LV segmentation **Dice 0.90** on the EchoNet test split.
+**Validation:** EF **MAE 4.01%**, R² **0.831** on **400** EchoNet TEST videos (an earlier 40-video subset gave a flattering 3.19%); LV segmentation **Dice 0.897**.
 
 ---
 
@@ -239,7 +239,7 @@ glyphs — don't remove it.)
 | U-Net (MRI seg) | TCGA-LGG (110 patients, FLAIR) | LGG MRI Segmentation (3,929 slices) | Dice **0.85** |
 | Swin (MRI 4-class, fine-tuned June 2026) | Kaggle Brain-Tumor (~7k images) | Kaggle Brain-Tumor `Testing/` (1,600) | acc **95.4%** (stock: 80.4%) |
 | DenseNet-1D ×7 (ECG; 1AVB/RBBB/PVC fine-tuned June 2026) | 500k+ ECGs (ecglib) + PTB-XL folds 1–8 (fine-tune) | PTB-XL fold 10 (2,198) | ROC-AUC **0.980**, F1 0.727 |
-| EchoNet (EF + seg) | EchoNet-Dynamic videos | EchoNet-Dynamic TEST | EF MAE **3.19%**; Dice 0.90 |
+| EchoNet (EF + seg) | EchoNet-Dynamic videos | EchoNet-Dynamic TEST (400 videos) | EF MAE **4.01%**, R² 0.831; Dice 0.897 |
 | BIOT (EEG IIIC) | encoder: 5M MGH EEG; **head: Kaggle HMS (mine)** | Kaggle HMS, patient-disjoint (1,883) | bal-acc **0.278** |
 
 > **Safety-first (June 2026):** each model also has a high-recall operating point to

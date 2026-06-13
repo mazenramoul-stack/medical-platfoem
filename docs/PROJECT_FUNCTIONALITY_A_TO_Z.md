@@ -352,10 +352,11 @@ their weights are present (honest failure rather than serving an untrained model
   a Left-Ventricle segmentation mask at end-diastole/end-systole; EF mapped to a
   clinical category.
 - **Project use:** deployed as-is; weights downloaded separately (Section 6.1).
-- **Reported performance:** EF **MAE 3.19 %**, RMSE 4.01 %, **R² 0.860**, Pearson
-  r 0.932; LV segmentation **Dice 0.897** — matching published EchoNet-Dynamic
-  performance, confirming correct integration.
-- **Where it falls short:** numbers are on **TEST-split subsets** (40 videos for
+- **Reported performance:** EF **MAE 4.01 %**, RMSE 5.30 %, **R² 0.831** on **400**
+  TEST videos (an earlier 40-video subset gave a flattering MAE 3.19 % / R² 0.860,
+  kept only for transparency); LV segmentation **Dice 0.897** — matching published
+  EchoNet-Dynamic performance, confirming correct integration.
+- **Where it falls short:** numbers are on a **TEST-split subset** (400 videos for
   EF, 30 traced frames for Dice) because CPU video inference is slow
   (~10–40 s/video); the full 1 277-video figure requires a longer run.
 

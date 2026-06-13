@@ -164,7 +164,8 @@ Video-based, two pretrained EchoNet-Dynamic models
    per frame locates **end-diastole (max area)** and **end-systole (min area)**.
 4. **Outputs** — EF %, category, ED/ES areas, a 3-panel overlay PNG, report.
 
-**Validated:** **EF MAE 3.19% / R² 0.86**, LV **Dice 0.90** (EchoNet TEST subset),
+**Validated:** **EF MAE 4.01% / R² 0.831** on **400** EchoNet TEST videos
+(an earlier 40-video subset gave a flattering MAE 3.19%), LV **Dice 0.897**,
 matching the published model. See §11.
 
 ---
@@ -217,7 +218,7 @@ Each modality has a reproducible harness in `tools/`; full tables in
 | ECG (7 pathologies; 3 fine-tuned June 2026) | PTB-XL fold 10 | mean AUC **0.980**, balanced-acc **0.887**, macro F1 0.727 |
 | MRI classification (fine-tuned June 2026) | Kaggle Brain-Tumor `Testing/` | accuracy **95.4%**, macro-F1 0.954 |
 | MRI segmentation | LGG MRI | **Dice 0.85** |
-| Echo (EF + LV) | EchoNet-Dynamic | EF MAE **3.2%**, R² 0.86, Dice **0.90** |
+| Echo (EF + LV) | EchoNet-Dynamic (400-video TEST) | EF MAE **4.01%**, R² 0.831, Dice **0.897** |
 | EEG (IIIC 6-class) | Kaggle HMS | reported by `tools/eval_eeg.py` (fine-tuned head) |
 
 > **Safety-first operating points (June 2026):** each model is also calibrated to
