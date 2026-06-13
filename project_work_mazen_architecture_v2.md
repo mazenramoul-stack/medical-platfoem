@@ -426,7 +426,7 @@ Minor consistencies still to fix in prose: React 18 vs 19 in the README; "Dice ~
 
 - **No top-level LICENSE file** (README says MIT with a literal "TODO"); no `THIRD_PARTY.md` enumerating each model's licence (HIGH for an open release).
 - **No in-UI medical disclaimer** — "not for clinical use" appears only in PDF/backend text, nowhere in the React app (HIGH).
-- **No patient-consent capture or access audit trail** despite a "GDPR-inspired" README claim (HIGH).
+- **No patient-consent capture or access audit trail** (consent flag + `AuditLog` remain optional future work). The README no longer overstates this: it was reworded from "GDPR-inspired" to plainly state that formal GDPR controls are not implemented, so the gap is now *disclosed honestly* rather than contradicting a claim.
 - **Doctor isolation has zero automated tests** — the #1 invariant is enforced but never tested (CRITICAL testing gap).
 - **CI runs no behavioural tests** (only `check` + `compileall`); **no Jest/Vitest** for the frontend; **echo & eeg apps have no `tests.py`**; the reports test never generates a real PDF; upload rejection is untested.
 - **Git repo root is misplaced at `E:\MASTER`** (one level above the project, zero commits, no remote) — GitHub would ignore `.github/workflows/ci.yml`. (Note: this working copy on `C:` is not a git repo at all.)

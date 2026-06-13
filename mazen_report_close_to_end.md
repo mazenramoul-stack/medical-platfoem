@@ -323,10 +323,12 @@ disclaimers *in the PDF*, a `cleanup_media` command). The gaps:
 - **No in-UI medical disclaimer** — disclaimers exist only in the PDF/backend text; a grep of `frontend/src`
   for "disclaimer / clinical use / not a diagnosis" returns nothing. Add a persistent EN/FR banner in the app
   shell + every result page. *This is one sentence of code and directly addresses an obvious jury question.*
-- **No patient-consent capture or access audit trail** despite a "GDPR-inspired" README claim — the Patient
-  model stores PII (name, age, gender, free-text history) with no consent flag, no retention/expiry, no audit
-  log. Either implement a minimal consent flag + AuditLog, **or soften the README to say honestly that no GDPR
-  controls are implemented** (the cheaper, defensible option for a prototype).
+- ✅ **Data-governance claim now honest** — the README previously read "GDPR-inspired"; it now states plainly
+  that **formal GDPR controls are not implemented** (no consent capture, pseudonymisation, retention-expiry, or
+  access audit log), framed as future work. The Patient model still stores PII (name, age, gender, free-text
+  history) with no consent flag or audit log — that gap is real but is now *disclosed honestly* rather than
+  contradicting a claim (the defensible posture for a prototype). Implementing a consent flag + AuditLog remains
+  optional future work.
 
 ### 🟡 MEDIUM
 - No async queue for synchronous 5–60s+ inference (UX/availability risk — at least document the deployment

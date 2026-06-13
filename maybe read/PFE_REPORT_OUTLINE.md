@@ -141,8 +141,9 @@ preprocessing mismatch, model disagreement, partial ecglib coverage,
 non-clinical-grade outputs.
 
 ### 3.7 Ethics and Data Privacy
-- GDPR-inspired handling: no real patient data in the repo, all media
-  uploads gitignored.
+- Honest scope (a prototype, **not** GDPR-compliant): no consent capture,
+  pseudonymisation, retention-expiry, or access audit log — noted as future
+  work. No real patient data in the repo; all media uploads are gitignored.
 - Doctor-scoped queryset enforced at the ORM layer.
 - Disclaimer text reproduced in every generated PDF.
 
