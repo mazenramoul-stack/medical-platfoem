@@ -5,7 +5,7 @@ export default {
       title: 'MRI Brain Analysis',
       subtitle: 'Neuro · Segmentation + Classification',
       description:
-        "Upload a brain MRI to run U-Net tumour segmentation and a Vision-Transformer 4-class classifier. Analyses are launched from a patient's record.",
+        "Upload a brain MRI to run U-Net tumour segmentation and a Swin-Transformer 4-class classifier. Analyses are launched from a patient's record.",
       metrics: {
         classifierAcc: 'Classifier acc',
         macroF1: 'Macro F1',
@@ -27,7 +27,7 @@ export default {
       maxSize: 'Max 100 MB',
       remove: 'Remove',
       uploadingFile: 'Uploading file…',
-      running: 'Running deep learning analysis (U-Net + ViT)…',
+      running: 'Running deep learning analysis (U-Net + Swin)…',
       runningClassify: 'Running classification (Swin 4-class)…',
       runningSegment: 'Running segmentation (U-Net)…',
       runningHint: 'This may take 30–60 seconds on CPU. Please keep this window open.',
@@ -104,7 +104,7 @@ export default {
       title: 'Analyse IRM cérébrale',
       subtitle: 'Neuro · Segmentation + Classification',
       description:
-        'Téléversez une IRM cérébrale pour lancer la segmentation tumorale U-Net et un classifieur Vision Transformer à 4 classes. Les analyses se lancent depuis le dossier patient.',
+        'Téléversez une IRM cérébrale pour lancer la segmentation tumorale U-Net et un classifieur Swin Transformer à 4 classes. Les analyses se lancent depuis le dossier patient.',
       metrics: {
         classifierAcc: 'Exactitude classif.',
         macroF1: 'F1 macro',
@@ -126,7 +126,7 @@ export default {
       maxSize: '100 Mo max',
       remove: 'Retirer',
       uploadingFile: 'Téléversement du fichier…',
-      running: 'Analyse par apprentissage profond en cours (U-Net + ViT)…',
+      running: 'Analyse par apprentissage profond en cours (U-Net + Swin)…',
       runningClassify: 'Classification en cours (Swin 4 classes)…',
       runningSegment: 'Segmentation en cours (U-Net)…',
       runningHint: 'Cela peut prendre 30 à 60 secondes sur CPU. Veuillez garder cette fenêtre ouverte.',

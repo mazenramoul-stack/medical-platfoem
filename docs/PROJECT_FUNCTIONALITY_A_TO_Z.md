@@ -65,7 +65,7 @@ direct implications for scalability (Section 7).
 │  └───────────────────────────┬────────────────────────────┘  │
 │  ┌───────────────────────────▼────────────────────────────┐  │
 │  │ INFERENCE ENGINE  (apps/inference — lazy singleton)     │  │
-│  │   • MRI  : U-Net (seg) + ViT-B/16 (4-class)             │  │
+│  │   • MRI  : U-Net (seg) + Swin-T (4-class)               │  │
 │  │   • ECG  : DenseNet-1D-121 ×7 + NeuroKit2 (HRV)         │  │
 │  │   • ECHO : DeepLabV3-R50 (seg) + R(2+1)D-18 (EF)        │  │
 │  │   • EEG  : BIOT encoder (frozen) + IIIC head (fine-tuned)│ │
@@ -163,9 +163,9 @@ singleton `ModelLoader`, processes the input, writes visual artefacts to
      exceeds a 50-pixel noise floor.
   4. *Classification*: if a tumour was detected, the image is cropped to the
      mask bounding box (10-px padding) — a **crop-then-classify** path — and fed
-     to the Vision Transformer; otherwise the full image is classified. A softmax
+     to the Swin Transformer (Swin-T); otherwise the full image is classified. A softmax
      gives the 4-class label and confidence.
-  5. *Fusion (rule-based)*: `generate_clinical_note` combines the U-Net and ViT
+  5. *Fusion (rule-based)*: `generate_clinical_note` combines the U-Net and Swin
      verdicts into one of four recommendations (confirmed / ambiguous /
      classifier-only / no tumour).
   6. *Artefacts*: a three-panel figure (original | mask | overlay), plus the mask
@@ -243,7 +243,7 @@ table below lists the persisted model fields.
 - **Figure 3 — UML sequence diagram.** Browser ↔ DRF view ↔ ModelLoader ↔
   pipeline ↔ MongoDB/media for a single MRI upload.
 - **Figure 4 — MRI two-stage pipeline.** U-Net segmentation → mask → bounding-box
-  crop → ViT classification → rule-based fusion.
+  crop → Swin classification → rule-based fusion.
 - **Figure 5 — Inference-engine class diagram.** The lazy-singleton `ModelLoader`
   and the four pipeline modules sharing the result-envelope contract.
 - **Figure 6 — Sample report.** A rendered multi-section combined PDF.
@@ -273,7 +273,7 @@ fine-tuning (the EEG IIIC head).
 | Modality | Pretrained component (full name) | Source | Pretrained on |
 |---|---|---|---|
 | MRI segmentation | U-Net (CNN encoder–decoder) | `mateuszbuda/brain-segmentation-pytorch` via `torch.hub` [1], [3] | TCGA-LGG (110 patients, FLAIR MRI) |
-| MRI classification | Vision Transformer ViT-B/16 | `Devarshi/Brain_Tumor_Classification` (HuggingFace) [2] | Kaggle Brain-Tumor MRI Dataset (~7 000 images, 4 classes) |
+| MRI classification | Swin Transformer (Swin-T) | `Devarshi/Brain_Tumor_Classification` (HuggingFace) [2], base `microsoft/swin-tiny-patch4-window7-224` | Kaggle Brain-Tumor MRI Dataset (~7 000 images, 4 classes) |
 | ECG | DenseNet-1D-121 ensemble (×7) | `ecglib` (ISPRAS), exact pin 1.0.1 [4], [6] | 500 000+ 12-lead ECG records |
 | ECG (HRV) | NeuroKit2 (classical DSP) | `neurokit2` library [7] | Rule-based / validated, not learned |
 | ECHO | DeepLabV3-ResNet50 (LV seg) + R(2+1)D-18 (EF regression) | EchoNet-Dynamic, Stanford [11] | EchoNet-Dynamic echo videos |
@@ -329,7 +329,7 @@ their weights are present (honest failure rather than serving an untrained model
   MRI modality** from the Kaggle classification set; a single uploaded image is
   therefore not validated end-to-end through both segmentation and classification.
 
-#### (c) MRI classification — Vision Transformer (ViT-B/16)
+#### (c) MRI classification — Swin Transformer (Swin-T)
 
 - **Output:** 4-class label ∈ {glioma, meningioma, no-tumour, pituitary} with a
   softmax confidence.
@@ -387,7 +387,7 @@ their weights are present (honest failure rather than serving an untrained model
 ### 6.3 Summary of the distinction
 
 For two of the five model families (MRI U-Net and the two EchoNet models) the
-**weights are reused unchanged**. The **MRI ViT** and **three of the seven ECG
+**weights are reused unchanged**. The **MRI Swin** and **three of the seven ECG
 classifiers** (1AVB, RBBB, PVC) were **continue-trained in this project**
 (Colab T4, June 2026), and the **EEG IIIC head** is trained entirely in-repo.
 The project's value remains the integrating architecture plus targeted

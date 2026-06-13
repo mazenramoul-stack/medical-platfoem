@@ -69,7 +69,7 @@ not turnkey: **EchoNet** weights are downloaded separately, and **BIOT** ships o
 | Modality | Model | Where I got it | Trained on | Mine vs. original |
 |---|---|---|---|---|
 | MRI segmentation | U-Net (~7.7M) | `torch.hub: mateuszbuda/brain-segmentation-pytorch` | TCGA-LGG, 110 patients, FLAIR MRI | **Same weights**, used as-is. My change is a *usage fix* (no double sigmoid). |
-| MRI classification | ViT-B/16 (~86M) | HuggingFace `Devarshi/Brain_Tumor_Classification` | Kaggle Brain-Tumor MRI, ~7 000 images, 4 classes | **Same weights**, used as-is. |
+| MRI classification | Swin Transformer (Swin-T) (~28M) | HuggingFace `Devarshi/Brain_Tumor_Classification` | Kaggle Brain-Tumor MRI, ~7 000 images, 4 classes | **Same weights**, used as-is. |
 | ECG | DenseNet-1D-121 ×7 (~8M each) | `ecglib` (ISPRAS) `create_model(pretrained=True)` | 500 000+ 12-lead ECG records | **Same weights**, used as-is. My change is *per-pathology decision thresholds*. |
 | ECG (HRV) | NeuroKit2 | `neurokit2` library | none — classical/rule-based DSP | unchanged library. |
 | Echo | DeepLabV3-ResNet50 + R(2+1)D-18 | EchoNet-Dynamic checkpoints (Stanford), loaded from disk | EchoNet-Dynamic echo videos | **Same weights**, but I **swap the final layer** to load them onto torchvision backbones. |
@@ -84,13 +84,14 @@ The sections below explain each one and the exact method used.
 **Method (`mri_pipeline.py`):** the uploaded image runs through **two** pre-trained models:
 
 1. **U-Net** → pixel-level tumor **segmentation** mask → tumor area + a saturation guard.
-2. **ViT** → 4-class tumor **type** (`glioma`, `meningioma`, `no_tumor`, `pituitary`).
+2. **Swin** → 4-class tumor **type** (`glioma`, `meningioma`, `no_tumor`, `pituitary`).
 
 **Models & source:**
 - U-Net: `torch.hub.load('mateuszbuda/brain-segmentation-pytorch', 'unet', pretrained=True)`,
   ~30 MB download. Trained on **TCGA-LGG** (110 patients, FLAIR MRI). Reference: Buda et al., 2019.
-- ViT: `Devarshi/Brain_Tumor_Classification` from HuggingFace, ~350 MB. Trained on the **Kaggle
-  Brain-Tumor MRI** dataset (~7 000 images, 4 classes). Architecture from Dosovitskiy et al., 2021.
+- Swin: `Devarshi/Brain_Tumor_Classification` from HuggingFace, ~110 MB. Trained on the **Kaggle
+  Brain-Tumor MRI** dataset (~7 000 images, 4 classes). Base backbone `microsoft/swin-tiny-patch4-window7-224`;
+  architecture from Liu et al., 2021 (Swin Transformer, ICCV).
 
 **Difference vs. the original model — the double-sigmoid fix (this is the key one):**
 The `mateuszbuda` U-Net already applies `sigmoid` **inside its own `forward()`**, so its output
@@ -235,7 +236,7 @@ glyphs — don't remove it.)
 | Model | Trained on (origin) | Validated on (held-out) | Headline number |
 |---|---|---|---|
 | U-Net (MRI seg) | TCGA-LGG (110 patients, FLAIR) | LGG MRI Segmentation (3,929 slices) | Dice **0.85** |
-| ViT (MRI 4-class, fine-tuned June 2026) | Kaggle Brain-Tumor (~7k images) | Kaggle Brain-Tumor `Testing/` (1,600) | acc **95.4%** (stock: 80.4%) |
+| Swin (MRI 4-class, fine-tuned June 2026) | Kaggle Brain-Tumor (~7k images) | Kaggle Brain-Tumor `Testing/` (1,600) | acc **95.4%** (stock: 80.4%) |
 | DenseNet-1D ×7 (ECG; 1AVB/RBBB/PVC fine-tuned June 2026) | 500k+ ECGs (ecglib) + PTB-XL folds 1–8 (fine-tune) | PTB-XL fold 10 (2,198) | ROC-AUC **0.980**, F1 0.727 |
 | EchoNet (EF + seg) | EchoNet-Dynamic videos | EchoNet-Dynamic TEST | EF MAE **3.19%**; Dice 0.90 |
 | BIOT (EEG IIIC) | encoder: 5M MGH EEG; **head: Kaggle HMS (mine)** | Kaggle HMS, patient-disjoint (1,883) | bal-acc **0.278** |

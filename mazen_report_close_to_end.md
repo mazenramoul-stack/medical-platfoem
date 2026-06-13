@@ -63,7 +63,7 @@ jury will visibly catch. Effort is a rough estimate.
 | 3 | **Fix the Echo EF headline** — quote MAE 4.0% / R² 0.83 (400 videos), not 3.19% (40 videos) | The repo's own artifact contradicts the headline; I reproduced both numbers | XS–S |
 | 4 | **Add doctor-isolation API tests** (two-doctor cross-access → 404/empty) | Your documented #1 security invariant has **zero** tests | M |
 | 5 | **Make headline weights reproducible** (host/download the fine-tuned ViT + ECG; stop calling the BIOT encoder "bundled" when it's git-ignored; log a WARNING on stock-weight fallback) | A fresh clone silently runs the *weaker* stock ViT (80.4%) while your report claims 95.4% | M |
-| 6 | **Fix the doc contradictions a jury will read** — "Swin"→"ViT", "5/7" vs "all 7", the superseded EEG brief, React 18→19, the "open U-Net bug" framing in the report outline | These undercut your own "everything is verified, code wins" claim | S |
+| 6 | **Fix the doc contradictions a jury will read** — "ViT-B/16"→"Swin-T" (config.json proves Swin), "5/7" vs "all 7", the superseded EEG brief, React 18→19, the "open U-Net bug" framing in the report outline | These undercut your own "everything is verified, code wins" claim | S |
 | 7 | **Flag "confidently wrong" ML inputs** — wrong ECG lead order, <12-lead broadcast, already-bipolar EEG, non-FLAIR MRI | Today these return a normal-looking `status:success` with a wrong answer | M |
 | 8 | **Add a LICENSE file + an in-UI medical disclaimer (EN/FR)** | README claims MIT with a literal "TODO"; the UI has no "not for clinical use" notice anywhere | XS |
 
@@ -201,7 +201,7 @@ Your docs are extensive and cross-referenced, but they contradict each other in 
 
 | Sev | Contradiction | Fix |
 |---|---|---|
-| 🟠 HIGH | `Mazen_PFE/My Project – The End.md:74` calls the MRI classifier **"Swin"**; code + every other doc say **ViT-B/16** | s/Swin/ViT-B/16/ |
+| 🟠 HIGH | Docs call the MRI classifier **"ViT-B/16"**, but `config.json` says **`SwinForImageClassification`** (Swin-T) — the code/weights are Swin; the docs were wrong (this audit row had the direction backwards) | RESOLVED June 2026: all docs corrected to **Swin Transformer (Swin-T, Liu et al. 2021)**, ~28 M params, base `microsoft/swin-tiny-patch4-window7-224` |
 | 🟠 HIGH | Stale **"ECG degrades to 5/7"** narrative in TESTING/CHANGELOG/METHODOLOGY/HOW-IT-WORKS/PROJECT_FUNCTIONALITY while README/VALIDATION/code say **all 7 load** (one doc even lists the wrong 5-set) | Separate "all 7 load at startup" from "envelope *can report* a runtime partial"; fix the wrong set |
 | 🟠 HIGH | `docs/EEG-MODALITY-BRIEF.md` describes a **different model** (TUEV: SPSW/PLED/GPED…, "pretrained, no training") than what you built (IIIC: SZ/LPD/GPD…, fine-tuned head) | Add a "SUPERSEDED — see EEG-IIIC-MODALITY-BRIEF.md" banner or archive it. **You have this file open right now.** |
 | 🟡 MED | README stack table says **React 18**; project is React 19 | Fix the table |

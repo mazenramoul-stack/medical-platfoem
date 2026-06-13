@@ -40,7 +40,7 @@ weights.
 | # | Notebook | Fixes | Baseline → realistic target | ~T4 runtime |
 |---|---|---|---|---|
 | 1 | `colab_eeg_full_finetune.ipynb` | EEG balanced-acc 0.278 (frozen encoder, CPU subset) | **0.278 → 0.45–0.55** balanced accuracy | hours (the long one — see the timeout note inside) |
-| 2 | `colab_mri_vit_finetune.ipynb` | MRI ViT 4-class accuracy | **0.804 → 0.92–0.97** — ✅ **DONE June 11 2026: 0.9544 on Colab, re-verified 95.4 % locally** | ~30–60 min |
+| 2 | `colab_mri_vit_finetune.ipynb` | MRI Swin 4-class accuracy (the `vit` in the notebook name is historical; the model is a Swin-T) | **0.804 → 0.92–0.97** — ✅ **DONE June 11 2026: 0.9544 on Colab, re-verified 95.4 % locally** | ~30–60 min |
 | 3 | `colab_ecg_finetune.ipynb` | ECG weak-class F1 / macro balanced-acc | ✅ **DONE June 11 2026: 3/7 kept (1AVB, RBBB, PVC) — verified locally: macro F1 0.711→0.727, mean AUC 0.980, macro bal-acc 0.887; under the notebook's bal-acc objective: 0.942→0.946** | ~1–3 h (actual: 155 min) |
 
 ### Why EEG cannot reach 90–95 % — read this before the defence

@@ -1,9 +1,9 @@
-"""Evaluation harness for the MRI brain-tumor classifier (ViT).
+"""Evaluation harness for the MRI brain-tumor classifier (Swin Transformer).
 
 Computes a confusion matrix, per-class precision/recall/F1, overall accuracy,
 and mean confidence for the 4-class classifier — measured *as deployed* (the
-ViT run on the full image, which is what the pipeline does because the U-Net
-segmentation always saturates and is suppressed).
+Swin classifier run on the full image, which is what the pipeline does because
+the U-Net segmentation always saturates and is suppressed).
 
 Ground truth is resolved per image, in priority order:
     1. Parent directory name, if it is one of the 4 class names
@@ -17,8 +17,8 @@ Usage (from project root, backend venv active or referenced):
     python tools/eval_mri_classifier.py path/to/Testing      # full Kaggle test set
     python tools/eval_mri_classifier.py path/to/dir --limit 200
 
-This script does NOT need the database. First run loads the ViT (~350 MB,
-cached thereafter).
+This script does NOT need the database. First run loads the Swin classifier
+(~110 MB, cached thereafter).
 """
 
 from __future__ import annotations
@@ -80,7 +80,7 @@ def iter_images(root: Path):
 
 
 def classify(image_path: str, loader, np, torch, Image):
-    """Replicate the deployed classifier path: ViT on the full image."""
+    """Replicate the deployed classifier path: Swin on the full image."""
     from apps.inference.utils import load_image_universal
 
     processor, vit = loader.get_mri_classifier()
@@ -131,7 +131,7 @@ def main() -> int:
 
     loader = ModelLoader()
     print(f"Evaluating: {root}")
-    print(f"Device: {loader.get_device()}  (first run loads the ViT, ~350 MB)\n")
+    print(f"Device: {loader.get_device()}  (first run loads the Swin classifier, ~110 MB)\n")
 
     matrix: dict = {t: defaultdict(int) for t in CLASSES}
     correct = total = unlabeled = 0

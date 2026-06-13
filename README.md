@@ -34,7 +34,7 @@ explainable clinical reports.
 
 The platform composes open, peer-reviewed deep-learning components: a
 **U-Net** trained on TCGA-LGG for tumor segmentation (Buda et al., 2019), a
-**Vision Transformer** for four-class brain tumor classification (Dosovitskiy
+**Swin Transformer (Swin-T)** for four-class brain tumor classification (Liu
 et al., 2021), a **DenseNet-1D-121 ensemble** trained on 500 000+ ECG
 records via the `ecglib` toolkit (Avetisyan et al., 2023), the **EchoNet-Dynamic**
 models for echocardiographic ejection-fraction regression and LV segmentation
@@ -91,7 +91,7 @@ requires only a new pipeline module and view set without touching the core.
                    │  │   Inference Engine (lazy singleton)          │
                    │  │   ├─ MRI pipeline                            │
                    │  │   │   • U-Net  (torch.hub, ~30 MB)           │
-                   │  │   │   • ViT    (HuggingFace, ~350 MB)        │
+                   │  │   │   • Swin-T (HuggingFace, ~110 MB)        │
                    │  │   ├─ ECG pipeline                            │
                    │  │   │   • DenseNet-1D ×7 (ecglib, ~150 MB)     │
                    │  │   │   • NeuroKit2 HRV (CPU, classical)       │
@@ -139,7 +139,7 @@ requires only a new pipeline module and view set without touching the core.
 | Model | Architecture | Source | Pre-trained On | Parameters |
 |---|---|---|---|---|
 | **U-Net** | CNN encoder-decoder | `mateuszbuda/brain-segmentation-pytorch` (torch.hub) | TCGA-LGG (110 patients, FLAIR MRI) | ~7.7 M |
-| **ViT-B/16** | Vision Transformer | `Devarshi/Brain_Tumor_Classification` (HuggingFace) | Brain Tumor MRI Dataset (~7 000 images, 4 classes) | ~86 M |
+| **Swin Transformer (Swin-T)** | Swin Transformer (base: `microsoft/swin-tiny-patch4-window7-224`) | `Devarshi/Brain_Tumor_Classification` (HuggingFace) | Brain Tumor MRI Dataset (~7 000 images, 4 classes) | ~28 M |
 
 Classes: `glioma`, `meningioma`, `no_tumor`, `pituitary`.
 
@@ -187,7 +187,7 @@ metrics, confusion matrices and reproduce commands are in
 | Model | Dataset (held-out) | Headline result |
 |---|---|---|
 | **ECG** (7 pathologies, multi-label; 1AVB/RBBB/PVC fine-tuned June 2026) | PTB-XL fold 10 (2,198 records) | mean ROC-AUC **0.980**, macro balanced accuracy **0.887**, macro F1 **0.727** (stock baseline: 0.978 / 0.884 / 0.711 — see VALIDATION.md §1) |
-| **MRI classification** (ViT, 4-class, fine-tuned June 2026) | Kaggle Brain-Tumor `Testing/` (1,600 images) | accuracy **95.4 %**, macro F1 **0.954** (stock hub model scored 80.4 % — see VALIDATION.md §2) |
+| **MRI classification** (Swin, 4-class, fine-tuned June 2026) | Kaggle Brain-Tumor `Testing/` (1,600 images) | accuracy **95.4 %**, macro F1 **0.954** (stock hub model scored 80.4 % — see VALIDATION.md §2) |
 | **MRI segmentation** (U-Net) | LGG MRI Segmentation (3,929 slices) | **Dice 0.85** (tumour slices), IoU 0.78 |
 | **Echo** (EF regression + LV seg) | EchoNet-Dynamic TEST (400 videos) | EF **MAE 4.01 %**, R² 0.83; LV **Dice 0.90** (an earlier 40-video subset gave MAE 3.19 % — see VALIDATION.md §4) |
 | **EEG** (BIOT/IIIC, 6-class) | Kaggle HMS, patient-disjoint (1,883 windows) | balanced acc **0.278**, κ **0.147**, macro F1 **0.265** |
@@ -260,7 +260,7 @@ Two implementation bugs were diagnosed and fixed during validation:
 - Python 3.10 or 3.11 — required by torch 2.2 + djongo 1.3
 - Node.js ≥ 18
 - MongoDB Community 6+ running on `localhost:27017`
-- ~8 GB RAM (ViT + ecglib models hold ~3 GB resident)
+- ~8 GB RAM (Swin + ecglib models hold ~3 GB resident)
 - ~3 GB free disk for cached model weights
 
 ### Backend
@@ -434,13 +434,13 @@ IIIC head is absent (see VALIDATION.md §5).
 Honest disclosures for the thesis defence:
 
 1. **MRI segmentation and classification use different datasets.** Segmentation is
-   validated on LGG (which ships tumour masks; Dice 0.85); the 4-class ViT is
+   validated on LGG (which ships tumour masks; Dice 0.85); the 4-class Swin is
    validated on the Kaggle Brain-Tumor set (no masks; 95.4 % accuracy after the
    June 2026 fine-tune). These are
    different MRI modalities, so a single uploaded image is **not** validated
    end-to-end through both tasks. (Segmentation itself was previously made to look
    non-functional by a double-sigmoid bug, now fixed — see *Validation & Results*.)
-2. **Model disagreement (MRI).** Because the U-Net and the ViT are trained on
+2. **Model disagreement (MRI).** Because the U-Net and the Swin are trained on
    different datasets, they can disagree on the same input. The report displays both
    without resolution; a clinician-facing release would add a confidence-based
    "uncertain" verdict.
@@ -480,8 +480,8 @@ Honest disclosures for the thesis defence:
 1. **Buda, M., Saha, A., Mazurowski, M. A.** (2019). Association of genomic
    subtypes of lower-grade gliomas with shape features automatically extracted
    by a deep learning algorithm. *Computers in Biology and Medicine*, **109**, 218–225.
-2. **Dosovitskiy, A., et al.** (2021). An Image is Worth 16×16 Words:
-   Transformers for Image Recognition at Scale. *ICLR 2021*.
+2. **Liu, Z., et al.** (2021). Swin Transformer: Hierarchical Vision Transformer
+   using Shifted Windows. *ICCV 2021*. arXiv:2103.14030.
 3. **Ronneberger, O., Fischer, P., Brox, T.** (2015). U-Net: Convolutional
    Networks for Biomedical Image Segmentation. *MICCAI 2015*.
 4. **Avetisyan, A., et al.** (2023). Deep Neural Networks Generalization and
@@ -530,7 +530,7 @@ are noted as future work, not claimed as delivered.
 
 - **ISPRAS** for the open-source `ecglib` library.
 - **mateuszbuda** for the brain segmentation U-Net.
-- **Devarshi** (HuggingFace) for the Brain Tumor ViT classifier.
+- **Devarshi** (HuggingFace) for the Brain Tumor Swin classifier.
 - **PTB-XL contributors** for the ECG dataset that underpins the ecglib models.
 - **EchoNet-Dynamic team (Stanford)** for the echocardiography models.
 - **Chaoqi Yang et al.** for the open-source **BIOT** biosignal transformer (MIT).

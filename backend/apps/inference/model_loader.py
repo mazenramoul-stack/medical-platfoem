@@ -83,15 +83,17 @@ class ModelLoader:
     # ---- MRI classification (ViT) --------------------------------------
 
     def get_mri_classifier(self):
-        """Return (processor, model) for the 4-class brain-tumor ViT.
+        """Return (processor, model) for the 4-class brain-tumor classifier.
 
         Source: HuggingFace `Devarshi/Brain_Tumor_Classification`.
-        Architecture: Vision Transformer family (~86M params). The classes and
+        Architecture: Swin Transformer, Swin-Tiny config (embed_dim 96,
+        depths [2,2,6,2], window 7, patch 4; ~28M params) — NOT a ViT-B/16,
+        despite the historical `vit_brain_tumor` directory name. The classes and
         their integer ids — glioma_tumor=0, meningioma_tumor=1, no_tumor=2,
         pituitary_tumor=3 — come straight from the model config; the MRI
         pipeline reads `model.config.id2label` for label names, so any
         replacement MUST preserve that mapping.
-        First call downloads ~350MB; cached thereafter.
+        First call downloads ~110MB; cached thereafter.
 
         A locally fine-tuned classifier takes precedence over the hub model
         when present (mirrors the EchoNet weights pattern). Point at a
@@ -119,8 +121,8 @@ class ModelLoader:
             )
 
             if use_local:
-                print(f"Loading fine-tuned ViT model from local dir: {local_dir}")
-                logger.info("Loading fine-tuned ViT from local dir: %s", local_dir)
+                print(f"Loading fine-tuned Swin classifier from local dir: {local_dir}")
+                logger.info("Loading fine-tuned Swin classifier from local dir: %s", local_dir)
                 self._vit = AutoModelForImageClassification.from_pretrained(local_dir)
                 if os.path.exists(os.path.join(local_dir, 'preprocessor_config.json')):
                     self._vit_processor = AutoImageProcessor.from_pretrained(local_dir)
@@ -131,14 +133,14 @@ class ModelLoader:
                         "Local dir has no preprocessor_config.json; using hub processor: %s",
                         name)
             else:
-                print("Loading ViT model (first time — downloading weights ~350MB)...")
-                logger.info("Loading ViT from HuggingFace: Devarshi/Brain_Tumor_Classification")
+                print("Loading Swin classifier (first time — downloading weights ~110MB)...")
+                logger.info("Loading Swin classifier from HuggingFace: Devarshi/Brain_Tumor_Classification")
                 logger.warning(
                     "MRI classifier: fine-tuned weights NOT found at %s — falling "
                     "back to the STOCK hub model (~80.4%% accuracy). The headline "
                     "95.4%% figure requires the fine-tuned checkpoints; see "
                     "Colab PFE/README.md / tools/download_weights.py.", local_dir)
-                print("WARNING: using STOCK ViT (~80.4%); fine-tuned 95.4% weights absent.")
+                print("WARNING: using STOCK Swin classifier (~80.4%); fine-tuned 95.4% weights absent.")
                 self._vit_processor = AutoImageProcessor.from_pretrained(name)
                 self._vit = AutoModelForImageClassification.from_pretrained(name)
 

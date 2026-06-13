@@ -71,7 +71,7 @@ Hospitals analyse the brain and the heart with separate tools. This project puts
 
 | Modality | Model(s) | What it outputs | Validated result |
 |---|---|---|---|
-| **MRI** | U-Net (`mateuszbuda/brain-segmentation-pytorch`) + 4-class image classifier (ViT-B/16, `Devarshi/Brain_Tumor_Classification`, fine-tuned in this project) | Tumour mask + overlay; tumour type (glioma / meningioma / pituitary / none) | Dice **0.852** on LGG; **95.4 %** accuracy on Kaggle Brain-Tumor (fine-tuned June 2026; stock model: 80.4 %) |
+| **MRI** | U-Net (`mateuszbuda/brain-segmentation-pytorch`) + 4-class image classifier (Swin Transformer (Swin-T), `Devarshi/Brain_Tumor_Classification`, fine-tuned in this project) | Tumour mask + overlay; tumour type (glioma / meningioma / pituitary / none) | Dice **0.852** on LGG; **95.4 %** accuracy on Kaggle Brain-Tumor (fine-tuned June 2026; stock model: 80.4 %) |
 | **ECG** | `ecglib` DenseNet-1D, 7 pathology models (AFIB, STACH, SBRAD, RBBB, LBBB, PVC, 1AVB) — **1AVB/RBBB/PVC fine-tuned by me, June 2026** | Per-pathology probability with **per-pathology tuned thresholds** | Mean ROC-AUC **0.980**, macro balanced-acc **0.887**, macro F1 **0.727** on PTB-XL fold 10 (stock: 0.978 / 0.884 / 0.711); independently re-checked on Chapman-Shaoxing-Ningbo |
 | **Echo** | EchoNet-Dynamic (LV segmentation + ejection-fraction regression) | EF % + left-ventricle outline on the video | EF MAE **4.01 %** (400 TEST videos; a 40-video subset gave 3.19 %), segmentation Dice **0.897** — matches the published paper |
 | **EEG** | BIOT pretrained encoder + IIIC head fine-tuned in-repo on Kaggle HMS | 6-class harmful-brain-activity screening (seizure, LPD, GPD, LRDA, GRDA, other) | Balanced-acc **0.278** (chance = 0.167) — modest, honestly reported |
@@ -133,14 +133,14 @@ All models start from weights **pre-trained by their original authors**; none we
 | Paper — Buda et al., 2019 | <https://doi.org/10.1016/j.compbiomed.2019.05.002> |
 | Architecture paper — U-Net, Ronneberger et al., 2015 | <https://arxiv.org/abs/1505.04597> |
 
-### 8.2 MRI — tumour-type classification (ViT, 4 classes)
+### 8.2 MRI — tumour-type classification (Swin, 4 classes)
 
 | What | Link |
 |---|---|
 | Pre-trained / fine-tuned weights (auto-downloaded from HuggingFace) | <https://huggingface.co/Devarshi/Brain_Tumor_Classification> |
-| Base backbone it was fine-tuned from (Google ViT-B/16) | <https://huggingface.co/google/vit-base-patch16-224-in21k> |
+| Base backbone it was fine-tuned from (Swin-T, `microsoft/swin-tiny-patch4-window7-224`) | <https://huggingface.co/microsoft/swin-tiny-patch4-window7-224> |
 | Training + validation dataset (Brain Tumor MRI, ~7 000 images, 4 classes) | <https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset> |
-| Architecture paper — ViT, Dosovitskiy et al., 2021 | <https://arxiv.org/abs/2010.11929> |
+| Architecture paper — Swin Transformer, Liu et al., 2021 (ICCV) | <https://arxiv.org/abs/2103.14030> |
 
 ### 8.3 ECG — 7 pathology classifiers (DenseNet-1D)
 
@@ -180,7 +180,7 @@ All models start from weights **pre-trained by their original authors**; none we
 | Modality | Weights origin | Trained by me? |
 |---|---|---|
 | MRI U-Net | torch.hub — mateuszbuda | No (used as released) |
-| MRI ViT | HuggingFace — Devarshi | **Yes — continue-trained on Kaggle Brain-Tumor (Colab T4, June 2026): 80.4 % → 95.4 %** |
+| MRI Swin | HuggingFace — Devarshi | **Yes — continue-trained on Kaggle Brain-Tumor (Colab T4, June 2026): 80.4 % → 95.4 %** |
 | ECG ×7 | ecglib — ISPRAS | **Partly — fine-tuned 3 of 7 (1AVB, RBBB, PVC) on PTB-XL (Colab T4, June 2026): macro F1 0.711 → 0.727**; also calibrated all decision thresholds (F1 0.51 → 0.71 stock, 0.54 → 0.73 after fine-tune) |
 | Echo (2 models) | Stanford EchoNet-Dynamic | No (used as released) |
 | EEG encoder | BIOT authors | No (used as released, frozen) |

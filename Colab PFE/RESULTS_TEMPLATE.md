@@ -20,7 +20,7 @@ back to Claude, who will integrate the new weights locally and re-validate.
 
 ---
 
-## 2. MRI ViT fine-tune (`colab_mri_vit_finetune.ipynb`)
+## 2. MRI Swin fine-tune (`colab_mri_vit_finetune.ipynb`)
 
 **Paste the RESULTS block here:**
 

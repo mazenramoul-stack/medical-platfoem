@@ -108,7 +108,7 @@ translucent tints in inline styles: `background: 'rgb(var(--rgb-neuro) / 0.12)'`
    module (UI primitives → `ui.js`; cross-cutting words like Save/Cancel/Delete/
    Loading → `common.js`, which already has them — check before adding).
 2. **Do not translate:** brand "NEURACARD", "Constantine 2", proper nouns of
-   models/datasets (U-Net, ViT, EchoNet, BIOT, PTB-XL), units, pathology
+   models/datasets (U-Net, Swin, EchoNet, BIOT, PTB-XL), units, pathology
    abbreviations (AFIB, LBBB…), file extensions, `aria` ids. Medical pathology
    *names* DO get French (`Glioma` → `Gliome`, `No tumour` → `Sans tumeur`).
 3. French must be professional clinical French (vouvoiement). Use proper

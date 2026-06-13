@@ -196,10 +196,10 @@ genuinely, not by exploiting prevalence.
 
 ---
 
-## 2. MRI tumor-type classification (ViT, 4-class)
+## 2. MRI tumor-type classification (Swin Transformer (Swin-T), 4-class)
 
 **Dataset:** Kaggle "Brain Tumor MRI Dataset" (Nickparvar), held-out **`Testing/`
-split, 1,600 images (400 per class)**. The ViT was trained on the `Training/`
+split, 1,600 images (400 per class)**. The Swin Transformer (Swin-T) was trained on the `Training/`
 split, so `Testing/` is a fair held-out evaluation.
 **Evaluated on the full image** (the Kaggle set ships no masks to crop with). The
 deployed pipeline *does* crop to the U-Net bounding box when segmentation flags a
@@ -209,7 +209,9 @@ tumour (crop-then-classify); that path's accuracy delta is unmeasured here.
 > **80.4 %**; after a 6-epoch continue-train on the `Training/` split (Colab T4,
 > `Colab PFE/colab_mri_vit_finetune.ipynb`), the deployed model scores
 > **95.4 %**. Both result sets are kept below. The fine-tuned checkpoint lives in
-> `backend/models_weights/vit_brain_tumor/` (auto-detected by
+> `backend/models_weights/vit_brain_tumor/` (the folder name is historical; the
+> model is a Swin-T — base backbone `microsoft/swin-tiny-patch4-window7-224`,
+> ~28 M params, ~110 MB on disk) (auto-detected by
 > `get_mri_classifier()`); identical preprocessing and label mapping, verified
 > locally with this same harness.
 
@@ -259,7 +261,7 @@ Measured on the 1,600-image Testing split (`tools/eval_mri_recall.py`):
 | **notumor gate ≥ 0.99 (deployed default)** | **0.998** | **2** | 2 |
 | notumor gate = 1.0 (absolute zero-miss) | 1.000 | 0 | 17 |
 
-The deployed pipeline accepts a `notumor` verdict only when the ViT is ≥ 0.99
+The deployed pipeline accepts a `notumor` verdict only when the Swin is ≥ 0.99
 confident **and** the U-Net found no tissue; otherwise it raises a
 `screening_flag` ("possible tumour — review"). This lifts tumour-detection recall
 0.983 → 0.998 at a cost of ~2 false alarms per 400 healthy scans; the U-Net

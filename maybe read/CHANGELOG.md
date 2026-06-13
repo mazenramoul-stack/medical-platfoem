@@ -6,7 +6,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 ## [Unreleased] — GPU fine-tunes + hardening (June 2026)
 
 ### Changed
-- **MRI ViT classifier fine-tuned** (Colab T4, `Colab PFE/colab_mri_vit_finetune.ipynb`):
+- **MRI Swin classifier fine-tuned** (Colab T4, `Colab PFE/colab_mri_vit_finetune.ipynb`):
   accuracy 80.4 % → **95.4 %** on the Kaggle Brain-Tumor `Testing/` split,
   re-verified locally with `tools/eval_mri_classifier.py`. Weights auto-detected
   from `backend/models_weights/vit_brain_tumor/` (`VIT_BRAIN_TUMOR_WEIGHTS` overrides).
@@ -18,7 +18,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
   `backend/models_weights/ecg_finetuned/` (`ECG_FINETUNED_DIR` overrides);
   `DETECTION_THRESHOLDS` re-tuned for the new ensemble (notably PVC 0.69 → 0.96).
 - **MRI cross-model verdict** — new `models_agree` / `overall_verdict` pipeline
-  fields; the PDF prints a radiologist-review caution when U-Net and ViT disagree.
+  fields; the PDF prints a radiologist-review caution when U-Net and Swin disagree.
 
 ### Added
 - `Colab PFE/` — one self-contained GPU fine-tune notebook per accuracy fix
@@ -82,7 +82,7 @@ and a polished React frontend. Suitable for thesis defence.
 
 **Inference engine (`apps/inference/`)**
 - Thread-safe `ModelLoader` singleton with lazy weight downloads
-- MRI pipeline: U-Net segmentation + ViT classification + 3-panel visualisation
+- MRI pipeline: U-Net segmentation + Swin classification + 3-panel visualisation
 - ECG pipeline: bandpass filter + 7-pathology DenseNet-1D ensemble + NeuroKit2 HRV
 - Universal image loader (PNG / JPG / TIFF / BMP / DICOM / NIfTI)
 - Universal ECG loader (CSV / EDF / WFDB) with auto-resample and pad/trim
@@ -96,7 +96,7 @@ and a polished React frontend. Suitable for thesis defence.
 - Patient list with search, gender filter, and client-side pagination
 - Patient form (create + edit modes)
 - Patient detail with tabbed MRI / ECG / Reports view and three action modals
-- MRI upload (drag-and-drop, progress bar, "Running U-Net + ViT…" stage)
+- MRI upload (drag-and-drop, progress bar, "Running U-Net + Swin…" stage)
 - MRI result viewer with Original / Mask / Overlay tabs and per-image download
 - ECG upload with the same UX
 - ECG result with prominent diagnosis card, HRV reference-range cards,

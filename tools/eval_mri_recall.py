@@ -52,7 +52,7 @@ def predict_all(root: Path, limit: int):
     loader = ModelLoader()
     processor, vit = loader.get_mri_classifier()
     device = loader.get_device()
-    print(f"Device: {device}  (ViT loaded)\n")
+    print(f"Device: {device}  (Swin classifier loaded)\n")
     id2label = getattr(getattr(vit, "config", None), "id2label", None) or {}
 
     recs = []

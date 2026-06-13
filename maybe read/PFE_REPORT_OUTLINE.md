@@ -28,7 +28,7 @@ this repository for context).
 
 ### 1.4 Deep Learning in Medical Imaging
 - CNNs and the U-Net architecture (Ronneberger et al., 2015).
-- Vision Transformers (Dosovitskiy et al., 2021).
+- Vision Transformers (Dosovitskiy et al., 2021); Swin Transformer (Liu et al., 2021, ICCV).
 - ResNet and DenseNet (He et al., 2016; Huang et al., 2017).
 
 ### 1.5 Deep Learning in ECG Analysis
@@ -67,8 +67,8 @@ Reference [`apps/inference/mri_pipeline.py`](backend/apps/inference/mri_pipeline
 - `mateuszbuda/brain-segmentation-pytorch`, ~7.7 M params, in_channels=3.
 - Sigmoid output → binary mask at threshold 0.5.
 - Discuss your preprocessing choice and its known limitations.
-#### 2.3.2 Vision Transformer Classification
-- `Devarshi/Brain_Tumor_Classification`, ~86 M params.
+#### 2.3.2 Swin Transformer Classification
+- `Devarshi/Brain_Tumor_Classification` (Swin-T, base backbone `microsoft/swin-tiny-patch4-window7-224`), ~28 M params.
 - 4-class output (glioma, meningioma, no_tumor, pituitary).
 - ROI cropping based on the U-Net mask before classification.
 
@@ -115,7 +115,7 @@ Reference [`apps/inference/ecg_pipeline.py`](backend/apps/inference/ecg_pipeline
 
 ### 3.2 MRI Analysis Results (screenshots)
 - `SCREENSHOTS/06_mri_result_overlay.png` — segmentation overlay
-- `SCREENSHOTS/07_mri_result_classification.png` — ViT verdict + confidence
+- `SCREENSHOTS/07_mri_result_classification.png` — Swin verdict + confidence
 - Honest discussion of the U-Net mask-saturation bug as a **diagnosed-and-fixed
   engineering contribution**: it was a double-sigmoid (the model applies sigmoid
   internally; the pipeline applied it again), not a preprocessing flaw — fixing it

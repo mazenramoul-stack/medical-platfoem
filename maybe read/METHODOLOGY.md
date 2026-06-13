@@ -15,13 +15,13 @@
 | Modality | Dataset | Source | Used for |
 |---|---|---|---|
 | ECG | **PTB-XL v1.0.3** (21,837 × 12-lead, 500 Hz) | PhysioNet | ECG validation + threshold tuning |
-| MRI (classification) | **Brain Tumor MRI Dataset** (~7k images, 4 classes) | Kaggle (M. Nickparvar) | ViT training/eval (Testing split) |
+| MRI (classification) | **Brain Tumor MRI Dataset** (~7k images, 4 classes) | Kaggle (M. Nickparvar) | Swin training/eval (Testing split) |
 | MRI (segmentation) | **LGG MRI Segmentation** (TCGA, 3,929 slices + masks) | Kaggle (M. Buda) | U-Net Dice validation |
 | Echo | **EchoNet-Dynamic** (10,030 echo videos + EF + LV tracings) | Stanford AIMI | EF (MAE/R²) + LV Dice validation |
 | EEG | **HMS — Harmful Brain Activity** (IIIC 6-class, expert vote labels) | Kaggle | BIOT IIIC head fine-tuning + validation |
 
 Pretrained model weights are pulled from **torch.hub** (U-Net), **HuggingFace Hub**
-(ViT), **ecglib** (ECG ensemble), and **vendored BIOT** (EEG encoder). No model is
+(Swin), **ecglib** (ECG ensemble), and **vendored BIOT** (EEG encoder). No model is
 trained from scratch — the one fine-tuned component is the BIOT **IIIC head only**
 (encoder frozen), because BIOT does not release an IIIC classification head.
 
@@ -45,7 +45,7 @@ x_norm = (x − mean_per_lead) / (std_per_lead + 1e-8)
 
 - Any input (PNG/JPG/TIFF/BMP/DICOM/NIfTI) → RGB array.
 - **U-Net:** resize to **256×256**, **per-channel z-score**, tensor `(1,3,256,256)`.
-- **ViT:** HuggingFace image processor (resize + normalize) on the full image (or a
+- **Swin:** HuggingFace image processor (resize + normalize) on the full image (or a
   bounding-box crop around the detected tumour).
 
 ### EEG signal preprocessing (`apps/inference/eeg_preprocess.py`)
@@ -105,7 +105,7 @@ be true.
 | Modality | Model | Type | Params | Source |
 |---|---|---|---|---|
 | MRI segmentation | **U-Net** | 2-D CNN encoder–decoder | ~7.7 M | `mateuszbuda/brain-segmentation-pytorch` (torch.hub) |
-| MRI classification | **ViT-B/16** | Vision Transformer | ~86 M | `Devarshi/Brain_Tumor_Classification` (HF) |
+| MRI classification | **Swin Transformer (Swin-T)** | Swin Transformer | ~28 M | `Devarshi/Brain_Tumor_Classification` — Swin-T fine-tune of `microsoft/swin-tiny-patch4-window7-224` (HF) |
 | ECG (×7) | **DenseNet-1D-121** | **1-D CNN** | ~8 M each | `ecglib` (ISP RAS) |
 | ECG (HRV) | **NeuroKit2** | classical DSP (no NN) | — | `neurokit2` |
 | Echo segmentation | **DeepLabV3-ResNet50** | 2-D CNN | ~40 M | EchoNet-Dynamic (GitHub) |
@@ -114,7 +114,7 @@ be true.
 
 > Note: the ECG models are **1-D CNNs on the raw 12-lead signal** — **not**
 > spectrograms, **not** LSTM. The MRI models are a **CNN (U-Net)** and a
-> **Transformer (ViT)**. Echo uses a **2-D CNN** (segmentation) + a **3-D
+> **Transformer (Swin)**. Echo uses a **2-D CNN** (segmentation) + a **3-D
 > spatiotemporal CNN** (EF regression on the video clip). EEG uses **BIOT**, a
 > linear-attention **Transformer** over per-channel STFT tokens (a genuinely
 > pretrained encoder; only its 6-class IIIC head is fine-tuned).
@@ -217,7 +217,7 @@ Key design properties (all real, all defensible):
 | Simulation tools | ❌ → none (web app + eval scripts) |
 
 **Defensible one-line summary:** *"A modular, PyTorch-based multimodal pipeline
-that applies pretrained deep-learning models (U-Net + ViT for brain MRI, a
+that applies pretrained deep-learning models (U-Net + Swin for brain MRI, a
 DenseNet-1D ensemble for 12-lead ECG) on public benchmark data, with SciPy/
 NeuroKit2 signal preprocessing and HRV analysis, served through a Django/DRF +
 MongoDB backend and a React/Three.js frontend."*

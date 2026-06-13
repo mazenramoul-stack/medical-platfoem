@@ -33,7 +33,7 @@ the *validation*, not new models.
                                  │  in-process call (synchronous, no queue)
 ┌───────────────────────────────▼──────────────────────────────────────────────┐
 │  Inference engine — ModelLoader (lazy singleton, CUDA/CPU)                    │
-│   MRI : U-Net (seg) + ViT (classify)                                         │
+│   MRI : U-Net (seg) + Swin (classify)                                        │
 │   ECG : 7× DenseNet-1D (ecglib) + NeuroKit2 (HRV)                            │
 │   Echo: DeepLabV3 (seg) + R(2+1)D (EF)        [EchoNet-Dynamic]              │
 │   EEG : BIOT transformer + IIIC 6-class head                                  │
@@ -114,11 +114,11 @@ Two stages ([apps/inference/mri_pipeline.py](../backend/apps/inference/mri_pipel
    at 0.5 → tumour mask. *(Critical fix: an earlier version applied `sigmoid` twice,
    saturating every mask; removing the second sigmoid restored it.)* A **saturation
    guard** rejects degenerate masks covering >75% of the image.
-3. **Classification (ViT)** — `Devarshi/Brain_Tumor_Classification` (HuggingFace,
-   ~86 M) over the image (or a bounding-box crop of the tumour) → one of
+3. **Classification (Swin Transformer (Swin-T))** — `Devarshi/Brain_Tumor_Classification` (HuggingFace,
+   ~28 M) over the image (or a bounding-box crop of the tumour) → one of
    **glioma / meningioma / notumor / pituitary** + confidence.
 4. **Fusion logic (rule-based)** — `generate_clinical_note()` combines the U-Net and
-   ViT verdicts into a recommendation (agree → confirmed; disagree → "radiologist
+   Swin verdicts into a recommendation (agree → confirmed; disagree → "radiologist
    review", etc.). This is **rule-based text, not a learned fusion**.
 5. **Outputs** — 3 PNGs (original / mask / overlay), a text report, and the result
    fields stored on `MRIAnalysis`.
@@ -267,7 +267,7 @@ Be precise about scope — these are easy to over-claim:
 1. Doctor registers / logs in → JWT stored, redirected to the 3D dashboard.
 2. Creates a patient (doctor auto-attached from the JWT).
 3. Opens the patient → **New MRI analysis** → drag-drops a brain MRI.
-4. The backend stores it, runs U-Net + ViT synchronously (~30–60 s on CPU), saves
+4. The backend stores it, runs U-Net + Swin synchronously (~30–60 s on CPU), saves
    tumour type + mask + overlay, returns the record.
 5. The MRI result page shows the overlay, type, confidence, and report.
 6. Repeat for ECG / Echo / EEG as available.

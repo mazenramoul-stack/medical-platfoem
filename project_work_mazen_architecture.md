@@ -104,7 +104,7 @@ Hospitals analyse the brain and the heart with separate, disconnected tools. Thi
 
 The heart of the platform is `apps/inference`, which holds the model loader plus the four pipelines. Three deliberate design choices define its behaviour:
 
-1. **Lazy singleton loader.** Models load **once, on first use**, and stay resident in memory (~3 GB for the ViT + ecglib ensemble). Echo and EEG weights are *deliberately not bundled* (license/size); the loader raises a **clear `FileNotFoundError` with instructions** rather than crashing. `warmup()` pre-loads only MRI + ECG, never Echo/EEG, for this reason.
+1. **Lazy singleton loader.** Models load **once, on first use**, and stay resident in memory (~3 GB for the Swin + ecglib ensemble). Echo and EEG weights are *deliberately not bundled* (license/size); the loader raises a **clear `FileNotFoundError` with instructions** rather than crashing. `warmup()` pre-loads only MRI + ECG, never Echo/EEG, for this reason.
 
 2. **Result-envelope contract.** Every pipeline returns a plain dict shaped `{status, ...result_fields, error?, error_type?}` and **never raises into the view**. Structured failure is part of the contract, so the API can report **partial results** (e.g. ECG still answers if some sub-models are missing). This is why a fresh checkout that lacks Echo/EEG weights fails *honestly*, not as a 500 crash.
 
@@ -114,7 +114,7 @@ The heart of the platform is `apps/inference`, which holds the model loader plus
 
 | Modality | Model(s) | Architecture | Output |
 |---|---|---|---|
-| **MRI** | U-Net (`mateuszbuda/brain-segmentation-pytorch`, torch.hub, ~7.7 M params) + ViT-B/16 4-class classifier (`Devarshi/Brain_Tumor_Classification`, HuggingFace, ~86 M) | CNN encoder-decoder + Vision Transformer | Tumour mask + overlay; type (glioma / meningioma / notumor / pituitary) |
+| **MRI** | U-Net (`mateuszbuda/brain-segmentation-pytorch`, torch.hub, ~7.7 M params) + Swin Transformer (Swin-T) 4-class classifier (`Devarshi/Brain_Tumor_Classification`, HuggingFace, ~28 M) | CNN encoder-decoder + Swin Transformer | Tumour mask + overlay; type (glioma / meningioma / notumor / pituitary) |
 | **ECG** | ecglib DenseNet-1D-121 ×7 (~8 M each) + NeuroKit2 (classical) | 1D deep CNN ensemble + rule-based DSP | Per-pathology probability (AFIB, 1AVB, STACH, SBRAD, RBBB, LBBB, PVC) + HRV metrics (RMSSD, SDNN, pNN50) |
 | **Echo** | EchoNet-Dynamic: DeepLabV3-ResNet50 (~40 M) + R(2+1)D-18 (~31 M) | 2D segmentation + 3D spatiotemporal CNN | LV segmentation + ejection-fraction regression with clinical category |
 | **EEG** | BIOT (vendored, ~3 M) — pretrained encoder + IIIC head fine-tuned in-repo | Linear-attention transformer over STFT tokens | 6-class harmful-brain-activity screening (SZ, LPD, GPD, LRDA, GRDA, Other) |
@@ -138,7 +138,7 @@ These two fixes are the clearest "original → changed" story, because they turn
 | **MRI segmentation double-sigmoid** | Dice **≈ 0.02** — the mask saturated (~100% of every image flagged), which the saturation guard then suppressed to `tumor_detected: false`. | The `mateuszbuda` U-Net applies `sigmoid` *inside* its `forward()`; the pipeline applied `torch.sigmoid()` **again**, squashing [0,1] into [0.5, 0.73] so every pixel crossed the 0.5 threshold. | **Dice 0.85** on LGG tumour slices (IoU 0.78). Removing the redundant sigmoid restored the model. |
 | **ECG flat decision threshold** | Macro F1 **0.51** (stock) — a flat `prob > 0.5` cut-off over-flagged badly. | One global threshold ignored per-pathology calibration. | Macro F1 **0.71** (stock) — per-pathology thresholds tuned on the validation fold (fold 9), applied unchanged to test fold 10 (**no leakage**). ROC-AUC unchanged, confirming the gain is calibration, not a different model. |
 
-### 2.2 MRI classification (ViT, 4-class) — fine-tuned 80.4 % → 95.4 %
+### 2.2 MRI classification (Swin Transformer (Swin-T), 4-class) — fine-tuned 80.4 % → 95.4 %
 
 **Dataset:** Kaggle "Brain Tumor MRI" (Nickparvar), held-out `Testing/` split, **1,600 images** (400/class). Evaluated on the full image (the Kaggle set ships no masks).
 
@@ -245,7 +245,7 @@ The whole platform runs a **recall-first / screening operating point by default*
 This is why **low precision and liberal flagging are deliberate, not miscalibration**. Concretely, what I tuned *for*:
 
 - **ECG** — recall-first thresholds: every pathology recall ≥ 0.95 on the held-out fold (macro recall 0.982), at the cost of macro precision ~0.35 (≈1,708 false positives, but only **13** false negatives in 2,198 records).
-- **MRI** — a `notumor` verdict is accepted **only** when ViT confidence ≥ 0.99 **and** the U-Net found no tissue; otherwise the pipeline returns `screening_flag: possible_tumor_review`. This lifts tumour-detection recall 0.983 → 0.998.
+- **MRI** — a `notumor` verdict is accepted **only** when Swin confidence ≥ 0.99 **and** the U-Net found no tissue; otherwise the pipeline returns `screening_flag: possible_tumor_review`. This lifts tumour-detection recall 0.983 → 0.998.
 - **Echo** — flags EF < 55 % (a +5 % safety margin over the 50 % clinical cutoff) so the regressor's ~4–5 % error doesn't miss borderline reduced-EF cases. Recall 0.783 → 0.952.
 - **EEG** — reports `screen_positive` when **any** IIIC pattern appears; seizure-routing recall 0.966. It is a **routing signal, never a rule-out**.
 
@@ -275,7 +275,7 @@ All models start from weights **pre-trained by their original authors** (none fr
 | Modality | Source site / paper | Source-reported result | My result (this platform) | Verdict |
 |---|---|---|---|---|
 | **MRI U-Net seg** | `mateuszbuda/brain-segmentation-pytorch`; Buda et al. 2019 (TCGA-LGG) | mean DSC ≈ **0.89** (per-volume) | **Dice 0.852** on LGG tumour slices (per-image) | Within a few points; gap is per-image vs per-volume normalisation, not missing training. |
-| **MRI ViT classifier** | `Devarshi/Brain_Tumor_Classification` (HuggingFace model card) | card headline ≈ **99 %** | stock **80.4 %** → fine-tuned **95.4 %** | The 99 % card number does not reproduce on the full image with my preprocessing; my fine-tune closed most of the gap **under apples-to-apples conditions**. |
+| **MRI Swin classifier** | `Devarshi/Brain_Tumor_Classification` (HuggingFace model card) | card headline ≈ **99 %** | stock **80.4 %** → fine-tuned **95.4 %** | The 99 % card number does not reproduce on the full image with my preprocessing; my fine-tune closed most of the gap **under apples-to-apples conditions**. |
 | **ECG ensemble** | `ecglib` (ISPRAS); Avetisyan et al. 2023 (500k+ records) | strong multi-label AUC on its own corpus | mean ROC-AUC **0.980**, macro F1 **0.727** on PTB-XL fold 10 | Matches expectations — **but** ecglib's corpus is unpublished and may include PTB-XL (leakage caveat, §4.2). |
 | **Echo EF + LV** | EchoNet-Dynamic (Stanford); Ouyang et al. *Nature* 2020 | EF MAE ≈ **4 %**, Dice ≈ **0.92** | EF MAE **4.01 %**, Dice **0.897** | Essentially matches the published paper — confirms correct integration. |
 | **EEG BIOT/IIIC** | `ycq091044/BIOT`; Yang et al. NeurIPS 2023 | full-data fine-tune ≈ **0.5** balanced acc | frozen-head **0.278** balanced acc | Below BIOT's full-data level **because** I froze the encoder; the documented GPU path targets 0.45–0.55 (matching the authors). |
@@ -300,7 +300,7 @@ The Colab ECG fine-tune notebook reports macro F1 ≈ 0.57 → 0.60, *lower* tha
 | Modality | Weights origin (site) | Validation dataset (site) | Trained by me? |
 |---|---|---|---|
 | MRI U-Net | torch.hub — mateuszbuda | TCGA-LGG (Kaggle) | No (as released) |
-| MRI ViT | HuggingFace — Devarshi (base: Google ViT-B/16) | Kaggle Brain-Tumor (Nickparvar) | **Yes — Colab T4, 80.4 → 95.4 %** |
+| MRI Swin | HuggingFace — Devarshi (base: Swin-T (microsoft/swin-tiny-patch4-window7-224)) | Kaggle Brain-Tumor (Nickparvar) | **Yes — Colab T4, 80.4 → 95.4 %** |
 | ECG ×7 | ecglib — ISPRAS (PyPI) | PTB-XL fold 10 (PhysioNet) + Chapman-Shaoxing-Ningbo (external) | **Partly — 3/7 fine-tuned + all thresholds calibrated** |
 | Echo (2 models) | Stanford EchoNet-Dynamic | EchoNet-Dynamic TEST | No (as released) |
 | EEG encoder | BIOT authors (`ycq091044/BIOT`) | — | No (frozen) |
@@ -326,7 +326,7 @@ The models are borrowed and peer-reviewed; the **value is the system that integr
 | **ECG threshold calibration** | Macro F1 0.51 → 0.71 (stock), 0.54 → 0.73 (fine-tuned) | **Zero retraining** — pure calibration on the validation fold |
 | **MRI double-sigmoid fix** | Dice 0.02 → 0.85 | A one-line bug fix found via systematic validation |
 | **Safety-first recalibration** | ECG/MRI/Echo all clear ≥ 0.95 don't-miss recall | **No GPU** — decision-rule change only; precision is the tracked cost |
-| **MRI ViT fine-tune** | 80.4 % → 95.4 % accuracy | One Colab T4 session, re-verified locally |
+| **MRI Swin fine-tune** | 80.4 % → 95.4 % accuracy | One Colab T4 session, re-verified locally |
 | **ECG 3/7 fine-tune** | macro F1 0.711 → 0.727, under a no-regression rule | One Colab T4 session, re-verified locally |
 | **EEG IIIC head** | Built the head BIOT never released; 0.278 (above 0.167 chance) | CPU, frozen encoder — a working pipeline awaiting GPU |
 
@@ -364,7 +364,7 @@ This section is deliberately exhaustive. Knowing these is a strength at the defe
 | # | Shortfall | Why it matters |
 |---|---|---|
 | 1 | **EEG accuracy is modest (0.278 balanced acc).** Frozen encoder, CPU, 1,451-EEG subset. | The weakest modality — it screens, it does not diagnose. The fix needs a GPU full fine-tune. |
-| 2 | **MRI segmentation and classification use *different* datasets** (U-Net on LGG, ViT on Kaggle Brain-Tumor — different MRI modalities). | A single uploaded image is **not** validated end-to-end through both tasks; the two models can **disagree on the same input**. *(A "models_agree / uncertain" verdict + PDF caution is now implemented; common-dataset validation is still open.)* |
+| 2 | **MRI segmentation and classification use *different* datasets** (U-Net on LGG, Swin on Kaggle Brain-Tumor — different MRI modalities). | A single uploaded image is **not** validated end-to-end through both tasks; the two models can **disagree on the same input**. *(A "models_agree / uncertain" verdict + PDF caution is now implemented; common-dataset validation is still open.)* |
 | 3 | **Possible ECG data leakage** — ecglib's unpublished corpus may include PTB-XL, so ~0.98 AUC could be optimistic. | The headline ECG number might be inflated; the external Chapman-Shaoxing-Ningbo check exists precisely to quantify this. |
 | 4 | **ECG thresholds are calibrated for PTB-XL-like data only.** | They will mis-fire on a different recorder/population; per-site re-tuning (ideally learned calibration) is needed. |
 | 5 | **Only 7 ECG pathologies, not a full diagnostic panel.** | Coverage is partial by design (what ecglib pretrained). |

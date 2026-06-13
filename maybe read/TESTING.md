@@ -13,7 +13,7 @@ a full clinical workflow.
 | **Python 3.10 or 3.11** | Backend runtime; `djongo 1.3.6` does not support 3.12+. |
 | **Node.js 18+** | Frontend build / dev server (Vite). |
 | **MongoDB Community Edition** | Database backend (via `djongo`). |
-| **~8 GB RAM** | ViT + ecglib + matplotlib all in memory during inference. |
+| **~8 GB RAM** | Swin + ecglib + matplotlib all in memory during inference. |
 | **~5 GB free disk** | Model weights (~700 MB MRI/ECG + ~13 MB BIOT encoder), node_modules (~500 MB), media files. Optional EEG training data (Kaggle HMS subset) adds ~1–2 GB. |
 | Stable internet (first run only) | Pre-trained models download from PyTorch Hub, HuggingFace, and ecglib. EEG training additionally needs Kaggle (token + HMS rules). |
 
@@ -84,7 +84,7 @@ weights. Be patient — subsequent calls hit local cache and are 10–20× faste
 | Stage | Source | Approx. size | Cache location |
 |---|---|---|---|
 | U-Net (FLAIR MRI segmentation) | PyTorch Hub `mateuszbuda/brain-segmentation-pytorch` | ~30 MB | `~/.cache/torch/hub/` |
-| ViT (4-class tumor classifier) | HuggingFace `Devarshi/Brain_Tumor_Classification` | ~350 MB | `~/.cache/huggingface/` |
+| Swin Transformer (Swin-T) (4-class tumor classifier) | HuggingFace `Devarshi/Brain_Tumor_Classification` | ~110 MB | `~/.cache/huggingface/` |
 | DenseNet-1D-121 × 7 (ECG pathology) | ecglib (ISPRAS) | ~150 MB total | `~/.cache/torch/hub/checkpoints/` |
 | **Total first-run download** | | **~700 MB** | |
 
