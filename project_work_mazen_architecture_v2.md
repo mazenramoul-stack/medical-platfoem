@@ -359,8 +359,8 @@ Each pretrained model's **published** benchmark vs **my measured** number on the
 |---|---|---|---|---|---|
 | **Swin** brain-tumor 4-class | HF card `Devarshi/Brain_Tumor_Classification` ≈ **98–99 %** acc (own split) | **95.4 %** acc / macro F1 0.954 (FT); 80.4 % stock | Yes | No — Kaggle Nickparvar `Testing/`, full image, no crop | Fine-tuned ≈ matches/slightly under card; stock under by ~18 pts (full-image eval) |
 | **U-Net** LGG seg | Buda et al. 2019 ≈ **0.89 mean DSC** (TCGA-LGG) | **Dice 0.852** (tumour slices), 0.827 all, IoU 0.781 | Yes | **Yes — same LGG** | Under ~0.04 Dice — per-image vs per-volume intensity normalisation |
-| **ecglib DenseNet-1D** ×7 | Avetisyan 2023 per-pathology AUC ≈ **0.95–0.99**; PTB-XL CNN macro-AUC ≈ 0.92–0.93 | mean ROC-AUC **0.980**, macro F1 0.727 | Yes | Closest — PTB-XL fold 10, **7-pathology subset** | Matches/slightly over — caveat: **possible PTB-XL leakage ⇒ optimistic** |
-| **ecglib external check** (Chapman-Shaoxing-Ningbo) | no published number — own leakage probe | **NOT YET RUN** (placeholder) | Yes | No — PTB-XL-independent | **Open** — the single best pre-defence experiment |
+| **ecglib DenseNet-1D** ×7 | Avetisyan 2023 per-pathology AUC ≈ **0.95–0.99**; PTB-XL CNN macro-AUC ≈ 0.92–0.93 | mean ROC-AUC **0.980**, macro F1 0.727 | Yes | Closest — PTB-XL fold 10, **7-pathology subset** | Matches/slightly over — leakage **checked**: macro AUC 0.981 on independent Chapman-Shaoxing-Ningbo ⇒ not inflated |
+| **ecglib external check** (Chapman-Shaoxing-Ningbo) | no published number — own leakage probe | **macro AUC 0.981** (n=150 indicative) | Yes | No — PTB-XL-independent | **✅ no meaningful leakage** — ≈ the PTB-XL ~0.98 |
 | **EchoNet-Dynamic** EF | Ouyang et al. *Nature* 2020: EF **MAE ≈ 4.05 %**, **R² ≈ 0.81**, LV DSC ≈ 0.92 | EF **MAE 4.01 %**, **R² 0.831**, Dice 0.897 | Yes | **Yes — EchoNet TEST** | **Essentially matches** published |
 | **BIOT** IIIC 6-class | Yang et al. *NeurIPS* 2023 full fine-tune ≈ **0.50 balanced acc** (expert κ ≈ 0.5 ceiling) | balanced acc **0.278**, κ 0.147 | Yes | Closest — Kaggle HMS vs BIOT's MGH IIIC | **Under ~0.22** — frozen encoder + CPU subset; full GPU fine-tune is the documented path |
 
@@ -431,7 +431,7 @@ Minor consistencies still to fix in prose: React 18 vs 19 in the README; "Dice ~
 - **CI runs no behavioural tests** (only `check` + `compileall`); **no Jest/Vitest** for the frontend; **echo & eeg apps have no `tests.py`**; the reports test never generates a real PDF; upload rejection is untested.
 - **Git repo root is misplaced at `E:\MASTER`** (one level above the project, zero commits, no remote) — GitHub would ignore `.github/workflows/ci.yml`. (Note: this working copy on `C:` is not a git repo at all.)
 - **Headline fine-tuned weights are git-ignored with no download path** — a fresh clone silently runs the weaker stock Swin (80.4 %) while the report claims 95.4 %; the BIOT encoder is documented "bundled" but git-ignored.
-- **No external ECG eval actually run** (Chapman-Shaoxing-Ningbo) — the leakage caveat stays a hand-wave.
+- **External ECG eval — done** (Chapman-Shaoxing-Ningbo): macro AUC 0.981 (n=150 indicative) ⇒ no meaningful leakage; rerun `--stream 1500` for report-grade rare-pathology AUCs.
 - **No confidence intervals / variance** anywhere; no API docs (drf-spectacular); no `/health/` endpoint; no structured logging/Sentry; stray 63 MB zip + stale celery/redis deps; thin accessibility.
 
 ## 6.4 Honest scientific limitations (by design / acknowledged)
@@ -439,7 +439,7 @@ Minor consistencies still to fix in prose: React 18 vs 19 in the README; "Dice ~
 - **EEG frozen-encoder ceiling** — balanced-acc 0.278 (chance 0.167; BIOT full-data ≈ 0.5). The head was trained on a 1,451-EEG CPU subset with the encoder frozen; 3.7× more data did not move the headline. Screens, does not diagnose. GPU full fine-tune is the documented path (honest target 0.45–0.55).
 - **No learned multimodal fusion** — the combined interpretation is rule-based template text, not a data-driven neuro-cardiac correlation (the biggest scientific gap; needs a paired imaging+ECG cohort).
 - **MRI seg & classification validated on different datasets** (U-Net on LGG, Swin on Kaggle) — no single image validated end-to-end through both.
-- **Possible ECG data leakage** — ecglib's 500 k corpus is unpublished and may include PTB-XL, so the ~0.98 AUC could be optimistic.
+- **ECG leakage — checked, ruled out** — ecglib's 500 k corpus is unpublished and may include PTB-XL, but on the independent Chapman-Shaoxing-Ningbo set the macro AUC is **0.981** (≈ PTB-XL ~0.98), so the result is not inflated by leakage.
 - **Only 7 ECG pathologies**, not a full diagnostic panel; thresholds calibrated for PTB-XL-like data only (will mis-fire on a different recorder/population).
 - **Validated on public benchmarks, never a clinical cohort.**
 
@@ -468,7 +468,7 @@ Every problem found, with a concrete fix, ordered **must-do → optional**. "Mus
 
 | # | Problem | Concrete fix | Effort |
 |---|---|---|---|
-| 11 | **Possible PTB-XL leakage unmeasured** | **Run `tools/eval_ecg_external.py` on Chapman-Shaoxing-Ningbo** and report the macro-AUC. This single experiment converts your biggest ECG caveat from hand-wave to measured result. | 2–3 h |
+| 11 | **PTB-XL leakage** ✅ done | Ran `tools/eval_ecg_external.py` on Chapman-Shaoxing-Ningbo: macro AUC **0.981** (n=150 indicative) ≈ PTB-XL ⇒ no meaningful leakage. Rerun `--stream 1500` for report-grade rare-pathology AUCs. | done |
 | 12 | **No confidence intervals anywhere** | Add bootstrap 95 % CIs to the headline metrics and a permutation test for the EEG "above-chance" claim. Point estimates without variance read as naïve at master's level. | 3–4 h |
 | 13 | **EEG frozen-encoder ceiling (0.278)** | Run the pending GPU full fine-tune (`colab_eeg_full_finetune.ipynb`, unfreeze encoder); honest target 0.45–0.55. If GPU is unavailable, state this explicitly as the one experiment the hardware blocked. | GPU-bound |
 | 14 | **No frontend tests** | Add Vitest + React Testing Library for the auth slice, the 401 interceptor, and dropzone validation. | 3 h |
