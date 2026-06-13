@@ -29,6 +29,9 @@ function mix(hexA, hexB, t) {
   return `#${new THREE.Color(hexA).lerp(new THREE.Color(hexB), t).getHexString()}`;
 }
 
+// reusable scratch colour for highlight lerps (single heart instance on screen)
+const HL_TMP = new THREE.Color();
+
 export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highlight = null }) {
   const group = useRef();
   const beatGroup = useRef();
@@ -112,7 +115,7 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
   const mats = useMemo(() => {
     const muscle = mix(accent, '#7f1d1d', 0.55);
     // Translucent ("glassy") so the highlighted structure glows through the heart.
-    const common = { roughness: 0.42, metalness: 0.05, clearcoat: 0.7, clearcoatRoughness: 0.3, transparent: true, opacity: 0.6 };
+    const common = { roughness: 0.42, metalness: 0.05, clearcoat: 0.7, clearcoatRoughness: 0.3, transparent: true, opacity: 0.45 };
     const muscleMat = () => new THREE.MeshPhysicalMaterial({
       color: muscle, emissive: new THREE.Color(accent), emissiveIntensity: 0.1, ...common,
     });
@@ -141,12 +144,12 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
         grey: new THREE.Color('#d2d5dd'),
       },
       markerSa: new THREE.MeshStandardMaterial({
-        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
-        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.0,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.6,
       }),
       markerAv: new THREE.MeshStandardMaterial({
-        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
-        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.0,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.6,
       }),
     };
   }, [accent]);
@@ -161,7 +164,8 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
     if (!m) return;
     const hl = highlight && highlight[id];
     if (hl) {
-      m.color.lerp(baseColor, 0.12);
+      HL_TMP.set(hl.color);
+      m.color.lerp(HL_TMP, 0.15); // tint the glass itself green, not red-under-green
       m.emissive.set(hl.color);
       m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hl.intensity, 0.12);
     } else if (hasHighlight) {
@@ -192,7 +196,7 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
     mesh.material.color.set(hl.color);
     const beat = 1 + 0.25 * pulse(p, 0.16, 0.01) + 0.12 * pulse(p, 0.02, 0.01);
     mesh.scale.setScalar(beat);
-    mesh.material.emissiveIntensity = 0.9 + 0.8 * beat;
+    mesh.material.emissiveIntensity = 0.55 + 0.45 * beat;
   };
 
   useFrame((state, delta) => {

@@ -21,7 +21,9 @@ export default function Anatomy3DPanel({ accent, highlight }) {
   // stronger glow for a higher-probability finding (and a fainter legend dot for
   // a lower one). Reads clearly on the grey non-problem structures.
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
-  const probIntensity = (p) => 0.6 + 1.1 * clamp01(p);
+  // Moderate emissive so the highlighted glass reads as translucent green (not a
+  // solid block); confidence still scales the brightness.
+  const probIntensity = (p) => 0.35 + 0.6 * clamp01(p);
   const dotOpacity = (p) => 0.45 + 0.55 * clamp01(p);
 
   // id -> { color, intensity } for the 3D model.
