@@ -130,6 +130,15 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
         color: '#7186b8', emissive: new THREE.Color('#7186b8'), emissiveIntensity: 0.05, ...common,
       }),
       coronary: new THREE.MeshPhysicalMaterial({ color: mix(muscle, '#000000', 0.35), ...common, roughness: 0.5 }),
+      // base colour targets (lerp destinations) + the pale "non-problem" grey
+      palette: {
+        muscle: new THREE.Color(muscle),
+        atria: new THREE.Color(mix(muscle, '#ffffff', 0.1)),
+        artery: new THREE.Color(mix(accent, '#ffffff', 0.18)),
+        vein: new THREE.Color('#7186b8'),
+        coronary: new THREE.Color(mix(muscle, '#000000', 0.35)),
+        grey: new THREE.Color('#d2d5dd'),
+      },
       markerSa: new THREE.MeshStandardMaterial({
         color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
         roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
@@ -141,18 +150,34 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
     };
   }, [accent]);
 
-  // Glow one chamber mesh toward its highlight target, or relax to its base.
-  const applyGlow = (meshRef, id, base) => {
+  const hasHighlight = !!(highlight && Object.keys(highlight).length);
+
+  // Glow the implicated chamber toward its highlight colour; when ANY structure
+  // is highlighted, fade the OTHER (non-problem) chambers to a pale neutral grey
+  // so the highlighted region stands out. With no highlight, keep the muscle look.
+  const applyChamber = (meshRef, id, baseColor, baseEmissive) => {
     const m = meshRef.current && meshRef.current.material;
     if (!m) return;
     const hl = highlight && highlight[id];
     if (hl) {
+      m.color.lerp(baseColor, 0.12);
       m.emissive.set(hl.color);
       m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hl.intensity, 0.12);
+    } else if (hasHighlight) {
+      m.color.lerp(mats.palette.grey, 0.1);
+      m.emissive.set(mats.palette.grey);
+      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, 0.03, 0.12);
     } else {
+      m.color.lerp(baseColor, 0.12);
       m.emissive.set(accent);
-      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, base + (hovered ? 0.12 : 0), 0.12);
+      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, baseEmissive + (hovered ? 0.12 : 0), 0.12);
     }
+  };
+
+  // Vessels/coronaries are never the ECG "problem": fade them to grey whenever a
+  // structure is highlighted, restore their colour otherwise.
+  const applyVessel = (mat, baseColor) => {
+    mat.color.lerp(hasHighlight ? mats.palette.grey : baseColor, 0.1);
   };
 
   // Pulse a node marker (SA/AV) only while highlighted, else hide it.
@@ -196,11 +221,14 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
       group.current.scale.setScalar(scale * (hovered ? 1.06 : 1));
     }
 
-    // structure highlighting (independent per chamber + conduction-node markers)
-    applyGlow(lvMesh, 'lv', 0.1);
-    applyGlow(rvMesh, 'rv', 0.1);
-    applyGlow(laMesh, 'la', 0.08);
-    applyGlow(raMesh, 'ra', 0.08);
+    // structure highlighting: glow the implicated chamber, fade the rest to grey
+    applyChamber(lvMesh, 'lv', mats.palette.muscle, 0.1);
+    applyChamber(rvMesh, 'rv', mats.palette.muscle, 0.1);
+    applyChamber(laMesh, 'la', mats.palette.atria, 0.08);
+    applyChamber(raMesh, 'ra', mats.palette.atria, 0.08);
+    applyVessel(mats.artery, mats.palette.artery);
+    applyVessel(mats.vein, mats.palette.vein);
+    applyVessel(mats.coronary, mats.palette.coronary);
     applyMarker(saMarker, 'sa-node', p);
     applyMarker(avMarker, 'av-node', p);
   });
