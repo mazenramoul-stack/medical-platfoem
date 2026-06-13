@@ -174,6 +174,24 @@ def analyze_ecg(file_path: str) -> dict:
         for w in lead_quality.get('warnings', []):
             logger.warning("analyze_ecg input quality: %s", w)
 
+        # Refuse a reduced lead set rather than emit a silently-wrong diagnosis.
+        # <12 leads means load_ecg_signal broadcast lead I across all 12 channels;
+        # the 12-lead pathology models would then "diagnose" 12 copies of one lead
+        # and return a confident but meaningless result. (Positional / incomplete-
+        # label inputs still run — they have 12 genuine channels — but are flagged
+        # via reduced_lead_set + input_quality in the result.)
+        if lead_quality.get('padded_from_fewer'):
+            n = lead_quality.get('n_leads_detected', 0)
+            logger.error("analyze_ecg: refusing reduced lead set (%d lead(s))", n)
+            return {
+                'status': 'failed',
+                'error': (f'Reduced lead set: only {n} lead(s) detected. The 12-lead '
+                          f'pathology models require a full 12-lead ECG — refusing to '
+                          f'broadcast a single lead and report an unreliable diagnosis.'),
+                'error_type': 'InsufficientLeads',
+                'input_quality': lead_quality,
+            }
+
         # 2. Preprocess -------------------------------------------------------
         b, a = butter(4, [0.5, 40], btype='bandpass', fs=fs)
         signal_filtered = filtfilt(b, a, signal, axis=1)
