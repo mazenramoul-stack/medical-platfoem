@@ -158,6 +158,8 @@ def auc_score(scores, labels) -> float | None:
 
     scores = np.asarray(scores, dtype=float)
     labels = np.asarray(labels, dtype=int)
+    finite = np.isfinite(scores)            # drop NaN/Inf scores so they can't poison the ranks
+    scores, labels = scores[finite], labels[finite]
     n_pos = int(labels.sum())
     n_neg = len(labels) - n_pos
     if n_pos == 0 or n_neg == 0:

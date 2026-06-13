@@ -128,12 +128,17 @@ def signal_to_model_input(sig, fs, np):
     if x.shape[0] < 12:
         return None                               # not a 12-lead record
     x = x[:12]
+    if not np.isfinite(x).all():
+        return None                               # corrupt record (NaN/Inf samples) -> skip;
+                                                  # a NaN here would poison the rank-based AUC
     if x.shape[1] != TARGET_SAMPLES:
         x = resample(x, TARGET_SAMPLES, axis=1)
         fs = TARGET_SAMPLES / 10.0                # now 500 Hz-equivalent
     b, a = butter(4, [0.5, 40], btype="bandpass", fs=fs)
     x = filtfilt(b, a, x, axis=1)
     x = (x - x.mean(axis=1, keepdims=True)) / (x.std(axis=1, keepdims=True) + 1e-8)
+    if not np.isfinite(x).all():
+        return None                               # processing produced NaN/Inf -> skip
     return x.astype("float32")
 
 
@@ -156,29 +161,58 @@ def iter_stream(n: int, seed: int, np, torch, loader, wfdb):
     given (n, seed) is reproducible.
     """
     print(f"Fetching record list from PhysioNet '{PHYSIONET_DB}' ...")
-    records = wfdb.get_record_list(PHYSIONET_DB)
+    # ecg-arrhythmia is NESTED: the top-level RECORDS lists SUB-DIRECTORIES, e.g.
+    # 'WFDBRecords/01/010/' — not leaf records. Each sub-dir has its own RECORDS
+    # file listing the actual 'JS#####' records. (The old code treated the sub-dir
+    # prefixes as records -> every fetch 404'd.)
+    #
+    # CRITICAL: records are grouped BY DIAGNOSIS within a sub-dir (e.g. WFDBRecords/43
+    # is an all-sinus-tachycardia block). Draining records sub-dir-by-sub-dir gives a
+    # single-condition sample (all STACH). So we ROUND-ROBIN — at most one record per
+    # sub-dir per pass — to spread the sample across conditions and get a
+    # representative mix (both classes present per pathology, which AUC needs).
+    subdirs = [str(s).rstrip("/").replace("\\", "/") for s in wfdb.get_record_list(PHYSIONET_DB)]
     rng = np.random.default_rng(seed)
-    idx = rng.permutation(len(records))[: n * 3]   # oversample; some get skipped
+    rng.shuffle(subdirs)
+    pools: dict[str, list] = {}        # sub-dir -> shuffled remaining leaf names (fetched once)
     done = 0
-    for i in idx:
-        if done >= n:
-            break
-        rec_path = records[int(i)]                 # e.g. WFDBRecords/01/010/JS00001
-        sub = str(Path(rec_path).parent).replace("\\", "/")
-        name = Path(rec_path).name
-        try:
-            rec = wfdb.rdrecord(name, pn_dir=f"{PHYSIONET_DB}/{sub}")
-        except Exception as e:                     # network / parse hiccup -> skip
-            print(f"  ! {name}: {type(e).__name__}: {e}")
-            continue
-        arr = signal_to_model_input(rec.p_signal, rec.fs, np)
-        if arr is None:
-            continue
-        positives = parse_dx_codes(rec.comments)
-        yield predict_from_array(arr, loader, np, torch), positives
-        done += 1
-        if done % 50 == 0:
-            print(f"  ...{done}/{n} streamed")
+    active = list(subdirs)
+    while done < n and active:
+        nxt = []
+        for sub in active:
+            if done >= n:
+                break
+            sub_db = f"{PHYSIONET_DB}/{sub}"
+            if sub not in pools:
+                try:
+                    leaves = [Path(str(r)).name for r in wfdb.get_record_list(sub_db)]
+                except Exception as e:             # sub-dir list hiccup -> drop it
+                    print(f"  ! list {sub}: {type(e).__name__}: {e}")
+                    pools[sub] = []
+                    continue
+                rng.shuffle(leaves)
+                pools[sub] = leaves
+            leaves = pools[sub]
+            if not leaves:
+                continue                           # exhausted
+            name = leaves.pop()
+            try:
+                rec = wfdb.rdrecord(name, pn_dir=sub_db)
+            except Exception as e:                 # network / parse hiccup -> skip
+                print(f"  ! {sub}/{name}: {type(e).__name__}: {e}")
+                if leaves:
+                    nxt.append(sub)
+                continue
+            arr = signal_to_model_input(rec.p_signal, rec.fs, np)
+            if arr is not None:
+                positives = parse_dx_codes(rec.comments)
+                yield predict_from_array(arr, loader, np, torch), positives
+                done += 1
+                if done % 50 == 0:
+                    print(f"  ...{done}/{n} streamed")
+            if leaves:                             # keep sub-dir in rotation if it has more
+                nxt.append(sub)
+        active = nxt
     print(f"Streamed {done} usable records.")
 
 
