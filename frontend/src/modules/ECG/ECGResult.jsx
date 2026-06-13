@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Activity, AlertTriangle, ArrowLeft, Download, FileText, Heart, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -6,8 +6,10 @@ import toast from 'react-hot-toast';
 import Badge from '../../components/UI/Badge.jsx';
 import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
+import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
 import HRVMetrics from './HRVMetrics.jsx';
 import PathologyTable from './PathologyTable.jsx';
+import { mapEcgToHighlight } from './ecgAnatomy.js';
 
 import ecgService from '../../services/ecgService.js';
 import mriService from '../../services/mriService.js';
@@ -64,6 +66,9 @@ export default function ECGResult() {
     })();
     return () => { alive = false; };
   }, [id]);
+
+  // Map the ECG findings to the implicated heart structures for the 3D panel.
+  const heartHighlight = useMemo(() => mapEcgToHighlight(ecg), [ecg]);
 
   if (loading) return <Loader label={t('ecg.result.loading')} className="py-12" />;
   if (!ecg)    return <div className="py-12 text-center text-sm text-gray-500">{t('ecg.result.notFound')}</div>;
@@ -173,6 +178,8 @@ export default function ECGResult() {
           </div>
         </div>
       )}
+
+      {ecg.status === 'completed' && <Anatomy3DPanel highlight={heartHighlight} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">

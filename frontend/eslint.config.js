@@ -41,7 +41,7 @@ export default [
           'args', 'attach', 'castShadow', 'dispose', 'geometry', 'intensity',
           'material', 'object', 'position', 'receiveShadow', 'rotation',
           'emissive', 'emissiveIntensity', 'metalness', 'roughness',
-          'transparent', 'wireframe',
+          'transparent', 'wireframe', 'visible',
         ],
       }],
       // Advisory performance rule (React Compiler lint); the flagged code is

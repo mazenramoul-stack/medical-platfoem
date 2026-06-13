@@ -1,6 +1,7 @@
 // One namespace file per domain; each exports { en: {...}, fr: {...} } with
 // identical key trees. t('mri.upload.title') resolves to mri.js → <lang>.upload.title.
 
+import anatomy3d from './anatomy3d.js';
 import auth from './auth.js';
 import common from './common.js';
 import dashboard from './dashboard.js';
@@ -13,7 +14,7 @@ import patients from './patients.js';
 import reports from './reports.js';
 import ui from './ui.js';
 
-const NAMESPACES = { auth, common, dashboard, ecg, echo, eeg, mri, nav, patients, reports, ui };
+const NAMESPACES = { anatomy3d, auth, common, dashboard, ecg, echo, eeg, mri, nav, patients, reports, ui };
 
 export function buildMessages(lang) {
   const out = {};

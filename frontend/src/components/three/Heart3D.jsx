@@ -13,6 +13,11 @@ import { prefersReducedMotion } from '../../theme/tokens.js';
  * Beats with a real cardiac cycle: atrial kick, then a strong ventricular
  * "lub" (radial squeeze + systolic twist), then a softer "dub", with a
  * pressure pulse running through the great vessels. Hover raises the rate.
+ *
+ * `highlight` (optional) is a map of structure id -> { color, intensity } used
+ * to glow the structure implicated by a finding. Recognised ids:
+ *   'lv' | 'rv' | 'la' | 'ra' | 'av-node' | 'sa-node'.
+ * The two nodes are non-anatomical markers shown only while highlighted.
  */
 
 function pulse(p, center, width) {
@@ -24,13 +29,19 @@ function mix(hexA, hexB, t) {
   return `#${new THREE.Color(hexA).lerp(new THREE.Color(hexB), t).getHexString()}`;
 }
 
-export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72 }) {
+export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highlight = null }) {
   const group = useRef();
   const beatGroup = useRef();
   const ventGroup = useRef();
-  const ventMesh = useRef();
   const atriaGroup = useRef();
   const vesselGroup = useRef();
+  // per-structure mesh refs (so each can glow independently)
+  const lvMesh = useRef();
+  const rvMesh = useRef();
+  const laMesh = useRef();
+  const raMesh = useRef();
+  const saMarker = useRef();
+  const avMarker = useRef();
   const phaseRef = useRef(0);
   const [hovered, setHovered] = useState(false);
   const reduced = useMemo(() => prefersReducedMotion(), []);
@@ -96,16 +107,22 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72 }) {
   }, []);
 
   // ---- materials (accent-tinted cardiac palette) ----
+  // The four chamber materials are independent CLONES so a single structure can
+  // be glowed via `highlight` without lighting up the others.
   const mats = useMemo(() => {
     const muscle = mix(accent, '#7f1d1d', 0.55);
     const common = { roughness: 0.42, metalness: 0.05, clearcoat: 0.7, clearcoatRoughness: 0.3 };
+    const muscleMat = () => new THREE.MeshPhysicalMaterial({
+      color: muscle, emissive: new THREE.Color(accent), emissiveIntensity: 0.1, ...common,
+    });
+    const atriaMat = () => new THREE.MeshPhysicalMaterial({
+      color: mix(muscle, '#ffffff', 0.1), emissive: new THREE.Color(accent), emissiveIntensity: 0.08, ...common,
+    });
     return {
-      muscle: new THREE.MeshPhysicalMaterial({
-        color: muscle, emissive: new THREE.Color(accent), emissiveIntensity: 0.1, ...common,
-      }),
-      atria: new THREE.MeshPhysicalMaterial({
-        color: mix(muscle, '#ffffff', 0.1), emissive: new THREE.Color(accent), emissiveIntensity: 0.08, ...common,
-      }),
+      lv: muscleMat(),
+      rv: muscleMat(),
+      la: atriaMat(),
+      ra: atriaMat(),
       artery: new THREE.MeshPhysicalMaterial({
         color: mix(accent, '#ffffff', 0.18), emissive: new THREE.Color(accent), emissiveIntensity: 0.12, ...common,
       }),
@@ -113,8 +130,44 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72 }) {
         color: '#7186b8', emissive: new THREE.Color('#7186b8'), emissiveIntensity: 0.05, ...common,
       }),
       coronary: new THREE.MeshPhysicalMaterial({ color: mix(muscle, '#000000', 0.35), ...common, roughness: 0.5 }),
+      markerSa: new THREE.MeshStandardMaterial({
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
+      }),
+      markerAv: new THREE.MeshStandardMaterial({
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
+      }),
     };
   }, [accent]);
+
+  // Glow one chamber mesh toward its highlight target, or relax to its base.
+  const applyGlow = (meshRef, id, base) => {
+    const m = meshRef.current && meshRef.current.material;
+    if (!m) return;
+    const hl = highlight && highlight[id];
+    if (hl) {
+      m.emissive.set(hl.color);
+      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hl.intensity, 0.12);
+    } else {
+      m.emissive.set(accent);
+      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, base + (hovered ? 0.12 : 0), 0.12);
+    }
+  };
+
+  // Pulse a node marker (SA/AV) only while highlighted, else hide it.
+  const applyMarker = (meshRef, id, p) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const hl = highlight && highlight[id];
+    mesh.visible = !!hl;
+    if (!hl) return;
+    mesh.material.emissive.set(hl.color);
+    mesh.material.color.set(hl.color);
+    const beat = 1 + 0.25 * pulse(p, 0.16, 0.01) + 0.12 * pulse(p, 0.02, 0.01);
+    mesh.scale.setScalar(beat);
+    mesh.material.emissiveIntensity = 0.9 + 0.8 * beat;
+  };
 
   useFrame((state, delta) => {
     const bpmEff = bpm * (hovered ? 1.25 : 1);
@@ -142,10 +195,14 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72 }) {
       if (!reduced) group.current.rotation.y += 0.0035;
       group.current.scale.setScalar(scale * (hovered ? 1.06 : 1));
     }
-    if (ventMesh.current) {
-      const m = ventMesh.current.material;
-      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hovered ? 0.26 : 0.1, 0.1);
-    }
+
+    // structure highlighting (independent per chamber + conduction-node markers)
+    applyGlow(lvMesh, 'lv', 0.1);
+    applyGlow(rvMesh, 'rv', 0.1);
+    applyGlow(laMesh, 'la', 0.08);
+    applyGlow(raMesh, 'ra', 0.08);
+    applyMarker(saMarker, 'sa-node', p);
+    applyMarker(avMarker, 'av-node', p);
   });
 
   return (
@@ -156,10 +213,10 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72 }) {
       onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
     >
       <group ref={beatGroup}>
-        {/* ventricular mass + right-ventricle bulge + coronaries */}
+        {/* ventricular mass (LV) + right-ventricle bulge + coronaries */}
         <group ref={ventGroup}>
-          <mesh ref={ventMesh} geometry={ventricleGeometry} material={mats.muscle} />
-          <mesh material={mats.muscle} position={[0.5, -0.12, 0.18]} scale={[0.62, 0.78, 0.5]}>
+          <mesh ref={lvMesh} geometry={ventricleGeometry} material={mats.lv} />
+          <mesh ref={rvMesh} material={mats.rv} position={[0.5, -0.12, 0.18]} scale={[0.62, 0.78, 0.5]}>
             <sphereGeometry args={[1, 32, 24]} />
           </mesh>
           <mesh geometry={vessels.lad} material={mats.coronary} />
@@ -168,13 +225,21 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72 }) {
 
         {/* atria (scale around their own centroid) */}
         <group ref={atriaGroup} position={[0, 0.67, 0]}>
-          <mesh material={mats.atria} position={[-0.38, 0.05, -0.12]} scale={[0.34, 0.29, 0.31]}>
+          <mesh ref={laMesh} material={mats.la} position={[-0.38, 0.05, -0.12]} scale={[0.34, 0.29, 0.31]}>
             <sphereGeometry args={[1, 28, 20]} />
           </mesh>
-          <mesh material={mats.atria} position={[0.5, -0.05, 0.05]} scale={[0.38, 0.34, 0.36]}>
+          <mesh ref={raMesh} material={mats.ra} position={[0.5, -0.05, 0.05]} scale={[0.38, 0.34, 0.36]}>
             <sphereGeometry args={[1, 28, 20]} />
           </mesh>
         </group>
+
+        {/* conduction-node markers — shown only when highlighted */}
+        <mesh ref={saMarker} material={mats.markerSa} position={[0.46, 0.82, 0.14]} visible={false}>
+          <sphereGeometry args={[0.075, 16, 16]} />
+        </mesh>
+        <mesh ref={avMarker} material={mats.markerAv} position={[0.05, 0.42, 0.12]} visible={false}>
+          <sphereGeometry args={[0.07, 16, 16]} />
+        </mesh>
 
         {/* great vessels */}
         <group ref={vesselGroup}>
