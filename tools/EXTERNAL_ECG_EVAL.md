@@ -92,21 +92,24 @@ matters.
 
 > To rule out PTB-XL train/test overlap, the frozen ecglib ensemble was evaluated on
 > an independent dataset (Chapman-Shaoxing-Ningbo, PhysioNet `ecg-arrhythmia`),
-> SNOMED-CT mapped to the 7 modelled pathologies. On **150** records the model reached
-> **macro AUC 0.981** at the deployed per-pathology thresholds. AUC is
+> SNOMED-CT mapped to the 7 modelled pathologies. On **1500** records the model reached
+> **macro AUC 0.973** at the deployed per-pathology thresholds. AUC is
 > threshold-independent, so this measures genuine generalisation beyond PTB-XL.
 
 - If the AUC stays high (≈0.95+), the PTB-XL number is **vindicated** — no meaningful leakage.
 - If it drops noticeably, you've **honestly quantified** the optimism — itself a
   legitimate, defensible finding (you found and measured the limitation).
 
-## Result (run 2026-06-13, `--stream 150 --seed 42`)
+## Result (report-grade run 2026-06-13, `--stream 1500 --seed 42`)
 
-**Macro AUC 0.981 → PTB-XL number VINDICATED, no meaningful leakage.** Per-pathology AUC:
-SBRAD 0.992 (n=58), STACH 0.992 (n=28), RBBB 0.997 (n=6), PVC 0.998 (n=3),
-1AVB 0.990 (n=2), LBBB 1.000 (n=2), AFIB 0.899 (n=4); macro balanced-acc 0.936.
+**Macro AUC 0.973 (n=1500, all records usable) → PTB-XL number VINDICATED, no meaningful
+leakage.** Per-pathology AUC, now with report-grade support:
+SBRAD 0.992 (n=550), STACH 0.989 (n=239), AFIB 0.904 (n=76), RBBB 0.992 (n=72),
+PVC 0.979 (n=46), 1AVB 0.966 (n=42), LBBB 0.986 (n=20).
+Macro balanced-accuracy **0.913**; mean recall (sensitivity) **0.962** at the deployed
+recall-first thresholds, with deliberately low precision (macro 0.388) — the screening
+operating point, on data the models never trained on.
 
-The two well-supported classes (SBRAD, STACH) are solid; the rare classes (n≤6) are
-**individually noisy** at this sample size — rerun `--stream 1500 --seed 42` (~30–45 min
-on CPU, no GPU) for report-grade per-pathology numbers. The headline macro AUC ≈ 0.98
-on an independent set already answers the leakage question.
+This **supersedes** the earlier indicative `--stream 150` run (macro AUC 0.981, but rare
+classes at n≤6): the 10× larger, harder sample gives every pathology real support and the
+macro AUC holds at 0.97. The leakage question is now answered with report-grade evidence.

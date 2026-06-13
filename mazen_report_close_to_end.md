@@ -191,9 +191,10 @@ headline should be the 400-video number, or the full 1,277-video TEST split.) **
   the window index) so the headline split actually reproduces.
 
 ### 🟢 LOW
-- The 3/7 ECG fine-tune trains on PTB-XL folds 1–8 while PTB-XL is *also* your leakage concern — partial
-  circularity. **Run `tools/eval_ecg_external.py` on Chapman-Shaoxing-Ningbo before the defence** to convert
-  the leakage caveat from a hand-wave into a measured result. (This is your single best pre-defence experiment.)
+- ✅ The 3/7 ECG fine-tune trains on PTB-XL folds 1–8 while PTB-XL is *also* the leakage concern — partial
+  circularity, now **measured away**: `tools/eval_ecg_external.py --stream 1500` on the PTB-XL-independent
+  Chapman-Shaoxing-Ningbo set gives **macro AUC 0.973** (n=1500, per-pathology AUC 0.90–0.99) ≈ the PTB-XL
+  ~0.98 ⇒ no meaningful leakage. The caveat is now a measured result, not a hand-wave.
 - The headline table juxtaposes LGG-segmentation Dice and Kaggle-ViT accuracy as one "MRI result" — two
   different datasets/tasks. Tag each row with its dataset.
 

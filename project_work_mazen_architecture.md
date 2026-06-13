@@ -288,6 +288,7 @@ Because `ecglib`'s 500k+ training corpus is unpublished and **may include PTB-XL
 - **Metric to quote:** macro AUC (threshold-independent → measures genuine generalisation).
 - **Script:** `tools/eval_ecg_external.py` (streaming or full-local mode); no retraining.
 - **Reading the outcome:** if AUC stays ≈ 0.95+, the PTB-XL number is **vindicated**; if it drops, the optimism is **honestly quantified** — either way is good science.
+- **Result (`--stream 1500 --seed 42`, report-grade):** macro AUC **0.973** ≈ the PTB-XL ~0.98 → **vindicated, no meaningful leakage** (all 1500 records usable; per-pathology AUC 0.90–0.99; macro balanced-acc 0.913, mean recall 0.962 at the deployed recall-first thresholds).
 
 > ⚠ Important caveat for the defence: the *June 2026 ECG fine-tune deliberately trains on PTB-XL folds 1–8*. That is **disclosed, fold-separated, and leakage-free by construction** — distinct from the *possible* ecglib-corpus leakage, which is the thing the external check rules out.
 

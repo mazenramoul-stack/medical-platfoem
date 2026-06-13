@@ -230,9 +230,9 @@ Two implementation bugs were diagnosed and fixed during validation:
 
 > Leakage check (done): `ecglib`'s unpublished corpus *may* include PTB-XL, so the
 > fold-10 AUC could in principle be optimistic. Tested on the PTB-XL-independent
-> Chapman-Shaoxing-Ningbo set (`tools/eval_ecg_external.py`): **macro AUC 0.981** ≈ the
-> PTB-XL value → **no meaningful leakage** (indicative n=150; rerun `--stream 1500` for
-> report-grade rare-pathology numbers). The three models are validated independently —
+> Chapman-Shaoxing-Ningbo set (`tools/eval_ecg_external.py --stream 1500`): **macro AUC
+> 0.973** ≈ the PTB-XL value → **no meaningful leakage** (report-grade n=1500, every
+> pathology AUC 0.90–0.99). The three models are validated independently —
 > the platform does **not** model a data-driven neuro-cardiac correlation (future work).
 
 ---
@@ -459,7 +459,7 @@ Honest disclosures for the thesis defence:
 6. **Validated on public datasets, not a clinical cohort.** The models are
    evaluated on held-out public benchmarks (PTB-XL, Kaggle Brain-Tumor, LGG — see
    [VALIDATION.md](maybe%20read/VALIDATION.md)), not on a real prospective patient cohort.
-   ECG leakage was checked externally (Chapman-Shaoxing-Ningbo, macro AUC 0.981 ≈ PTB-XL) — no meaningful leakage.
+   ECG leakage was checked externally (Chapman-Shaoxing-Ningbo, n=1500, macro AUC 0.973 ≈ PTB-XL) — no meaningful leakage.
 7. **No data-driven neuro-cardiac correlation.** The "combined interpretation" in
    the PDF is rule-based template text, not a learned/measured relationship between
    brain pathology and ECG. Testing that hypothesis needs a paired imaging+ECG

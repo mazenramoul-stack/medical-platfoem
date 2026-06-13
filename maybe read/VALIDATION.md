@@ -541,13 +541,14 @@ serving an untrained head.)
    large unpublished corpus that *may* include PTB-XL, which could in principle make
    the fold-10 AUC optimistic. To rule this out, the frozen ensemble was evaluated on
    the **PTB-XL-independent Chapman-Shaoxing-Ningbo** database (PhysioNet
-   `ecg-arrhythmia`) via `tools/eval_ecg_external.py`: **macro AUC 0.981** — essentially
+   `ecg-arrhythmia`) via `tools/eval_ecg_external.py`: **macro AUC 0.973** — essentially
    identical to the PTB-XL value (~0.98), so the model genuinely generalises and the
-   AUC is **not** inflated by leakage. (This is an *indicative* streamed sample of
-   n=150; the high-support classes SBRAD n=58 and STACH n=28 reach AUC 0.992, while the
-   rare classes n≤6 are individually noisy. Rerun `--stream 1500` for report-grade
-   per-pathology numbers. The June fine-tune is independently leakage-free anyway: it
-   trained on PTB-XL folds 1–8 and tested on fold 10.)
+   AUC is **not** inflated by leakage. (Report-grade streamed sample of **n=1500**,
+   `--stream 1500 --seed 42`, all records usable; every pathology now has real support —
+   per-pathology AUC 0.90–0.99, e.g. SBRAD n=550/0.992, STACH n=239/0.989, AFIB n=76/0.904,
+   LBBB n=20/0.986 — macro balanced-acc 0.913, mean recall 0.962. This supersedes the
+   earlier n=150 indicative run, macro AUC 0.981. The June fine-tune is independently
+   leakage-free anyway: it trained on PTB-XL folds 1–8 and tested on fold 10.)
 3. **MRI segmentation and classification use different datasets** (LGG with masks
    for segmentation; Kaggle without masks for classification), so a single
    uploaded image is not validated end-to-end through both tasks.
