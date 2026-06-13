@@ -99,6 +99,11 @@ export default {
       pathology: 'Pathology',
       probability: 'Probability',
       detected: 'Detected',
+      threshold: 'Detection threshold',
+      thresholdNote:
+        'Detected = probability ≥ that pathology’s threshold (the “▏” mark), not a fixed %. '
+        + 'High-risk rhythms use deliberately low thresholds (recall-first screening), so a '
+        + 'low-probability finding can still flag while a higher-probability one does not.',
     },
     pathologies: {
       AFIB: 'Atrial Fibrillation',
@@ -211,6 +216,12 @@ export default {
       pathology: 'Pathologie',
       probability: 'Probabilité',
       detected: 'Détectée',
+      threshold: 'Seuil de détection',
+      thresholdNote:
+        'Détectée = probabilité ≥ seuil de la pathologie (le repère « ▏ »), pas un % fixe. '
+        + 'Les rythmes à haut risque utilisent des seuils volontairement bas (dépistage axé '
+        + 'sur le rappel) : une probabilité faible peut donc être signalée alors qu’une plus '
+        + 'élevée ne l’est pas.',
     },
     pathologies: {
       AFIB: 'Fibrillation auriculaire',

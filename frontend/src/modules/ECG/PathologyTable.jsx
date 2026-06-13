@@ -21,6 +21,8 @@ export default function PathologyTable({ results }) {
           {rows.map(([code, r]) => {
             const pct = (r.probability || 0) * 100;
             const detected = !!r.detected;
+            const thr = typeof r.threshold === 'number'
+              ? Math.min(100, Math.max(0, r.threshold * 100)) : null;
             return (
               <tr key={code} className={detected ? 'bg-cardio/10' : ''}>
                 <td className="px-3 py-2 font-mono text-xs text-low">{code}</td>
@@ -29,11 +31,18 @@ export default function PathologyTable({ results }) {
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-paneldeep rounded overflow-hidden">
+                    <div className="relative flex-1 h-2 bg-paneldeep rounded overflow-hidden">
                       <div
                         className={'h-2 rounded ' + (detected ? 'bg-danger' : 'bg-primary')}
                         style={{ width: `${pct}%` }}
                       />
+                      {thr != null && (
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-hi/70"
+                          style={{ left: `${thr}%` }}
+                          title={`${t('ecg.table.threshold')}: ${thr.toFixed(0)}%`}
+                        />
+                      )}
                     </div>
                     <span className={'text-xs tabular-nums w-12 text-right ' + (detected ? 'text-danger font-semibold' : 'text-mid')}>
                       {pct.toFixed(1)}%
@@ -50,6 +59,7 @@ export default function PathologyTable({ results }) {
           })}
         </tbody>
       </table>
+      <p className="text-[11px] text-low mt-3 leading-relaxed">{t('ecg.table.thresholdNote')}</p>
     </div>
   );
 }
