@@ -15,7 +15,7 @@ VM. Windows works too; swap gunicorn for waitress (section 4).
 ## 1. Prerequisites
 
 - Python **3.10 or 3.11** (djongo 1.3.6 + Django 3.2.25 do not run on 3.12+).
-- Node.js 18+ (build the frontend once; not needed at runtime).
+- Node.js **20.19+** (Vite 8 / React 19; build the frontend once — not needed at runtime).
 - MongoDB Community 6/7 as a managed service.
 - A domain pointing at the VM and a TLS certificate (e.g. via certbot).
 - ~3 GB free disk for cached model weights; ~8 GB RAM resident during inference.

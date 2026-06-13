@@ -260,7 +260,7 @@ Two implementation bugs were diagnosed and fixed during validation:
 ### Prerequisites
 
 - Python 3.10 or 3.11 — required by torch 2.2 + djongo 1.3
-- Node.js ≥ 18
+- Node.js ≥ 20.19 — required by Vite 8 / React 19 (enforced via `engines` in `frontend/package.json`)
 - MongoDB Community 6+ running on `localhost:27017`
 - ~8 GB RAM (Swin + ecglib models hold ~3 GB resident)
 - ~3 GB free disk for cached model weights

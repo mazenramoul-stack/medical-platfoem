@@ -272,7 +272,7 @@ But:
   can't work as-is (already flagged untested — keep it honest).
 - A stray **63 MB `drive-download-…zip`** sits under `ecg_finetuned/` (git-ignored, so harmless to git, but
   delete it after extracting).
-- README says Node ≥18; Vite 8 / React 19 need Node ≥20.19. Bump it and add `engines` to package.json.
+- ✅ **Node version fixed** — README/DEPLOYMENT/TESTING now say Node ≥20.19 (was ≥18), and `frontend/package.json` carries an `engines: { node: ">=20.19" }` field matching Vite 8 / React 19.
 - Python 3.10/3.11 and port-3000 constraints are documented but **not enforced** — add a `sys.version_info`
   guard in `manage.py` (djongo silently breaking on 3.12 is your single most likely "doesn't run" support
   ticket).

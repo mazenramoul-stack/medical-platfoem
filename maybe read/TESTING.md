@@ -11,7 +11,7 @@ a full clinical workflow.
 | Requirement | Why |
 |---|---|
 | **Python 3.10 or 3.11** | Backend runtime; `djongo 1.3.6` does not support 3.12+. |
-| **Node.js 18+** | Frontend build / dev server (Vite). |
+| **Node.js 20.19+** | Frontend build / dev server (Vite 8 / React 19). |
 | **MongoDB Community Edition** | Database backend (via `djongo`). |
 | **~8 GB RAM** | Swin + ecglib + matplotlib all in memory during inference. |
 | **~5 GB free disk** | Model weights (~700 MB MRI/ECG + ~13 MB BIOT encoder), node_modules (~500 MB), media files. Optional EEG training data (Kaggle HMS subset) adds ~1–2 GB. |
