@@ -47,6 +47,8 @@ export default function Dashboard() {
         const merged = [
           ...mri.map((m) => ({ type: 'mri', id: m.id, created_at: m.created_at, status: m.status, label: m.result_tumor_type || 'MRI', patient: m.patient })),
           ...ecg.map((e) => ({ type: 'ecg', id: e.id, created_at: e.created_at, status: e.status, label: e.result_arrhythmia_type || 'ECG', patient: e.patient })),
+          ...echo.map((ec) => ({ type: 'echo', id: ec.id, created_at: ec.created_at, status: ec.status, label: ec.result_ef_category || 'Echo', patient: ec.patient })),
+          ...eeg.map((eg) => ({ type: 'eeg', id: eg.id, created_at: eg.created_at, status: eg.status, label: eg.result_dominant_pattern || 'EEG', patient: eg.patient })),
         ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
         setRecent(merged);
       } finally {

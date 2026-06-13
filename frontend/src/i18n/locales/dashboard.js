@@ -30,7 +30,7 @@ export default {
     recent: {
       title: 'Recent activity',
       emptyTitle: 'No recent activity',
-      emptyDescription: 'Activity will appear here as you upload MRI, ECG, and generate reports.',
+      emptyDescription: 'Activity will appear here as you upload MRI, ECG, Echo, EEG, and generate reports.',
     },
     status: {
       completed: 'completed',
@@ -69,7 +69,7 @@ export default {
     recent: {
       title: 'Activité récente',
       emptyTitle: 'Aucune activité récente',
-      emptyDescription: 'L’activité apparaîtra ici au fur et à mesure des analyses IRM, ECG et de la génération de rapports.',
+      emptyDescription: 'L’activité apparaîtra ici au fur et à mesure des analyses IRM, ECG, Écho, EEG et de la génération de rapports.',
     },
     status: {
       completed: 'terminé',

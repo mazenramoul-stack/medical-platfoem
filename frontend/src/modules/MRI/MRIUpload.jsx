@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDropzone } from 'react-dropzone';
 import { FileImage, Layers, Loader2, ScanLine, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import mriService from '../../services/mriService.js';
-import { MRI_ALLOWED_EXTENSIONS } from '../../utils/constants.js';
+import { useFileDropzone } from '../../hooks/useFileDropzone.js';
+import { MRI_ALLOWED_EXTENSIONS, MRI_MAX_BYTES } from '../../utils/constants.js';
 import { formatBytes } from '../../utils/formatters.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
 
@@ -101,8 +101,8 @@ export default function MRIUpload({ patient, onComplete }) {
     });
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: ACCEPT, multiple: false, onDrop,
+  const { getRootProps, getInputProps, isDragActive } = useFileDropzone({
+    accept: ACCEPT, maxSize: MRI_MAX_BYTES, onDrop,
   });
 
   const reset = () => {

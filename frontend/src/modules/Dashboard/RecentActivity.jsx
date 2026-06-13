@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Brain, Clock, Heart } from 'lucide-react';
+import { Activity, Brain, Clock, Heart, HeartPulse } from 'lucide-react';
 
 import Badge from '../../components/UI/Badge.jsx';
 import EmptyState from '../../components/UI/EmptyState.jsx';
@@ -14,11 +14,20 @@ const STATUS_VARIANT = {
   failed:     'danger',
 };
 
+// Icon + chip tone per modality, aligned with the Dashboard tiles / PatientDetail tabs.
+const TYPE_META = {
+  mri:  { icon: Brain,      tone: 'bg-purple-50 text-purple-700' },
+  ecg:  { icon: Heart,      tone: 'bg-red-50 text-danger' },
+  echo: { icon: HeartPulse, tone: 'bg-amber-50 text-amber-700' },
+  eeg:  { icon: Activity,   tone: 'bg-violet-50 text-violet-700' },
+};
+
 function Row({ item }) {
   const { t } = useI18n();
-  const Icon = item.type === 'mri' ? Brain : Heart;
-  const tone = item.type === 'mri' ? 'bg-purple-50 text-purple-700' : 'bg-red-50 text-danger';
-  const to = item.type === 'mri' ? `/mri/${item.id}` : `/ecg/${item.id}`;
+  const meta = TYPE_META[item.type] || TYPE_META.mri;
+  const Icon = meta.icon;
+  const tone = meta.tone;
+  const to = `/${item.type}/${item.id}`;
   const statusLabel = STATUS_VARIANT[item.status] ? t(`dashboard.status.${item.status}`) : item.status;
   return (
     <Link to={to} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition">

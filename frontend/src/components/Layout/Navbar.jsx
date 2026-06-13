@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { Bell, Menu, User } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 
 import Badge from '../UI/Badge.jsx';
 import ThemeLangControls from '../UI/ThemeLangControls.jsx';
@@ -52,13 +52,6 @@ export default function Navbar({ onMenuClick = () => {} }) {
       </div>
       <div className="flex items-center gap-3 lg:gap-4">
         <ThemeLangControls className="hidden sm:flex" />
-        <button
-          type="button"
-          className="text-low hover:text-neuro relative p-1.5 rounded transition-colors"
-          title={t('nav.notifications')}
-        >
-          <Bell size={20} />
-        </button>
         <div className="flex items-center gap-2">
           <div className="text-right hidden sm:block">
             <div className="text-sm font-medium text-hi leading-tight">{user?.full_name || '—'}</div>

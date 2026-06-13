@@ -128,6 +128,16 @@ export default function MRIResult() {
         </Link>
       )}
 
+      {mri.status !== 'completed' && (
+        <div className={
+          'rounded-xl border p-4 text-sm '
+          + (mri.status === 'failed' ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-200 bg-amber-50 text-amber-800')
+        }>
+          {t('mri.result.analysisStatus', { status: STATUS_VARIANT[mri.status] ? t(`mri.status.${mri.status}`) : mri.status })}
+          {mri.status === 'failed' ? ` ${t('mri.result.seeReport')}` : ''}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         <div className="lg:col-span-3">
           <div className="bg-card rounded-xl shadow-sm border border-gray-200 overflow-hidden">

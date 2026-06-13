@@ -127,6 +127,16 @@ export default function ECGResult() {
         </Link>
       )}
 
+      {ecg.status !== 'completed' && (
+        <div className={
+          'rounded-xl border p-4 text-sm '
+          + (ecg.status === 'failed' ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-200 bg-amber-50 text-amber-800')
+        }>
+          {t('ecg.result.analysisStatus', { status: STATUS_VARIANT[ecg.status] ? t(`ecg.status.${ecg.status}`) : ecg.status })}
+          {ecg.status === 'failed' ? ` ${t('ecg.result.seeReport')}` : ''}
+        </div>
+      )}
+
       {ecg.plot_url && (
         <div className="bg-card rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
@@ -141,26 +151,28 @@ export default function ECGResult() {
         </div>
       )}
 
-      <div className={'rounded-xl shadow-sm border p-5 ' + (abnormal ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50')}>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('ecg.result.primaryDiagnosis')}</div>
-            <div className={'text-2xl font-bold mt-1 ' + (abnormal ? 'text-danger' : 'text-success')}>
-              {ecg.result_arrhythmia_type || '—'}
+      {ecg.status === 'completed' && (
+        <div className={'rounded-xl shadow-sm border p-5 ' + (abnormal ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50')}>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('ecg.result.primaryDiagnosis')}</div>
+              <div className={'text-2xl font-bold mt-1 ' + (abnormal ? 'text-danger' : 'text-success')}>
+                {ecg.result_arrhythmia_type || '—'}
+              </div>
+              <div className="text-sm text-gray-700 mt-1">
+                {t('ecg.result.statusLabel')}: <strong>{abnormal ? t('ecg.result.abnormal') : t('ecg.result.normal')}</strong>
+              </div>
             </div>
-            <div className="text-sm text-gray-700 mt-1">
-              {t('ecg.result.statusLabel')}: <strong>{abnormal ? t('ecg.result.abnormal') : t('ecg.result.normal')}</strong>
+            <div className="min-w-[180px] flex-1 max-w-sm">
+              <div className="flex justify-between text-xs text-gray-700 mb-1">
+                <span>{t('ecg.result.confidence')}</span>
+                <span className="font-medium">{formatPercent(ecg.result_confidence)}</span>
+              </div>
+              <ConfidenceBar value={ecg.result_confidence} abnormal={abnormal} />
             </div>
-          </div>
-          <div className="min-w-[180px] flex-1 max-w-sm">
-            <div className="flex justify-between text-xs text-gray-700 mb-1">
-              <span>{t('ecg.result.confidence')}</span>
-              <span className="font-medium">{formatPercent(ecg.result_confidence)}</span>
-            </div>
-            <ConfidenceBar value={ecg.result_confidence} abnormal={abnormal} />
           </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">

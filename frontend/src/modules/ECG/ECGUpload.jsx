@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDropzone } from 'react-dropzone';
 import { FileText, Loader2, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import ecgService from '../../services/ecgService.js';
-import { ECG_ALLOWED_EXTENSIONS } from '../../utils/constants.js';
+import { useFileDropzone } from '../../hooks/useFileDropzone.js';
+import { ECG_ALLOWED_EXTENSIONS, ECG_MAX_BYTES } from '../../utils/constants.js';
 import { formatBytes } from '../../utils/formatters.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
 
@@ -27,8 +27,8 @@ export default function ECGUpload({ patient, onComplete }) {
     if (f) setFile(f);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: ACCEPT, multiple: false, onDrop,
+  const { getRootProps, getInputProps, isDragActive } = useFileDropzone({
+    accept: ACCEPT, maxSize: ECG_MAX_BYTES, onDrop,
   });
 
   const reset = () => { setFile(null); setProgress(0); setStage('idle'); };

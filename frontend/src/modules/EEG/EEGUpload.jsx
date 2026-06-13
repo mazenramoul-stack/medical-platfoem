@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDropzone } from 'react-dropzone';
 import { FileText, Loader2, Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import eegService from '../../services/eegService.js';
+import { useFileDropzone } from '../../hooks/useFileDropzone.js';
 import { formatBytes } from '../../utils/formatters.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
 
@@ -30,7 +30,7 @@ export default function EEGUpload({ patient, onComplete }) {
     setFile(f);
   }, [t]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ accept: ACCEPT, multiple: false, onDrop });
+  const { getRootProps, getInputProps, isDragActive } = useFileDropzone({ accept: ACCEPT, onDrop });
   const reset = () => { setFile(null); setProgress(0); setStage('idle'); };
 
   const onSubmit = async () => {

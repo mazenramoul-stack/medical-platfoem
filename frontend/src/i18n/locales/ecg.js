@@ -46,6 +46,8 @@ export default {
     },
     result: {
       loading: 'Loading ECG analysis…',
+      analysisStatus: 'Analysis {status}.',
+      seeReport: 'See report below.',
       notFound: 'Analysis not found.',
       loadFailed: 'Failed to load ECG',
       deleted: 'Analysis deleted',
@@ -156,6 +158,8 @@ export default {
     },
     result: {
       loading: 'Chargement de l’analyse ECG…',
+      analysisStatus: 'Analyse {status}.',
+      seeReport: 'Voir le rapport ci-dessous.',
       notFound: 'Analyse introuvable.',
       loadFailed: 'Échec du chargement de l’ECG',
       deleted: 'Analyse supprimée',

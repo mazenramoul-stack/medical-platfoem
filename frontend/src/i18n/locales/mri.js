@@ -55,6 +55,8 @@ export default {
     },
     result: {
       loading: 'Loading MRI analysis…',
+      analysisStatus: 'Analysis {status}.',
+      seeReport: 'See report below.',
       notFound: 'Analysis not found.',
       loadFailed: 'Failed to load analysis',
       deleted: 'Analysis deleted',
@@ -154,6 +156,8 @@ export default {
     },
     result: {
       loading: 'Chargement de l’analyse IRM…',
+      analysisStatus: 'Analyse {status}.',
+      seeReport: 'Voir le rapport ci-dessous.',
       notFound: 'Analyse introuvable.',
       loadFailed: 'Échec du chargement de l’analyse',
       deleted: 'Analyse supprimée',
