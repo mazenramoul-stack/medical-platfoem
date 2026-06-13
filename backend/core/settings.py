@@ -32,6 +32,7 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  # server-side refresh-token revocation
     'corsheaders',
+    'drf_spectacular',  # OpenAPI 3 schema + Swagger/ReDoc docs
 ]
 
 LOCAL_APPS = [
@@ -149,6 +150,7 @@ AUTH_USER_MODEL = 'authentication.User'
 # Django REST Framework ---------------------------------------------------
 
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
@@ -226,3 +228,18 @@ if not DEBUG and 'test' not in sys.argv:
     CSRF_COOKIE_SECURE = True
     # Trust the X-Forwarded-Proto set by the nginx/gunicorn TLS terminator.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+# API documentation (drf-spectacular) -------------------------------------
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Multimodal Medical AI Platform API',
+    'DESCRIPTION': (
+        'Doctor-scoped REST API for brain-MRI, 12-lead ECG, echocardiogram, and '
+        'EEG inference plus combined PDF reports. Decision-support only — not a '
+        'certified diagnostic device.'),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # Public schema/docs for the demo (describes the API surface, not patient
+    # data). Tighten SERVE_PERMISSIONS to IsAuthenticated for a hardened deploy.
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+}
