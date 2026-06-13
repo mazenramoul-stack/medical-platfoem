@@ -189,3 +189,40 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
+
+
+# Cache — DRF throttle backend --------------------------------------------
+# The auth rate throttles store their counters in the default cache. Django's
+# built-in LocMemCache is PER-PROCESS, so under multiple gunicorn workers the
+# login/register limits are enforced per worker (not globally) and reset on
+# reload. Set REDIS_URL in production for a shared, durable throttle
+# (`pip install django-redis`); local dev and tests keep the in-memory cache.
+REDIS_URL = config('REDIS_URL', default='')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        },
+    }
+else:
+    CACHES = {
+        'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
+    }
+
+
+# Production security hardening -------------------------------------------
+# Active only in real production (DEBUG=False and not under `manage.py test`),
+# so local HTTP development and the test client are unaffected — an HTTPS
+# redirect would otherwise 301 every test request. Clears `check --deploy`.
+if not DEBUG and 'test' not in sys.argv:
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # Trust the X-Forwarded-Proto set by the nginx/gunicorn TLS terminator.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
