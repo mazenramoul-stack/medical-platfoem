@@ -309,10 +309,11 @@ their weights are present (honest failure rather than serving an untrained model
   locally June 11 2026; stock baseline 0.978 / 0.884 / 0.711.
 - **Where it falls short:** SBRAD remains weak (F1 0.47; its fine-tune did not
   beat baseline and was not kept) and 1AVB moderate even after its fine-tune
-  (F1 0.61), both limited by *precision* (many false positives) despite high AUC. There is also a possible
-  **train/test overlap** caveat: `ecglib` may have trained on a corpus including
-  PTB-XL, so the AUC may be optimistic — to be confirmed on an independent set
-  (Chapman-Shaoxing / Georgia).
+  (F1 0.61), both limited by *precision* (many false positives) despite high AUC. The possible
+  **train/test overlap** caveat (`ecglib` may have trained on a corpus including PTB-XL, so the
+  AUC could be optimistic) has been **checked and ruled out**: on the PTB-XL-independent
+  Chapman-Shaoxing-Ningbo set (`tools/eval_ecg_external.py --stream 1500`, n=1500) the macro AUC
+  is **0.973** ≈ the PTB-XL ~0.98 ⇒ no meaningful leakage.
 
 #### (b) MRI segmentation — U-Net
 
