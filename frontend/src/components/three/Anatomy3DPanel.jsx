@@ -10,36 +10,30 @@ import { useTokens } from '../../theme/ThemeContext.jsx';
  * Interactive 3D anatomy panel for a result page. Renders the organ (heart for
  * now) and glows the structures the model's finding implicates, beside an honest
  * legend + caveat. `highlight` is the descriptor from a pure map*ToHighlight()
- * function: { organ, regions:[{id,severity}], findingCodes, beatsPerMinute,
- * rateOnly, normal }.
+ * function: { organ, regions:[{id,score,severity}], findings:[{code,score}],
+ * beatsPerMinute, rateOnly, rateScore, normal }.
  */
 export default function Anatomy3DPanel({ accent, highlight }) {
   const { t } = useI18n();
   const { colors } = useTokens();
 
-  // Degree of GREEN by confidence: same green hue everywhere, but a brighter,
-  // stronger glow for a higher-probability finding (and a fainter legend dot for
-  // a lower one). Reads clearly on the grey non-problem structures.
-  const clamp01 = (x) => Math.max(0, Math.min(1, x));
-  // Richness of GREEN scales DIRECTLY with confidence: a high-probability finding
-  // is a deep, saturated green; a low one is a pale, light green (still visible).
-  // Same hue throughout — only the depth changes.
-  const probGreen = (p) => {
-    const q = clamp01(p);
-    const sat = Math.round(45 + 50 * q);   // 45% (pale) .. 95% (rich)
-    const light = Math.round(72 - 27 * q); // 72% (light) .. 45% (deep)
-    return `hsl(152, ${sat}%, ${light}%)`;
-  };
-  const probIntensity = (p) => 0.4 + 0.7 * clamp01(p); // glow strength also tracks confidence
+  // Bright green (the app's neuro accent) reads clearly on the dark-red heart and
+  // the dark scene. Glow STRENGTH ∝ the finding's probability: a high-confidence
+  // finding glows strong, a low-confidence one glows faint.
+  const glowColor = colors.neuro;
+  const clamp01 = (x) => Math.max(0, Math.min(1, x || 0));
+  const scoreToIntensity = (score) => 0.5 + clamp01(score) * 1.4; // ~0.5 (faint) → 1.9 (strong)
 
   // id -> { color, intensity } for the 3D model.
   const highlightMap = useMemo(() => {
     const m = {};
     if (highlight.rateOnly) {
-      // Rate finding → no localized site: gently glow the whole heart "examined".
-      for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: colors.neuro, intensity: 0.5 };
+      // Rate finding → no localized site: glow the whole heart "examined", at a
+      // strength reflecting the rate finding's probability.
+      const intensity = scoreToIntensity(highlight.rateScore ?? 0.6);
+      for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: glowColor, intensity };
     } else {
-      for (const r of highlight.regions || []) m[r.id] = { color: probGreen(r.probability), intensity: probIntensity(r.probability) };
+      for (const r of highlight.regions || []) m[r.id] = { color: glowColor, intensity: scoreToIntensity(r.score) };
     }
     return m;
     // colors change with theme; highlight changes with the result
@@ -70,30 +64,49 @@ export default function Anatomy3DPanel({ accent, highlight }) {
             <p className="text-sm text-success font-medium">{t('anatomy3d.none')}</p>
           ) : (
             <>
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                {t('anatomy3d.findingsTitle')}
-              </div>
-              <ul className="space-y-2">
-                {(highlight.findings || []).map((f) => {
-                  const label = t(`anatomy3d.findings.${f.code}`);
-                  return (
-                    <li key={f.code} className="flex items-center gap-2 text-sm text-gray-800">
-                      <span
-                        className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ background: probGreen(f.probability), boxShadow: `0 0 8px ${probGreen(f.probability)}` }}
-                      />
-                      <span className="font-medium">{label === `anatomy3d.findings.${f.code}` ? f.code : label}</span>
-                      <span className="text-xs text-gray-400 tabular-nums">· {(f.probability * 100).toFixed(1)}%</span>
-                      {f.rateOnly && <span className="text-[10px] text-amber-700">· {t('anatomy3d.rateTag')}</span>}
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {highlight.findings?.some((f) => f.rateOnly) && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                  {t('anatomy3d.rateNote')}
+              {highlight.rateOnly ? (
+                <p className="flex items-start gap-2 text-sm text-gray-800">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0 mt-1.5"
+                    style={{ background: glowColor, boxShadow: `0 0 8px ${glowColor}` }}
+                  />
+                  <span>{t('anatomy3d.rateNote')}</span>
                 </p>
+              ) : (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    {t('anatomy3d.implicated')}
+                  </div>
+                  <ul className="space-y-2">
+                    {highlight.regions.map((r) => {
+                      const pct = Math.round(clamp01(r.score) * 100);
+                      return (
+                        <li key={r.id} className="flex items-center gap-2 text-sm text-gray-800">
+                          <span
+                            className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ background: glowColor, opacity: 0.35 + clamp01(r.score) * 0.65, boxShadow: `0 0 ${4 + pct / 12}px ${glowColor}` }}
+                          />
+                          <span className="font-medium">{t(`anatomy3d.regions.${r.id}`)}</span>
+                          <span className="text-xs text-gray-400 tabular-nums">· {pct}%</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {highlight.findings?.length > 0 && (
+                <ul className="space-y-1 text-xs text-gray-600">
+                  {highlight.findings.map((f) => {
+                    const label = t(`anatomy3d.findings.${f.code}`);
+                    const text = label === `anatomy3d.findings.${f.code}` ? f.code : label;
+                    return (
+                      <li key={f.code}>
+                        • {text} <span className="text-gray-400 tabular-nums">({Math.round(clamp01(f.score) * 100)}%)</span>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </>
           )}
