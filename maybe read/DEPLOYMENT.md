@@ -149,7 +149,16 @@ server {
         proxy_read_timeout 300s;      # match the backend timeout
     }
 
-    location /media/  { alias /srv/medical-platform/backend/media/; }
+    # PHI: proxy /media/ to Django so core.media.serve_signed_media validates the
+    # HMAC signature on every request. Do NOT `alias` the media dir directly — that
+    # bypasses signing and exposes patient scans/reports. (For zero-copy streaming,
+    # use nginx auth_request + X-Accel-Redirect against the signed view instead.)
+    location /media/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+    }
     location /static/ { alias /srv/medical-platform/backend/staticfiles/; }
 }
 ```

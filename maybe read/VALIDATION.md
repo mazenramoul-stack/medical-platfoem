@@ -536,9 +536,12 @@ serving an untrained head.)
 
 ## 7. Ethics notes (platform findings)
 
-- **PHI exposure:** result images and uploads are currently served from `/media/`
-  **without authentication**, bypassing the per-doctor access control enforced in
-  the API — a real medical-data-protection gap to fix and to discuss.
+- **PHI access control (mitigated):** result images, uploads, and PDF reports are
+  served through an **HMAC-signed, time-limited** `/media/` view
+  (`backend/core/media.py`); the API never returns a raw `/media/` URL. Remaining
+  limitation to discuss: a signed URL is **time-scoped, not per-identity** — anyone
+  holding a valid (unexpired) URL can fetch it, so it is not a substitute for a full
+  per-request authorization check.
 - JWT stored in browser `localStorage`; no encryption at rest; no audit log.
 
 ## 8. Perspectives

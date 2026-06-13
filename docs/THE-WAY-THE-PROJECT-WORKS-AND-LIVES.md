@@ -45,7 +45,8 @@ MongoDB (via djongo)   users · patients · mri · ecg · echo · eeg · reports
    the same in-memory model** (lazy singleton). GPU is used automatically if present, else CPU.
 5. The pipeline returns a plain dict shaped `{status, ...results, error?}`. It **never raises
    into the view** — a failure is reported as structured data so the API can still return
-   partial results (e.g. ECG with 5 of 7 pathology models loaded).
+   partial results — all 7 ECG models load normally, but the envelope can still report
+   a runtime partial (e.g. 6/7) if a model fails mid-request.
 6. The result + any generated images are stored, and the doctor's result page renders them.
 7. **+ Generate report** combines any completed analyses into one PDF via ReportLab, with a
    rule-based "combined interpretation" section.

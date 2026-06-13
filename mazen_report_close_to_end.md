@@ -58,7 +58,7 @@ jury will visibly catch. Effort is a rough estimate.
 
 | # | Fix | Why it matters | Effort |
 |---|---|---|---|
-| 1 | **Stop serving `/media/` without auth** (route PHI through a doctor-scoped view, or nginx `auth_request`/`X-Accel-Redirect`) | Any unauthenticated party who guesses a `/media/...pdf` URL can read another doctor's scans & reports — directly breaks your own #1 contract | M |
+| 1 | **Stop serving `/media/` without auth** ✅ **RESOLVED June 2026** — `/media/` is now served through the HMAC-signed, time-limited `serve_signed_media` view (`backend/core/media.py`); the API mints signed URLs and never returns a raw path. (Residual: a signed URL is time-scoped, not per-identity.) | (was) Any party guessing a `/media/...pdf` URL could read another doctor's scans & reports | M → done |
 | 2 | **Make `role` read-only in registration** | One `curl` self-registers as `role=admin` today (confirmed in code) | XS |
 | 3 | **Fix the Echo EF headline** — quote MAE 4.0% / R² 0.83 (400 videos), not 3.19% (40 videos) | The repo's own artifact contradicts the headline; I reproduced both numbers | XS–S |
 | 4 | **Add doctor-isolation API tests** (two-doctor cross-access → 404/empty) | Your documented #1 security invariant has **zero** tests | M |
@@ -72,7 +72,9 @@ jury will visibly catch. Effort is a rough estimate.
 ## 1. Security & patient-data protection
 
 ### 🔴 CRITICAL — Patient media (scans + PDF reports) served with no authentication
-*`backend/core/urls.py:17-18`, `maybe read/DEPLOYMENT.md:152` — found by two dimensions; verifier confirmed `isReal=true`, rated high.*
+> ✅ **RESOLVED (June 2026):** `/media/` is now routed through `serve_signed_media` (`backend/core/media.py`, `core/urls.py:20`) — HMAC-signed, time-limited URLs; the API never hands back a raw `/media/` path, and the nginx example now proxies to the signed view (`DEPLOYMENT.md:152`). The analysis below describes the *pre-fix* state. Residual limitation: a signed URL is time-scoped, not per-identity.
+
+*`backend/core/urls.py:17-18`, `maybe read/DEPLOYMENT.md:152` — found by two dimensions; verifier confirmed `isReal=true`, rated high (state at audit time).*
 
 Doctor isolation is enforced on every DRF JSON endpoint, but the **binary files those endpoints point to**
 are not protected. In DEBUG, `static()` serves all of `MEDIA_ROOT` with no permission check; the documented

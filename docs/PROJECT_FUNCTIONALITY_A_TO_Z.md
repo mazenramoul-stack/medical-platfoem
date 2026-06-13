@@ -116,8 +116,9 @@ modality:
 - **Pipeline result envelope.** Every inference function returns a plain
   dictionary shaped `{status, …result_fields, error?, error_type?}` and **never
   raises into the view**. Structured failure is part of the contract: the API can
-  therefore report *partial* results (for example, an ECG analysis with 5 of 7
-  pathology models successfully loaded) instead of returning an opaque HTTP 500.
+  therefore report *partial* results — all 7 ECG models load normally, but if one
+  fails mid-request the envelope can still return a runtime partial (e.g. 6/7)
+  instead of an opaque HTTP 500.
 
 ---
 
@@ -416,9 +417,11 @@ disclosed at the defence:
    may require re-tuning.
 5. **Non-bundled weights** — EchoNet and the BIOT IIIC head must be provided
    before their endpoints function.
-6. **Security gap to disclose** — result images and uploads are served from
-   `/media/` without authentication, bypassing the per-doctor API access control
-   (a real medical-data-protection issue and an ethics talking point).
+6. **PHI serving (mitigated)** — result images, uploads, and reports are served
+   through an HMAC-signed, time-limited `/media/` view (`backend/core/media.py`); the
+   API never hands back a raw `/media/` URL. Remaining limitation to disclose: a signed
+   URL is **time-scoped, not per-identity** (valid until it expires), so it is not a
+   full per-request authorization check.
 
 ---
 

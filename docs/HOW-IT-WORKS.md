@@ -78,8 +78,9 @@ inference finishes. **There is no Celery/RQ task queue.**
    The FK chain is `<Analysis> → patient → doctor`.
 2. **Result-envelope contract** — pipelines return a plain dict
    `{status, ...result_fields, error?, error_type?}` and **never raise into the
-   view**. Structured failure is part of the contract (e.g. ECG can report 5/7
-   pathology models loaded).
+   view**. Structured failure is part of the contract — all 7 ECG models load
+   normally, but the envelope can still report a runtime partial (e.g. 6/7) if a
+   model fails mid-request.
 
 ---
 
@@ -243,8 +244,9 @@ Be precise about scope — these are easy to over-claim:
 - **EEG is not a tumour detector** — functional screening only.
 - **Inference is synchronous** (no queue) — doesn't scale to concurrent load; echo
   video on CPU is slow.
-- **Security gaps** (for the ethics section): media files served from `/media/`
-  without auth; JWT in `localStorage`; no encryption at rest / audit log.
+- **Security notes** (for the ethics section): PHI under `/media/` is served via an
+  **HMAC-signed, time-limited** view (`core/media.py`) — not raw — though a signed URL
+  is time-scoped, not per-identity; JWT in `localStorage`; no encryption at rest / audit log.
 
 ---
 

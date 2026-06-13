@@ -385,7 +385,7 @@ This section is deliberately exhaustive. Knowing these is a strength at the defe
 
 ### 6.5 Security / ethics gaps (must disclose)
 
-- **PHI exposure:** result images and uploads are served from `/media/` **without authentication**, bypassing the per-doctor access control enforced in the API — a real medical-data-protection gap.
+- **PHI serving (mitigated):** result images and uploads are served through an HMAC-signed, time-limited `/media/` view (`backend/core/media.py`); the API never returns a raw `/media/` URL. Remaining limitation: a signed URL is **time-scoped, not per-identity** (valid until expiry), so it is not a full per-request authorization check.
 - **No GDPR controls:** no consent capture, no pseudonymisation, no retention-expiry, no access audit log. JWT stored in browser `localStorage`; no encryption at rest. These are noted as **future work, not claimed as delivered**. The platform is explicitly a **research/educational prototype, not a certified medical device**.
 
 ### 6.6 Conflicts / things that *look* like bugs but are not
