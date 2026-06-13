@@ -243,3 +243,50 @@ SPECTACULAR_SETTINGS = {
     # data). Tighten SERVE_PERMISSIONS to IsAuthenticated for a hardened deploy.
     'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
 }
+
+
+# Logging ------------------------------------------------------------------
+# Consistent console logging; level via LOG_LEVEL env (default INFO). Optional
+# Sentry error monitoring activates only when SENTRY_DSN is set
+# (`pip install sentry-sdk`); patient PII is never forwarded (medical app).
+LOG_LEVEL = config('LOG_LEVEL', default='INFO')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {'format': '{asctime} {levelname} {name}: {message}', 'style': '{'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
+    },
+    'root': {'handlers': ['console'], 'level': LOG_LEVEL},
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': config('DJANGO_LOG_LEVEL', default='INFO'),
+            'propagate': False,
+        },
+        # All modality/inference loggers (apps.inference.*, apps.mri, ...).
+        'apps': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
+        # Quiet very chatty third-party libraries.
+        'matplotlib': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'PIL': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+    },
+}
+
+SENTRY_DSN = config('SENTRY_DSN', default='')
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=config('SENTRY_TRACES_SAMPLE_RATE', default=0.0, cast=float),
+            send_default_pii=False,  # medical app: never forward patient PII
+        )
+    except ImportError:
+        import warnings
+        warnings.warn('SENTRY_DSN is set but sentry-sdk is not installed; '
+                      'run `pip install sentry-sdk` to enable error monitoring.')
