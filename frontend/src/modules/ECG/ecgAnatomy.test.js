@@ -64,11 +64,34 @@ describe('mapEcgToHighlight', () => {
     expect(h.rateOnly).toBe(false);
   });
 
-  it('unions structural regions across findings; rate findings add no site', () => {
-    const h = mapEcgToHighlight(ecgWith(['RBBB', 'AFIB', 'STACH']));
-    expect(ids(h)).toEqual(['la', 'ra', 'rv']); // STACH contributes no region
-    expect(h.rateOnly).toBe(false); // a structural finding is present
-    expect(h.findingCodes.sort()).toEqual(['AFIB', 'RBBB', 'STACH']);
+  it('highlights only the PRIMARY (highest-probability) detected finding', () => {
+    const ecg = {
+      result_pathology_probabilities: {
+        RBBB: { probability: 0.95, detected: true },
+        AFIB: { probability: 0.70, detected: true },
+        STACH: { probability: 0.80, detected: true },
+        LBBB: { probability: 0.02, detected: false },
+      },
+    };
+    const h = mapEcgToHighlight(ecg);
+    expect(h.findingCodes).toEqual(['RBBB']); // highest-probability detected
+    expect(ids(h)).toEqual(['rv']);
+    expect(h.rateOnly).toBe(false);
+  });
+
+  it('a rate primary stays rate-only even when a structural finding co-occurs lower', () => {
+    // The screenshot case: Sinus Tachycardia is the headline; a secondary AFIB
+    // flag from the liberal thresholds must NOT light up the atria.
+    const ecg = {
+      result_pathology_probabilities: {
+        STACH: { probability: 0.92, detected: true },
+        AFIB: { probability: 0.40, detected: true },
+      },
+    };
+    const h = mapEcgToHighlight(ecg);
+    expect(h.findingCodes).toEqual(['STACH']);
+    expect(h.rateOnly).toBe(true);
+    expect(ids(h)).toEqual([]); // no pinpoint
   });
 
   it('passes through the measured heart rate, rounded', () => {
