@@ -56,7 +56,7 @@ jobs:
 
       - name: Run weight-free tests (in-memory SQLite; doctor isolation + auth)
         working-directory: backend
-        run: python manage.py test tests.test_doctor_isolation tests.test_ecg_reject apps.authentication --noinput --verbosity 2
+        run: python manage.py test tests.test_doctor_isolation tests.test_ecg_reject tests.test_health apps.authentication --noinput --verbosity 2
 
   frontend:
     runs-on: ubuntu-latest

@@ -6,10 +6,12 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from .health import health
 from .media import serve_signed_media
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/health/', health, name='health'),
     path('api/auth/', include('apps.authentication.urls')),
     path('api/', include('apps.patients.urls')),
     path('api/mri/', include('apps.mri.urls')),
