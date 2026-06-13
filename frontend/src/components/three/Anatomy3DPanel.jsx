@@ -21,19 +21,25 @@ export default function Anatomy3DPanel({ accent, highlight }) {
   // stronger glow for a higher-probability finding (and a fainter legend dot for
   // a lower one). Reads clearly on the grey non-problem structures.
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
-  // Moderate emissive so the highlighted glass reads as translucent green (not a
-  // solid block); confidence still scales the brightness.
-  const probIntensity = (p) => 0.35 + 0.6 * clamp01(p);
-  const dotOpacity = (p) => 0.45 + 0.55 * clamp01(p);
+  // Richness of GREEN scales DIRECTLY with confidence: a high-probability finding
+  // is a deep, saturated green; a low one is a pale, light green (still visible).
+  // Same hue throughout — only the depth changes.
+  const probGreen = (p) => {
+    const q = clamp01(p);
+    const sat = Math.round(45 + 50 * q);   // 45% (pale) .. 95% (rich)
+    const light = Math.round(72 - 27 * q); // 72% (light) .. 45% (deep)
+    return `hsl(152, ${sat}%, ${light}%)`;
+  };
+  const probIntensity = (p) => 0.4 + 0.7 * clamp01(p); // glow strength also tracks confidence
 
   // id -> { color, intensity } for the 3D model.
   const highlightMap = useMemo(() => {
     const m = {};
     if (highlight.rateOnly) {
       // Rate finding → no localized site: gently glow the whole heart "examined".
-      for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: colors.neuro, intensity: 0.55 };
+      for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: colors.neuro, intensity: 0.5 };
     } else {
-      for (const r of highlight.regions || []) m[r.id] = { color: colors.neuro, intensity: probIntensity(r.probability) };
+      for (const r of highlight.regions || []) m[r.id] = { color: probGreen(r.probability), intensity: probIntensity(r.probability) };
     }
     return m;
     // colors change with theme; highlight changes with the result
@@ -74,7 +80,7 @@ export default function Anatomy3DPanel({ accent, highlight }) {
                     <li key={f.code} className="flex items-center gap-2 text-sm text-gray-800">
                       <span
                         className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ background: colors.neuro, opacity: dotOpacity(f.probability), boxShadow: `0 0 8px ${colors.neuro}` }}
+                        style={{ background: probGreen(f.probability), boxShadow: `0 0 8px ${probGreen(f.probability)}` }}
                       />
                       <span className="font-medium">{label === `anatomy3d.findings.${f.code}` ? f.code : label}</span>
                       <span className="text-xs text-gray-400 tabular-nums">· {(f.probability * 100).toFixed(1)}%</span>
