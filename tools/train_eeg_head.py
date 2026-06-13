@@ -60,7 +60,7 @@ def _kaggle_auth_header() -> str:
         "KAGGLE_USERNAME + KAGGLE_KEY in the environment.")
 
 
-def _kaggle_download_file(fname: str, dest: Path, retries: int = 7) -> None:
+def _kaggle_download_file(fname: str, dest: Path, retries: int = 10) -> None:
     """Download one competition file to ``dest`` (handles redirect, 429 backoff, zip).
 
     The download route is ``/competitions/data/download/{comp}/{file_name}`` where a
@@ -79,7 +79,7 @@ def _kaggle_download_file(fname: str, dest: Path, retries: int = 7) -> None:
 
     enc = fname.replace("/", "%2F")
     path = f"/api/v1/competitions/data/download/{HMS_COMP}/{enc}"
-    delay = 3.0
+    delay = 5.0
     data = None
     for attempt in range(retries):
         conn = http.client.HTTPSConnection("www.kaggle.com", timeout=300)
@@ -94,12 +94,12 @@ def _kaggle_download_file(fname: str, dest: Path, retries: int = 7) -> None:
                     break
                 except urllib.error.HTTPError as e:
                     if e.code == 429 and attempt < retries - 1:
-                        time.sleep(delay); delay = min(delay * 2, 60); continue
+                        time.sleep(delay); delay = min(delay * 2, 120); continue
                     raise
             elif r.status == 200:
                 data = r.read(); break
             elif r.status == 429 and attempt < retries - 1:
-                r.read(); time.sleep(delay); delay = min(delay * 2, 60); continue
+                r.read(); time.sleep(delay); delay = min(delay * 2, 120); continue
             else:
                 body = r.read(200)
                 raise RuntimeError(f"Kaggle download {fname} -> HTTP {r.status}: {body[:160]!r}")
@@ -142,15 +142,34 @@ def download_subset(hms_dir: Path, n_eegs: int) -> None:
         .head(n_eegs)
     )
     import time
-    print(f"Fetching {len(chosen)} EEG parquet files ...")
-    for i, eeg_id in enumerate(chosen["eeg_id"].tolist(), 1):
+    ids = chosen["eeg_id"].tolist()
+    print(f"Fetching {len(ids)} EEG parquet files ...")
+    done = skipped = 0
+    for i, eeg_id in enumerate(ids, 1):
         dest = hms_dir / "train_eegs" / f"{eeg_id}.parquet"
-        if dest.exists():
+        if dest.exists():  # resumable: re-running skips what's already downloaded
+            done += 1
             continue
-        _kaggle_download_file(f"train_eegs/{eeg_id}.parquet", dest)
-        time.sleep(0.25)  # be polite — Kaggle rate-limits rapid sequential downloads
+        # Wait out Kaggle's rate window (429) with a long cooldown instead of
+        # crashing the whole run; only skip a file if it stays stuck. A few
+        # missing EEGs out of the subset don't matter for the frozen-encoder head.
+        for attempt in range(6):
+            try:
+                _kaggle_download_file(f"train_eegs/{eeg_id}.parquet", dest)
+                done += 1
+                break
+            except RuntimeError as e:
+                if "429" in str(e) and attempt < 5:
+                    print(f"  rate-limited at {i}/{len(ids)} — cooling down 90s ...")
+                    time.sleep(90)
+                    continue
+                print(f"  skip {eeg_id}: {e}")
+                skipped += 1
+                break
+        time.sleep(0.4)  # be polite — Kaggle rate-limits rapid sequential downloads
         if i % 50 == 0:
-            print(f"  ...{i}/{len(chosen)}")
+            print(f"  ...{i}/{len(ids)}  (ok={done} skip={skipped})")
+    print(f"EEG download complete: {done} files, {skipped} skipped.")
 
 
 def _embed(encoder, segments, device, batch=16):
