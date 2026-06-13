@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
@@ -44,3 +45,34 @@ class RegistrationRoleEscalationTest(APITestCase):
         user = User.objects.get(email=self.payload['email'])
         self.assertEqual(user.role, User.Role.DOCTOR)
         self.assertNotEqual(user.role, User.Role.ADMIN)
+
+
+class LogoutRevocationTest(APITestCase):
+    """Logout must blacklist the refresh token so it can no longer be used."""
+
+    def setUp(self):
+        # Create the user + tokens via the ORM (no HTTP register) to avoid the
+        # register rate-throttle in the shared test process.
+        self.user = User.objects.create_user(
+            email='logout@test.com', password='x', full_name='L O', role='doctor')
+
+    def _tokens(self):
+        r = RefreshToken.for_user(self.user)
+        return str(r.access_token), str(r)
+
+    def test_logout_blacklists_refresh_token(self):
+        access, refresh = self._tokens()
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        out = self.client.post(reverse('authentication:logout'), {'refresh': refresh}, format='json')
+        self.assertEqual(out.status_code, status.HTTP_205_RESET_CONTENT, out.content)
+
+        # The blacklisted refresh token can no longer be exchanged for an access token.
+        self.client.credentials()  # drop auth header
+        r = self.client.post(reverse('authentication:token_refresh'), {'refresh': refresh}, format='json')
+        self.assertEqual(r.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_requires_a_refresh_token(self):
+        access, _ = self._tokens()
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        out = self.client.post(reverse('authentication:logout'), {}, format='json')
+        self.assertEqual(out.status_code, status.HTTP_400_BAD_REQUEST)

@@ -30,6 +30,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',  # server-side refresh-token revocation
     'corsheaders',
 ]
 
@@ -173,6 +174,10 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),
+    # Rotate on every refresh and blacklist the previous token, so a stolen or
+    # logged-out refresh token cannot be reused (revocation via token_blacklist).
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 

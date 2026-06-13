@@ -23,6 +23,15 @@ const authService = {
   },
 
   logout() {
+    const refresh = localStorage.getItem('refresh_token');
+    const access = localStorage.getItem('access_token');
+    // Best-effort server-side revocation (blacklist the refresh token). Send the
+    // access token explicitly so it survives the localStorage clear below, and
+    // never block local logout on the network call.
+    if (refresh && access) {
+      api.post('/auth/logout/', { refresh }, { headers: { Authorization: `Bearer ${access}` } })
+        .catch(() => {});
+    }
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
