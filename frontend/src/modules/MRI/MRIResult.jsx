@@ -44,6 +44,9 @@ export default function MRIResult() {
   const [tab, setTab] = useState('overlay');
   const [askDelete, setAskDelete] = useState(false);
   const [generating, setGenerating] = useState(false);
+  // Segmentation-mask analysis: null = not analysed (classifier fallback),
+  // { present, x, y } once the U-Net mask has been read for tumour location.
+  const [maskInfo, setMaskInfo] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -71,9 +74,61 @@ export default function MRIResult() {
     return () => { alive = false; };
   }, [id]);
 
-  // Map the tumour finding to the brain (cerebrum) for the 3D panel; the actual
-  // location is the 2D scan/overlay above (the 3D view is illustrative).
-  const brainHighlight = useMemo(() => mapMriToHighlight(mri), [mri]);
+  // Read the U-Net segmentation mask to drive the 3D brain: where the tumour is
+  // (centroid of the bright region, projected to brain coords) and whether one is
+  // present at all. Falls back to the classifier (maskInfo=null) if there is no
+  // mask or it can't be read (e.g. CORS-tainted canvas).
+  const maskUrl = mri ? mri.mask_url : null;
+  useEffect(() => {
+    if (!maskUrl) { setMaskInfo(null); return undefined; }
+    let alive = true;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (!alive) return;
+      try {
+        const W = 96;
+        const H = 96;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) { setMaskInfo(null); return; }
+        ctx.drawImage(img, 0, 0, W, H);
+        const { data } = ctx.getImageData(0, 0, W, H);
+        let sx = 0;
+        let sy = 0;
+        let n = 0;
+        let total = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 8) continue; // transparent
+          total += 1;
+          const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          if (lum > 110) { // bright = tumour pixel in the binary mask
+            const idx = i / 4;
+            sx += idx % W;
+            sy += Math.floor(idx / W);
+            n += 1;
+          }
+        }
+        const frac = total ? n / total : 0;
+        if (n === 0 || frac <= 0.003) { setMaskInfo({ present: false }); return; }
+        if (frac > 0.6) { setMaskInfo(null); return; } // saturated/invalid → classifier
+        const nx = (sx / n) / W;
+        const ny = (sy / n) / H;
+        setMaskInfo({ present: true, x: (nx - 0.5) * 1.7, y: (0.5 - ny) * 1.3 });
+      } catch {
+        setMaskInfo(null); // tainted canvas (CORS) → classifier fallback
+      }
+    };
+    img.onerror = () => { if (alive) setMaskInfo(null); };
+    img.src = maskUrl;
+    return () => { alive = false; };
+  }, [maskUrl]);
+
+  // 3D brain: localized tumour marker from the segmentation mask when available,
+  // else the classifier verdict (whole cerebrum). Caption points to the 2D scan.
+  const brainHighlight = useMemo(() => mapMriToHighlight(mri, maskInfo), [mri, maskInfo]);
 
   if (loading) return <Loader label={t('mri.result.loading')} className="py-12" />;
   if (!mri)    return <div className="py-12 text-center text-sm text-gray-500">{t('mri.result.notFound')}</div>;

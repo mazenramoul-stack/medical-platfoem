@@ -33,6 +33,13 @@ export default function Anatomy3DPanel({ accent, highlight }) {
     } else {
       for (const r of highlight.regions || []) m[r.id] = { color: glowColor, intensity: sevIntensity(r.severity) };
     }
+    // Positioned focus marker (e.g. MRI tumour location from the 2D mask).
+    if (highlight.focus) {
+      m.focus = {
+        x: highlight.focus.x, y: highlight.focus.y, z: 0.4,
+        color: glowColor, intensity: sevIntensity(highlight.focus.severity),
+      };
+    }
     return m;
     // colors change with theme; highlight changes with the result
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,6 +80,22 @@ export default function Anatomy3DPanel({ accent, highlight }) {
                   />
                   <span>{t('anatomy3d.rateNote')}</span>
                 </p>
+              ) : highlight.focus ? (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    {t('anatomy3d.implicated')}
+                  </div>
+                  <p className="flex items-center gap-2 text-sm text-gray-800">
+                    <span
+                      className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ background: glowColor, boxShadow: `0 0 8px ${glowColor}` }}
+                    />
+                    <span className="font-medium">{t('anatomy3d.tumorLocated')}</span>
+                  </p>
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-2">
+                    {t('anatomy3d.maskProjected')}
+                  </p>
+                </div>
               ) : (
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">

@@ -113,6 +113,8 @@ function buildCerebellumGeometry() {
  * and ghost the rest; hemisphere ids ('left' | 'right') show a translucent glow
  * marker over that side (used for EEG lateralization, where the model gives
  * one-sided vs generalized but NOT which side — see the panel caveat).
+ * `highlight.focus` ({ x, y, z?, color, intensity }) places a small glow marker at
+ * a specific point — used for the MRI tumour position projected from the 2D mask.
  */
 export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = null }) {
   const group = useRef();
@@ -121,6 +123,7 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
   const stemMesh = useRef();
   const leftMarker = useRef();
   const rightMarker = useRef();
+  const focusMarker = useRef();
   const [hovered, setHovered] = useState(false);
   const [active, setActive] = useState(false);
   const reduced = useMemo(() => prefersReducedMotion(), []);
@@ -148,6 +151,7 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
       }),
       markerL: marker(),
       markerR: marker(),
+      markerFocus: marker(),
       palette: {
         cortex: new THREE.Color(cCortex),
         cerebellum: new THREE.Color(cCereb),
@@ -200,6 +204,21 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
     mesh.material.emissiveIntensity = 0.85 + 0.35 * wave;
   };
 
+  // Focus marker — a small glow placed at a specific point (MRI tumour position
+  // projected from the 2D mask). Shown only while a focus point is supplied.
+  const applyFocus = (ref, focus, tsec) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    mesh.visible = !!focus;
+    if (!focus) return;
+    mesh.position.set(focus.x, focus.y, focus.z ?? 0.35);
+    mesh.material.emissive.set(focus.color);
+    mesh.material.color.set(focus.color);
+    const wave = 0.5 + 0.5 * Math.sin(tsec * 3);
+    mesh.scale.setScalar(1 + 0.12 * wave);
+    mesh.material.emissiveIntensity = 0.9 + 0.5 * wave;
+  };
+
   useFrame((state, dt) => {
     if (group.current && !reduced) group.current.rotation.y += dt * (hovered ? 0.5 : 0.22);
     const tsec = state.clock.getElapsedTime();
@@ -208,6 +227,7 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
     applyMesh(stemMesh, 'stem', mats.palette.stem, 0.05);
     applyMarker(leftMarker, 'left', tsec);
     applyMarker(rightMarker, 'right', tsec);
+    applyFocus(focusMarker, highlight && highlight.focus, tsec);
   });
 
   const target = (active ? 1.1 : 1) * (hovered ? 1.05 : 1) * scale;
@@ -234,6 +254,10 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
       </mesh>
       <mesh ref={rightMarker} material={mats.markerR} position={[0.5, 0.2, 0.12]} visible={false}>
         <sphereGeometry args={[0.6, 24, 24]} />
+      </mesh>
+      {/* focus marker — positioned at the MRI tumour location from the 2D mask */}
+      <mesh ref={focusMarker} material={mats.markerFocus} visible={false}>
+        <sphereGeometry args={[0.32, 24, 24]} />
       </mesh>
       <Sparkles count={24} scale={3.2} size={2.5} speed={0.4} color={accent} />
     </group>

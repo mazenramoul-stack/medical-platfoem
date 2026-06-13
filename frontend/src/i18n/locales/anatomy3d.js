@@ -7,8 +7,11 @@ export default {
     caveat:
       'Schematic highlight of the implicated structure — not a registered localization. '
       + 'Decision-support only, not a diagnosis.',
-    none: 'No localized conduction abnormality detected.',
+    none: 'No localized abnormality detected.',
     rateNote: 'Rate finding — not localized to a myocardial wall.',
+    tumorLocated: 'Tumour location — from the segmentation mask',
+    maskProjected: 'Position projected from the 2D segmentation mask (one slice) — '
+      + 'depth/level not shown; see the scan above for the actual location.',
     measuredRate: 'Beating at the measured rate ({bpm} bpm)',
     severity: { high: 'High', medium: 'Moderate', low: 'Low' },
     regions: {
@@ -34,6 +37,7 @@ export default {
       SBRAD: 'Sinus bradycardia — rate',
       EF_REDUCED: 'Reduced LV ejection fraction — global pump function (not a wall)',
       EF_MILD: 'Mildly reduced LV ejection fraction — global pump function (not a wall)',
+      tumor: 'Tumour region detected by segmentation',
       glioma: 'Glioma — see the 2D scan for the actual location',
       meningioma: 'Meningioma — see the 2D scan for the actual location',
       pituitary: 'Pituitary tumour (typically sellar) — see the 2D scan',
@@ -51,8 +55,11 @@ export default {
     caveat:
       'Mise en évidence schématique de la structure impliquée — pas une localisation enregistrée. '
       + 'Aide à la décision, pas un diagnostic.',
-    none: 'Aucune anomalie de conduction localisée détectée.',
+    none: 'Aucune anomalie localisée détectée.',
     rateNote: 'Anomalie de fréquence — non localisée à une paroi myocardique.',
+    tumorLocated: 'Localisation de la tumeur — d’après le masque de segmentation',
+    maskProjected: 'Position projetée depuis le masque de segmentation 2D (une coupe) — '
+      + 'profondeur/niveau non affichés ; voir le scan ci-dessus pour la localisation réelle.',
     measuredRate: 'Battant au rythme mesuré ({bpm} bpm)',
     severity: { high: 'Élevée', medium: 'Modérée', low: 'Faible' },
     regions: {
@@ -78,6 +85,7 @@ export default {
       SBRAD: 'Bradycardie sinusale — fréquence',
       EF_REDUCED: 'Fraction d’éjection VG réduite — fonction de pompe globale (pas une paroi)',
       EF_MILD: 'Fraction d’éjection VG légèrement réduite — fonction de pompe globale (pas une paroi)',
+      tumor: 'Région tumorale détectée par segmentation',
       glioma: 'Gliome — voir le scan 2D pour la localisation réelle',
       meningioma: 'Méningiome — voir le scan 2D pour la localisation réelle',
       pituitary: 'Tumeur hypophysaire (typiquement sellaire) — voir le scan 2D',
