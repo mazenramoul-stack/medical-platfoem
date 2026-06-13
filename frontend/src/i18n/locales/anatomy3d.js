@@ -4,6 +4,8 @@ export default {
     title: 'Anatomical view',
     rotateHint: 'Drag to rotate · scroll to zoom',
     implicated: 'Implicated structure',
+    findingsTitle: 'Detected findings (by confidence)',
+    rateTag: 'rate — not localized',
     caveat:
       'Schematic highlight of the implicated structure — not a registered localization. '
       + 'Decision-support only, not a diagnosis.',
@@ -33,6 +35,8 @@ export default {
     title: 'Vue anatomique',
     rotateHint: 'Glisser pour pivoter · molette pour zoomer',
     implicated: 'Structure impliquée',
+    findingsTitle: 'Anomalies détectées (par confiance)',
+    rateTag: 'fréquence — non localisée',
     caveat:
       'Mise en évidence schématique de la structure impliquée — pas une localisation enregistrée. '
       + 'Aide à la décision, pas un diagnostic.',

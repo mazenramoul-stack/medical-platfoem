@@ -64,7 +64,7 @@ describe('mapEcgToHighlight', () => {
     expect(h.rateOnly).toBe(false);
   });
 
-  it('highlights only the PRIMARY (highest-probability) detected finding', () => {
+  it('shows every detected finding; structural findings drive regions, rate findings do not', () => {
     const ecg = {
       result_pathology_probabilities: {
         RBBB: { probability: 0.95, detected: true },
@@ -74,24 +74,26 @@ describe('mapEcgToHighlight', () => {
       },
     };
     const h = mapEcgToHighlight(ecg);
-    expect(h.findingCodes).toEqual(['RBBB']); // highest-probability detected
-    expect(ids(h)).toEqual(['rv']);
+    expect(h.findings.map((f) => f.code).sort()).toEqual(['AFIB', 'RBBB', 'STACH']);
+    expect(ids(h)).toEqual(['la', 'ra', 'rv']); // STACH (rate) adds no region
     expect(h.rateOnly).toBe(false);
   });
 
-  it('a rate primary stays rate-only even when a structural finding co-occurs lower', () => {
-    // The screenshot case: Sinus Tachycardia is the headline; a secondary AFIB
-    // flag from the liberal thresholds must NOT light up the atria.
+  it('carries each finding probability so the panel can grade colour by confidence', () => {
+    // The Sinus Bradycardia screenshot: SBRAD (rate) + RBBB + 1AVB all detected.
     const ecg = {
       result_pathology_probabilities: {
-        STACH: { probability: 0.92, detected: true },
-        AFIB: { probability: 0.40, detected: true },
+        RBBB: { probability: 0.716, detected: true },
+        '1AVB': { probability: 0.703, detected: true },
+        SBRAD: { probability: 0.948, detected: true },
       },
     };
     const h = mapEcgToHighlight(ecg);
-    expect(h.findingCodes).toEqual(['STACH']);
-    expect(h.rateOnly).toBe(true);
-    expect(ids(h)).toEqual([]); // no pinpoint
+    expect(h.findings[0].code).toBe('SBRAD'); // sorted by probability desc
+    expect(h.findings[0].probability).toBeCloseTo(0.948);
+    expect(h.regions.find((r) => r.id === 'rv').probability).toBeCloseTo(0.716);
+    expect(h.regions.find((r) => r.id === 'av-node').probability).toBeCloseTo(0.703);
+    expect(h.rateOnly).toBe(false); // structural findings present
   });
 
   it('passes through the measured heart rate, rounded', () => {

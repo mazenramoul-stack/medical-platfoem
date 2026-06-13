@@ -38,6 +38,7 @@ function severityFor(probability) {
 const EMPTY = (beatsPerMinute) => ({
   organ: 'heart',
   regions: [],
+  findings: [],
   findingCodes: [],
   beatsPerMinute,
   rateOnly: false,
@@ -49,32 +50,46 @@ export function mapEcgToHighlight(ecg) {
   const rawBpm = ecg && ecg.result_hrv_metrics ? ecg.result_hrv_metrics.heart_rate_bpm : undefined;
   const beatsPerMinute = typeof rawBpm === 'number' && rawBpm > 0 ? Math.round(rawBpm) : null;
 
-  // The heart reflects the PRIMARY diagnosis — the highest-probability *detected*
-  // pathology, exactly as the backend picks the headline diagnosis. The
-  // recall-first thresholds flag many pathologies (low precision by design);
-  // highlighting all of them is noisy and can contradict the single diagnosis
-  // the doctor sees in the header.
-  let primary = null;
-  let best = -1;
-  for (const [code, r] of Object.entries(probs)) {
-    if (r && r.detected && typeof r.probability === 'number' && r.probability > best) {
-      best = r.probability;
-      primary = code;
+  // Show every DETECTED finding, ranked by probability. Each carries its
+  // probability so the UI can grade the highlight colour by confidence
+  // (a low-probability flag glows faintly, a high one strongly).
+  const detected = Object.entries(probs)
+    .filter(([, r]) => r && r.detected)
+    .map(([code, r]) => ({ code, probability: typeof r.probability === 'number' ? r.probability : 0 }))
+    .sort((a, b) => b.probability - a.probability);
+
+  if (detected.length === 0) return EMPTY(beatsPerMinute);
+
+  const findings = detected.map(({ code, probability }) => ({
+    code,
+    probability,
+    severity: severityFor(probability),
+    rateOnly: !!(ECG_PATHOLOGY_MAP[code] && ECG_PATHOLOGY_MAP[code].rateOnly),
+  }));
+
+  // Structural findings glow their structure; on a shared structure the
+  // highest-probability finding wins. Rate findings contribute no region.
+  const byRegion = new Map();
+  for (const f of findings) {
+    const entry = ECG_PATHOLOGY_MAP[f.code];
+    if (!entry || entry.rateOnly) continue;
+    for (const id of entry.regions) {
+      const prev = byRegion.get(id);
+      if (!prev || f.probability > prev.probability) {
+        byRegion.set(id, { severity: f.severity, probability: f.probability });
+      }
     }
   }
-
-  if (!primary) return EMPTY(beatsPerMinute);
-
-  const entry = ECG_PATHOLOGY_MAP[primary];
-  const severity = severityFor(best);
-  const regions = entry ? entry.regions.map((id) => ({ id, severity })) : [];
+  const regions = [...byRegion.entries()].map(([id, v]) => ({ id, severity: v.severity, probability: v.probability }));
 
   return {
     organ: 'heart',
     regions,
-    findingCodes: [primary],
+    findings,
+    findingCodes: findings.map((f) => f.code),
     beatsPerMinute,
-    rateOnly: !!(entry && entry.rateOnly),
+    // only rate findings detected (no structural site) → whole-heart, no pinpoint
+    rateOnly: regions.length === 0,
     normal: false,
   };
 }
