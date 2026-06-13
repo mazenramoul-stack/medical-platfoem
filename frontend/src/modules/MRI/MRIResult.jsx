@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Brain, Download, FileText, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -6,7 +6,9 @@ import toast from 'react-hot-toast';
 import Badge from '../../components/UI/Badge.jsx';
 import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
+import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
 import TumorBadge from './TumorBadge.jsx';
+import { mapMriToHighlight } from './mriAnatomy.js';
 
 import mriService from '../../services/mriService.js';
 import ecgService from '../../services/ecgService.js';
@@ -68,6 +70,10 @@ export default function MRIResult() {
     })();
     return () => { alive = false; };
   }, [id]);
+
+  // Map the tumour finding to the brain (cerebrum) for the 3D panel; the actual
+  // location is the 2D scan/overlay above (the 3D view is illustrative).
+  const brainHighlight = useMemo(() => mapMriToHighlight(mri), [mri]);
 
   if (loading) return <Loader label={t('mri.result.loading')} className="py-12" />;
   if (!mri)    return <div className="py-12 text-center text-sm text-gray-500">{t('mri.result.notFound')}</div>;
@@ -225,6 +231,8 @@ export default function MRIResult() {
           )}
         </div>
       </div>
+
+      {mri.status === 'completed' && <Anatomy3DPanel highlight={brainHighlight} />}
 
       <div className="flex flex-wrap gap-2 justify-end pt-2">
         <button

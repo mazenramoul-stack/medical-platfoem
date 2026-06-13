@@ -3,44 +3,43 @@ import { Info } from 'lucide-react';
 
 import Scene3D from './Scene3D.jsx';
 import Heart3D from './Heart3D.jsx';
+import Brain3D from './Brain3D.jsx';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
 import { useTokens } from '../../theme/ThemeContext.jsx';
 
 /**
- * Interactive 3D anatomy panel for a result page. Renders the organ (heart for
- * now) and glows the structures the model's finding implicates, beside an honest
- * legend + caveat. `highlight` is the descriptor from a pure map*ToHighlight()
- * function: { organ, regions:[{id,score,severity}], findings:[{code,score}],
- * beatsPerMinute, rateOnly, rateScore, normal }.
+ * Interactive 3D anatomy panel for a result page. Renders the organ (heart or
+ * brain) and glows the structures the model's finding implicates, beside an
+ * honest legend + caveat. `highlight` is the descriptor from a pure
+ * map*ToHighlight() function: { organ, regions:[{id,severity}], findingCodes,
+ * beatsPerMinute?, rateOnly?, normal }.
  */
 export default function Anatomy3DPanel({ accent, highlight }) {
   const { t } = useI18n();
   const { colors } = useTokens();
 
   // Bright green (the app's neuro accent) reads clearly on the dark-red heart and
-  // the dark scene. Glow STRENGTH ∝ the finding's probability: a high-confidence
-  // finding glows strong, a low-confidence one glows faint.
+  // the dark scene — far more visible than a red glow on red muscle. Severity is
+  // conveyed by glow intensity + the legend text, not hue.
   const glowColor = colors.neuro;
-  const clamp01 = (x) => Math.max(0, Math.min(1, x || 0));
-  const scoreToIntensity = (score) => 0.5 + clamp01(score) * 1.4; // ~0.5 (faint) → 1.9 (strong)
+  const sevIntensity = (s) => (s === 'high' ? 1.7 : s === 'medium' ? 1.2 : 0.8);
 
   // id -> { color, intensity } for the 3D model.
   const highlightMap = useMemo(() => {
     const m = {};
     if (highlight.rateOnly) {
-      // Rate finding → no localized site: glow the whole heart "examined", at a
-      // strength reflecting the rate finding's probability.
-      const intensity = scoreToIntensity(highlight.rateScore ?? 0.6);
-      for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: glowColor, intensity };
+      // Rate finding → no localized site: gently glow the whole heart "examined".
+      for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: glowColor, intensity: 0.6 };
     } else {
-      for (const r of highlight.regions || []) m[r.id] = { color: glowColor, intensity: scoreToIntensity(r.score) };
+      for (const r of highlight.regions || []) m[r.id] = { color: glowColor, intensity: sevIntensity(r.severity) };
     }
     return m;
     // colors change with theme; highlight changes with the result
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlight, colors]);
 
-  const accentColor = accent || colors.cardio;
+  const organ = highlight.organ || 'heart';
+  const accentColor = accent || (organ === 'brain' ? colors.neuro : colors.cardio);
   const bpm = highlight.beatsPerMinute || 72;
 
   return (
@@ -54,7 +53,9 @@ export default function Anatomy3DPanel({ accent, highlight }) {
         {/* 3D canvas */}
         <div className="bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-100">
           <Scene3D accent={accentColor} height={340} autoRotate={false} float={false} camera={{ position: [0, 0, 5], fov: 45 }}>
-            <Heart3D accent={accentColor} highlight={highlightMap} bpm={bpm} scale={1.15} />
+            {organ === 'brain'
+              ? <Brain3D accent={accentColor} highlight={highlightMap} scale={1.4} />
+              : <Heart3D accent={accentColor} highlight={highlightMap} bpm={bpm} scale={1.15} />}
           </Scene3D>
         </div>
 
@@ -78,33 +79,25 @@ export default function Anatomy3DPanel({ accent, highlight }) {
                     {t('anatomy3d.implicated')}
                   </div>
                   <ul className="space-y-2">
-                    {highlight.regions.map((r) => {
-                      const pct = Math.round(clamp01(r.score) * 100);
-                      return (
-                        <li key={r.id} className="flex items-center gap-2 text-sm text-gray-800">
-                          <span
-                            className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ background: glowColor, opacity: 0.35 + clamp01(r.score) * 0.65, boxShadow: `0 0 ${4 + pct / 12}px ${glowColor}` }}
-                          />
-                          <span className="font-medium">{t(`anatomy3d.regions.${r.id}`)}</span>
-                          <span className="text-xs text-gray-400 tabular-nums">· {pct}%</span>
-                        </li>
-                      );
-                    })}
+                    {highlight.regions.map((r) => (
+                      <li key={r.id} className="flex items-center gap-2 text-sm text-gray-800">
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ background: glowColor, boxShadow: `0 0 8px ${glowColor}` }}
+                        />
+                        <span className="font-medium">{t(`anatomy3d.regions.${r.id}`)}</span>
+                        <span className="text-xs text-gray-400">· {t(`anatomy3d.severity.${r.severity}`)}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
 
-              {highlight.findings?.length > 0 && (
+              {highlight.findingCodes?.length > 0 && (
                 <ul className="space-y-1 text-xs text-gray-600">
-                  {highlight.findings.map((f) => {
-                    const label = t(`anatomy3d.findings.${f.code}`);
-                    const text = label === `anatomy3d.findings.${f.code}` ? f.code : label;
-                    return (
-                      <li key={f.code}>
-                        • {text} <span className="text-gray-400 tabular-nums">({Math.round(clamp01(f.score) * 100)}%)</span>
-                      </li>
-                    );
+                  {highlight.findingCodes.map((code) => {
+                    const label = t(`anatomy3d.findings.${code}`);
+                    return <li key={code}>• {label === `anatomy3d.findings.${code}` ? code : label}</li>;
                   })}
                 </ul>
               )}

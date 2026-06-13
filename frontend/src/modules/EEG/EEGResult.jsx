@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Brain, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import Badge from '../../components/UI/Badge.jsx';
 import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
+import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
+import { mapEegToHighlight } from './eegAnatomy.js';
 import eegService from '../../services/eegService.js';
 import patientService from '../../services/patientService.js';
 import { formatDate } from '../../utils/formatters.js';
@@ -62,6 +64,8 @@ export default function EEGResult() {
       toast.error(t('eeg.result.deleteFailed'));
     }
   };
+
+  const brainHighlight = useMemo(() => mapEegToHighlight(eeg), [eeg]);
 
   if (loading) return <Loader />;
   if (!eeg) return null;
@@ -123,7 +127,7 @@ export default function EEGResult() {
                         </span>
                         <span className="text-low font-mono">{pct}%</span>
                       </div>
-                      <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                      <div className="w-full h-2 bg-paneldeep rounded overflow-hidden">
                         <div className="h-2 rounded transition-all"
                              style={{ width: `${pct}%`, background: harmful ? red : violet,
                                       boxShadow: pct > 0 ? `0 0 10px ${harmful ? red : violet}` : 'none' }} />
@@ -151,6 +155,8 @@ export default function EEGResult() {
           </div>
         )}
       </div>
+
+      {eeg.status === 'completed' && <Anatomy3DPanel highlight={brainHighlight} accent={colors.violet} />}
 
       {eeg.result_report && (
         <div className="holo-panel p-5">

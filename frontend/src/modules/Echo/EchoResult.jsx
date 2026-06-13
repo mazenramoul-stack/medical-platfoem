@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, HeartPulse, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import Badge from '../../components/UI/Badge.jsx';
 import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
+import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
+import { mapEchoToHighlight } from './echoAnatomy.js';
 import echoService from '../../services/echoService.js';
 import patientService from '../../services/patientService.js';
 import { formatDate } from '../../utils/formatters.js';
@@ -43,6 +45,9 @@ export default function EchoResult() {
     })();
     return () => { alive = false; };
   }, [id]);
+
+  // Map the EF finding to the implicated heart structure (LV) for the 3D panel.
+  const heartHighlight = useMemo(() => mapEchoToHighlight(echo), [echo]);
 
   const onDelete = async () => {
     try {
@@ -145,6 +150,8 @@ export default function EchoResult() {
           </div>
         )}
       </div>
+
+      {echo.status === 'completed' && <Anatomy3DPanel highlight={heartHighlight} />}
 
       {echo.result_report && (
         <div className="holo-panel p-5">

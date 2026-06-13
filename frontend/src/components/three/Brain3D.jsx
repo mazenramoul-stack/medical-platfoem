@@ -107,9 +107,20 @@ function buildCerebellumGeometry() {
   return geo;
 }
 
-export default function Brain3D({ accent = '#00ffcc', scale = 1 }) {
+/**
+ * `highlight` (optional) is a map of region id -> { color, intensity }, mirroring
+ * Heart3D. Whole-structure ids ('cerebrum' | 'cerebellum' | 'stem') glow that mesh
+ * and ghost the rest; hemisphere ids ('left' | 'right') show a translucent glow
+ * marker over that side (used for EEG lateralization, where the model gives
+ * one-sided vs generalized but NOT which side — see the panel caveat).
+ */
+export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = null }) {
   const group = useRef();
   const cortexMesh = useRef();
+  const cerebellumMesh = useRef();
+  const stemMesh = useRef();
+  const leftMarker = useRef();
+  const rightMarker = useRef();
   const [hovered, setHovered] = useState(false);
   const [active, setActive] = useState(false);
   const reduced = useMemo(() => prefersReducedMotion(), []);
@@ -117,28 +128,86 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1 }) {
   const cerebrum = useMemo(() => buildCerebrumGeometry(), []);
   const cerebellum = useMemo(() => buildCerebellumGeometry(), []);
 
-  // anatomical palette, faintly tinted by the theme accent for cohesion
+  // anatomical palette, faintly tinted by the theme accent for cohesion.
+  // transparent:true so non-problem structures can be ghosted (opacity lerped down).
   const mats = useMemo(() => {
-    const common = { roughness: 0.48, metalness: 0.02, clearcoat: 0.55, clearcoatRoughness: 0.4, vertexColors: true };
+    const common = { roughness: 0.48, metalness: 0.02, clearcoat: 0.55, clearcoatRoughness: 0.4, vertexColors: true, transparent: true, opacity: 1 };
+    const cCortex = mix('#c89aa0', accent, 0.06);
+    const cCereb = mix('#b5878f', accent, 0.06);
+    const cStem = mix('#c9b09c', accent, 0.05);
+    const marker = () => new THREE.MeshStandardMaterial({
+      color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.0,
+      roughness: 0.4, metalness: 0, transparent: true, opacity: 0.45, depthWrite: false,
+    });
     return {
-      cortex: new THREE.MeshPhysicalMaterial({
-        color: mix('#c89aa0', accent, 0.06), emissive: new THREE.Color(accent), emissiveIntensity: 0.1, ...common,
-      }),
-      cerebellum: new THREE.MeshPhysicalMaterial({
-        color: mix('#b5878f', accent, 0.06), emissive: new THREE.Color(accent), emissiveIntensity: 0.08, ...common,
-      }),
+      cortex: new THREE.MeshPhysicalMaterial({ color: cCortex, emissive: new THREE.Color(accent), emissiveIntensity: 0.1, ...common }),
+      cerebellum: new THREE.MeshPhysicalMaterial({ color: cCereb, emissive: new THREE.Color(accent), emissiveIntensity: 0.08, ...common }),
       stem: new THREE.MeshPhysicalMaterial({
-        color: mix('#c9b09c', accent, 0.05), roughness: 0.5, metalness: 0.02, clearcoat: 0.5, clearcoatRoughness: 0.45,
+        color: cStem, emissive: new THREE.Color(accent), emissiveIntensity: 0.05,
+        roughness: 0.5, metalness: 0.02, clearcoat: 0.5, clearcoatRoughness: 0.45, transparent: true, opacity: 1,
       }),
+      markerL: marker(),
+      markerR: marker(),
+      palette: {
+        cortex: new THREE.Color(cCortex),
+        cerebellum: new THREE.Color(cCereb),
+        stem: new THREE.Color(cStem),
+        grey: new THREE.Color('#d2d5dd'),
+      },
     };
   }, [accent]);
 
-  useFrame((_, dt) => {
-    if (group.current && !reduced) group.current.rotation.y += dt * (hovered ? 0.5 : 0.22);
-    if (cortexMesh.current) {
-      const m = cortexMesh.current.material;
-      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hovered ? 0.22 : 0.1, 0.1);
+  const hasHighlight = !!(highlight && Object.keys(highlight).length);
+  const GHOST = 0.3;
+  const setO = (m, t, solid) => { m.opacity = THREE.MathUtils.lerp(m.opacity, t, 0.12); m.depthWrite = solid; };
+
+  // Glow the implicated structure and keep it solid; ghost the rest to translucent
+  // grey; with no highlight keep the normal opaque look (+ hover lift on cortex).
+  const applyMesh = (ref, id, baseColor, baseEmissive) => {
+    const m = ref.current && ref.current.material;
+    if (!m) return;
+    const hl = highlight && highlight[id];
+    if (hl) {
+      m.color.lerp(baseColor, 0.12);
+      m.emissive.set(hl.color);
+      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hl.intensity, 0.12);
+      setO(m, 1, true);
+    } else if (hasHighlight) {
+      m.color.lerp(mats.palette.grey, 0.1);
+      m.emissive.set(mats.palette.grey);
+      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, 0.03, 0.12);
+      setO(m, GHOST, false);
+    } else {
+      m.color.lerp(baseColor, 0.12);
+      m.emissive.set(accent);
+      m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, baseEmissive + (hovered ? 0.12 : 0), 0.12);
+      setO(m, 1, true);
     }
+  };
+
+  // Hemisphere marker — a soft translucent glow over one side, shown only while
+  // that side is implicated.
+  const applyMarker = (ref, id, tsec) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const hl = highlight && highlight[id];
+    mesh.visible = !!hl;
+    if (!hl) return;
+    mesh.material.emissive.set(hl.color);
+    mesh.material.color.set(hl.color);
+    const wave = 0.5 + 0.5 * Math.sin(tsec * 3);
+    mesh.scale.setScalar(1 + 0.05 * wave);
+    mesh.material.emissiveIntensity = 0.85 + 0.35 * wave;
+  };
+
+  useFrame((state, dt) => {
+    if (group.current && !reduced) group.current.rotation.y += dt * (hovered ? 0.5 : 0.22);
+    const tsec = state.clock.getElapsedTime();
+    applyMesh(cortexMesh, 'cerebrum', mats.palette.cortex, 0.1);
+    applyMesh(cerebellumMesh, 'cerebellum', mats.palette.cerebellum, 0.08);
+    applyMesh(stemMesh, 'stem', mats.palette.stem, 0.05);
+    applyMarker(leftMarker, 'left', tsec);
+    applyMarker(rightMarker, 'right', tsec);
   });
 
   const target = (active ? 1.1 : 1) * (hovered ? 1.05 : 1) * scale;
@@ -154,10 +223,17 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1 }) {
     >
       <mesh ref={cortexMesh} geometry={cerebrum} material={mats.cortex} />
       {/* cerebellum under the back of the cerebrum */}
-      <mesh geometry={cerebellum} material={mats.cerebellum} position={[0, -0.34, -0.92]} rotation={[0.25, 0, 0]} />
+      <mesh ref={cerebellumMesh} geometry={cerebellum} material={mats.cerebellum} position={[0, -0.34, -0.92]} rotation={[0.25, 0, 0]} />
       {/* brainstem angling down-forward beneath the centre */}
-      <mesh material={mats.stem} position={[0, -0.5, -0.32]} rotation={[-0.5, 0, 0]}>
+      <mesh ref={stemMesh} material={mats.stem} position={[0, -0.5, -0.32]} rotation={[-0.5, 0, 0]}>
         <cylinderGeometry args={[0.15, 0.1, 0.6, 16]} />
+      </mesh>
+      {/* hemisphere highlight markers — shown only when implicated */}
+      <mesh ref={leftMarker} material={mats.markerL} position={[-0.5, 0.2, 0.12]} visible={false}>
+        <sphereGeometry args={[0.6, 24, 24]} />
+      </mesh>
+      <mesh ref={rightMarker} material={mats.markerR} position={[0.5, 0.2, 0.12]} visible={false}>
+        <sphereGeometry args={[0.6, 24, 24]} />
       </mesh>
       <Sparkles count={24} scale={3.2} size={2.5} speed={0.4} color={accent} />
     </group>
