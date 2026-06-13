@@ -20,5 +20,6 @@ nibabel==5.2.0
 wfdb==4.1.2
 neurokit2==0.2.7
 reportlab==4.0.9
-celery==5.3.6
-redis==5.0.1
+# celery / redis removed — there is no async task layer using them. For a shared
+# DRF-throttle cache in production, set REDIS_URL and `pip install django-redis`
+# (see core/settings.py).
