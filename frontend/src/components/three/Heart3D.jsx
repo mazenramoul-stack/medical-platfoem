@@ -29,9 +29,6 @@ function mix(hexA, hexB, t) {
   return `#${new THREE.Color(hexA).lerp(new THREE.Color(hexB), t).getHexString()}`;
 }
 
-// reusable scratch colour for highlight lerps (single heart instance on screen)
-const HL_TMP = new THREE.Color();
-
 export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highlight = null }) {
   const group = useRef();
   const beatGroup = useRef();
@@ -114,8 +111,9 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
   // be glowed via `highlight` without lighting up the others.
   const mats = useMemo(() => {
     const muscle = mix(accent, '#7f1d1d', 0.55);
-    // Translucent ("glassy") so the highlighted structure glows through the heart.
-    const common = { roughness: 0.42, metalness: 0.05, clearcoat: 0.7, clearcoatRoughness: 0.3, transparent: true, opacity: 0.45 };
+    // transparent:true so non-problem structures can be ghosted (opacity lerped
+    // down) while the highlighted region stays opaque.
+    const common = { roughness: 0.42, metalness: 0.05, clearcoat: 0.7, clearcoatRoughness: 0.3, transparent: true, opacity: 1 };
     const muscleMat = () => new THREE.MeshPhysicalMaterial({
       color: muscle, emissive: new THREE.Color(accent), emissiveIntensity: 0.1, ...common,
     });
@@ -144,45 +142,58 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
         grey: new THREE.Color('#d2d5dd'),
       },
       markerSa: new THREE.MeshStandardMaterial({
-        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.0,
-        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.6,
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
       }),
       markerAv: new THREE.MeshStandardMaterial({
-        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.0,
-        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.6,
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
       }),
     };
   }, [accent]);
 
   const hasHighlight = !!(highlight && Object.keys(highlight).length);
+  // Opacity for the ghosted (non-problem) structures when something is highlighted.
+  const GHOST = 0.32;
+  // Lerp opacity; ghosted (translucent) meshes skip depthWrite so the solid
+  // highlighted region behind them stays visible instead of being occluded.
+  const setO = (m, target, solid) => {
+    m.opacity = THREE.MathUtils.lerp(m.opacity, target, 0.12);
+    m.depthWrite = solid;
+  };
+  const lerpO = (m, target) => setO(m, target, target > 0.9);
 
-  // Glow the implicated chamber toward its highlight colour; when ANY structure
-  // is highlighted, fade the OTHER (non-problem) chambers to a pale neutral grey
-  // so the highlighted region stands out. With no highlight, keep the muscle look.
+  // Glow the implicated chamber toward its highlight colour and keep it solid;
+  // when ANY structure is highlighted, fade the OTHER (non-problem) chambers to a
+  // pale neutral grey AND make them translucent so only the problem area reads as
+  // solid + coloured. With no highlight, keep the normal opaque muscle look.
   const applyChamber = (meshRef, id, baseColor, baseEmissive) => {
     const m = meshRef.current && meshRef.current.material;
     if (!m) return;
     const hl = highlight && highlight[id];
     if (hl) {
-      HL_TMP.set(hl.color);
-      m.color.lerp(HL_TMP, 0.15); // tint the glass itself green, not red-under-green
+      m.color.lerp(baseColor, 0.12);
       m.emissive.set(hl.color);
       m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hl.intensity, 0.12);
+      lerpO(m, 1);
     } else if (hasHighlight) {
       m.color.lerp(mats.palette.grey, 0.1);
       m.emissive.set(mats.palette.grey);
       m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, 0.03, 0.12);
+      lerpO(m, GHOST);
     } else {
       m.color.lerp(baseColor, 0.12);
       m.emissive.set(accent);
       m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, baseEmissive + (hovered ? 0.12 : 0), 0.12);
+      lerpO(m, 1);
     }
   };
 
-  // Vessels/coronaries are never the ECG "problem": fade them to grey whenever a
-  // structure is highlighted, restore their colour otherwise.
+  // Vessels/coronaries are never the ECG "problem": fade them to grey AND ghost
+  // them whenever a structure is highlighted, restore their colour otherwise.
   const applyVessel = (mat, baseColor) => {
     mat.color.lerp(hasHighlight ? mats.palette.grey : baseColor, 0.1);
+    lerpO(mat, hasHighlight ? GHOST : 1);
   };
 
   // Pulse a node marker (SA/AV) only while highlighted, else hide it.
@@ -196,7 +207,7 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
     mesh.material.color.set(hl.color);
     const beat = 1 + 0.25 * pulse(p, 0.16, 0.01) + 0.12 * pulse(p, 0.02, 0.01);
     mesh.scale.setScalar(beat);
-    mesh.material.emissiveIntensity = 0.55 + 0.45 * beat;
+    mesh.material.emissiveIntensity = 0.9 + 0.8 * beat;
   };
 
   useFrame((state, delta) => {
