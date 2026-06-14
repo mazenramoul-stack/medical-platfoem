@@ -30,6 +30,12 @@ EXCLUDE_DIRS = {
 EXCLUDE_EXTS = {'.pyc', '.pyo', '.zip', '.mp4', '.avi'}
 
 
+def _is_secret(name):
+    """True for env files carrying secrets (SECRET_KEY etc.) — never ship these to
+    Drive. Keep .env.example (it has no real values)."""
+    return name == '.env' or (name.startswith('.env.') and name != '.env.example')
+
+
 def main():
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     out_path = os.path.join(os.path.dirname(repo_root), 'medical-platform.zip')
@@ -40,6 +46,8 @@ def main():
             dirnames[:] = [d for d in sorted(dirnames) if d not in EXCLUDE_DIRS]
             for name in sorted(filenames):
                 if os.path.splitext(name)[1].lower() in EXCLUDE_EXTS:
+                    continue
+                if _is_secret(name):  # never upload SECRET_KEY to Google Drive
                     continue
                 fpath = os.path.join(dirpath, name)
                 arcname = os.path.relpath(fpath, repo_root)
