@@ -11,6 +11,8 @@ import torch
 def swin_gradient_shap(processor, model, pil_image, target_class, n_samples=32):
     """Compute a SHAP saliency map for the Swin classifier via Captum GradientShap.
 
+    Must NOT be called under ``torch.no_grad()``: GradientShap needs an autograd-enabled context for the model forward.
+
     Args:
         processor: HuggingFace AutoImageProcessor for the Swin model.
         model: HuggingFace SwinForImageClassification.
@@ -28,7 +30,8 @@ def swin_gradient_shap(processor, model, pil_image, target_class, n_samples=32):
     def forward(pixel_values):
         return model(pixel_values=pixel_values).logits
 
-    baselines = torch.cat([torch.zeros_like(px), torch.full_like(px, float(px.mean()))], dim=0)
+    # Two-point baseline: black + channel-mean grey; GradientShap interpolates between them.
+    baselines = torch.cat([torch.zeros_like(px), torch.full_like(px, float(px.mean().item()))], dim=0)
     attr = GradientShap(forward).attribute(
         px, baselines=baselines, target=int(target_class), n_samples=int(n_samples), stdevs=0.09)
     a = attr.detach()[0].abs().sum(dim=0)            # (H, W)
