@@ -220,6 +220,8 @@ def analyze_mri(file_path: str, mode: str = 'full') -> dict:
         overall_verdict = None
         mask_path = None
         overlay_path = None
+        gradcam_path = None
+        gradcam_peak = None
 
         # 2-3. Segmentation (U-Net) ------------------------------------------
         if run_seg:
@@ -294,20 +296,40 @@ def analyze_mri(file_path: str, mode: str = 'full') -> dict:
                 pred_idx = int(probs.argmax().item())
                 cls_conf = float(probs.max().item())
 
+            # explainability: Grad-CAM overlay (best-effort; must never break the result envelope)
+            try:
+                from .explainers.gradcam import swin_gradcam
+                from .explainers.base import gradcam_overlay_figure
+                cam, _gc_idx, _gc_conf, _gc_peak = swin_gradcam(processor, vit, crop_pil, target_class=pred_idx)
+                _gc_fig = gradcam_overlay_figure(crop_arr, cam)
+                gradcam_path = save_visualization(_gc_fig, MRI_RESULTS_DIR, f"{timestamp}_gradcam.png")
+                plt.close(_gc_fig)
+                gradcam_peak = {"nx": float(_gc_peak[0]), "ny": float(_gc_peak[1])}
+            except Exception as _gc_err:  # noqa: BLE001 — explainability must never break inference
+                logger.warning("Grad-CAM failed (%s); continuing without it", _gc_err)
+                gradcam_path, gradcam_peak = None, None
+
             fallback_labels = ['glioma', 'meningioma', 'notumor', 'pituitary']
             id2label = getattr(getattr(vit, 'config', None), 'id2label', None) or {}
             tumor_type = id2label.get(pred_idx) or (
                 fallback_labels[pred_idx] if 0 <= pred_idx < len(fallback_labels) else f'class_{pred_idx}'
             )
+            # The Swin config's id2label carries a '_tumor' suffix
+            # (glioma_tumor, meningioma_tumor, ...). Canonicalize the structured
+            # output to the bare label so the persisted value and the frontend /
+            # i18n dictionaries (which key on 'glioma', 'meningioma', ...) match.
+            # 'no_tumor' / 'notumor' are preserved as-is. See _normalize_tumor_label.
+            tumor_type = _normalize_tumor_label(tumor_type)
 
-            # Safety gate (screening posture): NEVER silently clear a tumour.
-            # Accept a 'notumor' verdict only when the classifier is highly
-            # confident AND (when available) the U-Net found no tissue; else
-            # route 'possible tumour — review'. On the Kaggle Testing split the
-            # classifier-confidence gate alone lifts tumour-detection recall
-            # 0.983 -> 0.998 (tools/eval_mri_recall.py). Raise to 1.0 for zero
-            # misses at ~4 %/scan over-flag.
-            NOTUMOR_MIN_CONFIDENCE = 0.99
+            # Screening over-flag (recall-first) — OFF by default: the standard
+            # operating point trusts the classifier's argmax. When enabled, a
+            # 'notumor' verdict is accepted only if the classifier is at least
+            # this confident AND (when available) the U-Net found no tissue, else
+            # it routes 'possible_tumor_review'. That gate lifts tumour-detection
+            # recall 0.983 -> 0.998 at ~4 %/scan over-flag (tools/eval_mri_recall.py);
+            # opt back in by setting MRI_NOTUMOR_MIN_CONFIDENCE (e.g. 0.99, or 1.0
+            # for zero misses). Default 0.0 disables it (standard argmax).
+            NOTUMOR_MIN_CONFIDENCE = float(os.environ.get('MRI_NOTUMOR_MIN_CONFIDENCE', 0.0))
             _norm_type = (tumor_type or '').lower().replace('_tumor', '')
             predicted_notumor = _norm_type in ('notumor', 'no')
             if run_seg:
@@ -453,6 +475,8 @@ def analyze_mri(file_path: str, mode: str = 'full') -> dict:
             'analysis_path': analysis_path,
             'mask_path': mask_path,
             'overlay_path': overlay_path,
+            'gradcam_path': gradcam_path,
+            'gradcam_peak': gradcam_peak,
             'report': report,
             'models_used': models_used,
             'timestamp': timestamp,

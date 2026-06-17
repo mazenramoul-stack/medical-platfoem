@@ -67,6 +67,14 @@ class MRIPipelineTest(SimpleTestCase):
         self.assertIsInstance(result["report"], str)
         self.assertGreater(len(result["report"]), 100)
 
+    def test_classify_emits_gradcam_path(self):
+        from apps.inference import analyze_mri
+
+        result = analyze_mri(str(MRI_SAMPLE), mode="classify")
+        self.assertEqual(result["status"], "success")
+        self.assertIn("gradcam_path", result)
+        self.assertTrue(result["gradcam_path"] is None or result["gradcam_path"].endswith("_gradcam.png"))
+
 
 @unittest.skipUnless(ECG_SAMPLE.exists(), f"Missing sample ECG at {ECG_SAMPLE}")
 class ECGPipelineTest(SimpleTestCase):
