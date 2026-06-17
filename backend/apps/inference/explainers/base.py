@@ -13,13 +13,22 @@ def resize_to(arr, shape):
         np.ndarray float32 of the requested shape, values in [0, 1].
     """
     from PIL import Image
+    resample = getattr(Image, "Resampling", Image).BILINEAR
     im = Image.fromarray((np.clip(arr, 0, 1) * 255).astype("uint8"))
-    im = im.resize((shape[1], shape[0]), Image.BILINEAR)
+    im = im.resize((shape[1], shape[0]), resample)
     return np.asarray(im, dtype=np.float32) / 255.0
 
 
 def heatmap_peak_xy(cam):
-    """Argmax of a 2D heatmap as normalized (nx, ny) in [0, 1] (x=col, y=row)."""
+    """Locate the peak of a 2D heatmap as normalized (nx, ny) coordinates.
+
+    Args:
+        cam: 2D heatmap array.
+
+    Returns:
+        Tuple (nx, ny) in [0, 1], where nx is the column fraction and ny the
+        row fraction of the argmax cell (cell-centred).
+    """
     h, w = cam.shape
     py, px = np.unravel_index(int(np.asarray(cam).argmax()), cam.shape)
     return ((px + 0.5) / w, (py + 0.5) / h)
