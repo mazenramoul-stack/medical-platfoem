@@ -10,23 +10,57 @@ import torch
 
 
 def _resolve_target_layer(model):
-    swin = getattr(model, "swin", model)
+    swin = getattr(model, "swin", None)
+    if swin is None:
+        raise RuntimeError(
+            "Grad-CAM: model has no .swin attribute — expected a HuggingFace "
+            "SwinForImageClassification wrapper")
     layer = getattr(swin, "layernorm", None)
     if layer is None:
-        raise RuntimeError("Grad-CAM: could not resolve Swin target layer (model.swin.layernorm)")
+        raise RuntimeError("Grad-CAM: model.swin has no .layernorm attribute")
     return layer
 
 
 def swin_gradcam(processor, model, pil_image, target_class=None):
-    """Return (heatmap[h,w] float32 in [0,1], pred_idx, confidence, peak (nx,ny) in [0,1])."""
+    """Compute Grad-CAM on the Swin classifier's final LayerNorm.
+
+    Not thread-safe: calls ``model.zero_grad()`` on the shared model singleton,
+    so callers must not issue concurrent Grad-CAM requests (the platform's
+    inference is synchronous, so this holds today).
+
+    Args:
+        processor: HuggingFace AutoImageProcessor for the Swin model.
+        model: HuggingFace SwinForImageClassification (eval mode is fine).
+        pil_image: PIL Image; the processor handles resizing/normalisation.
+        target_class: Class index to backpropagate; if None, the predicted
+            class (argmax of softmax) is used.
+
+    Returns:
+        Tuple ``(cam, pred_idx, confidence, peak)``:
+            cam: np.ndarray float32 [side, side], values in [0, 1].
+            pred_idx: predicted (or requested) class index.
+            confidence: softmax probability of pred_idx.
+            peak: (nx, ny) normalised peak coordinates, each in [0, 1].
+
+    Raises:
+        RuntimeError: if the target layer can't be resolved, no gradient is
+            captured, or the token grid is not square.
+    """
     device = next(model.parameters()).device
     inputs = processor(images=pil_image, return_tensors="pt")
     inputs = {k: v.to(device) for k, v in inputs.items()}
     target_layer = _resolve_target_layer(model)
 
     store = {}
-    h_fwd = target_layer.register_forward_hook(lambda m, i, o: store.__setitem__("act", o))
-    h_bwd = target_layer.register_full_backward_hook(lambda m, gi, go: store.__setitem__("grad", go[0]))
+
+    def _save_act(_m, _i, output):
+        store["act"] = output
+
+    def _save_grad(_m, _gi, grad_output):
+        store["grad"] = grad_output[0]
+
+    h_fwd = target_layer.register_forward_hook(_save_act)
+    h_bwd = target_layer.register_full_backward_hook(_save_grad)
     try:
         model.zero_grad(set_to_none=True)
         logits = model(**inputs).logits
@@ -34,6 +68,10 @@ def swin_gradcam(processor, model, pil_image, target_class=None):
         idx = int(probs.argmax(dim=-1).item()) if target_class is None else int(target_class)
         conf = float(probs[0, idx].item())
         logits[0, idx].backward()
+        if store.get("act") is None or store.get("grad") is None:
+            raise RuntimeError(
+                "Grad-CAM: hooks captured no activation/gradient — ensure the model "
+                "is not running under torch.no_grad().")
         act = store["act"].detach()[0]    # (L, C)
         grad = store["grad"].detach()[0]  # (L, C)
     finally:

@@ -1,10 +1,17 @@
+import unittest
+from pathlib import Path
+
 import numpy as np
 from PIL import Image
 from django.test import SimpleTestCase
 from apps.inference.model_loader import ModelLoader
 from apps.inference.explainers.gradcam import swin_gradcam
 
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+MRI_WEIGHTS = BACKEND_DIR / "models_weights" / "vit_brain_tumor" / "model.safetensors"
 
+
+@unittest.skipUnless(MRI_WEIGHTS.exists(), f"Missing MRI classifier weights at {MRI_WEIGHTS}")
 class GradCamTest(SimpleTestCase):
     def test_gradcam_shape_and_range(self):
         processor, model = ModelLoader().get_mri_classifier()
