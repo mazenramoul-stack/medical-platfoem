@@ -43,11 +43,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 EXPOSE 7860
 
-# Apply migrations, then serve. A single worker keeps memory in check (the ML
-# models are big); the 600 s timeout covers slow synchronous inference + the
-# one-time weight download on the first request after a cold start.
-CMD python manage.py migrate --noinput && \
-    gunicorn core.wsgi:application \
-        --bind 0.0.0.0:7860 \
-        --workers 1 \
-        --timeout 600
+# Startup logic (migrations + djongo token_blacklist workaround + gunicorn,
+# single worker to keep memory in check, 600s timeout for slow synchronous
+# inference + one-time weight download) lives in the repo's start-space.sh so
+# future tweaks need only a GitHub push + Factory rebuild — no Dockerfile edit.
+CMD ["bash", "start-space.sh"]
