@@ -9,7 +9,7 @@ sqlparse==0.2.4
 python-decouple==3.8
 Pillow==10.2.0
 numpy==1.26.4
-scipy==1.11.4
+scipy==1.15.3
 pandas==2.1.4
 matplotlib==3.8.2
 tqdm==4.66.1
