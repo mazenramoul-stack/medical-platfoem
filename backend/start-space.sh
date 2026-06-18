@@ -21,6 +21,12 @@ python manage.py migrate token_blacklist --fake --noinput || true
 echo "[start-space] migrate (pass 3: finish any remainder)..."
 python manage.py migrate --noinput || true
 
+echo "[start-space] dropping stale djongo jti_hex index if present..."
+# djongo can't apply SimpleJWT's later token_blacklist migrations on MongoDB,
+# leaving a stale UNIQUE index on jti_hex (always null) that makes the 2nd token
+# insert collide (E11000) and 500s login/register. Drop it. Idempotent.
+python fix_mongo_indexes.py || true
+
 echo "[start-space] starting gunicorn on :7860 ..."
 exec gunicorn core.wsgi:application \
     --bind 0.0.0.0:7860 \
