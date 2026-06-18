@@ -84,14 +84,24 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # Database — MongoDB via djongo -------------------------------------------
 
+# When MONGO_URI is set (e.g. a MongoDB Atlas `mongodb+srv://...` string for a
+# hosted deployment), pass the full connection URI straight to pymongo and do
+# NOT add a separate port — pymongo rejects an explicit port alongside a
+# `mongodb+srv://` URI. Otherwise fall back to host/port for local MongoDB.
+MONGO_URI = config('MONGO_URI', default='')
+if MONGO_URI:
+    _DB_CLIENT = {'host': MONGO_URI}
+else:
+    _DB_CLIENT = {
+        'host': config('DB_HOST', default='localhost'),
+        'port': config('DB_PORT', default=27017, cast=int),
+    }
+
 DATABASES = {
     'default': {
         'ENGINE': 'djongo',
         'NAME': config('DB_NAME', default='medical_platform'),
-        'CLIENT': {
-            'host': config('DB_HOST', default='localhost'),
-            'port': config('DB_PORT', default=27017, cast=int),
-        },
+        'CLIENT': _DB_CLIENT,
     }
 }
 
