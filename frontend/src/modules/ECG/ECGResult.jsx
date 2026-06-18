@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Activity, AlertTriangle, ArrowLeft, Download, FileText, Heart, Trash2 } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowLeft, Download, Heart, Save, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Badge from '../../components/UI/Badge.jsx';
@@ -12,9 +12,7 @@ import PathologyTable from './PathologyTable.jsx';
 import { mapEcgToHighlight } from './ecgAnatomy.js';
 
 import ecgService from '../../services/ecgService.js';
-import mriService from '../../services/mriService.js';
 import patientService from '../../services/patientService.js';
-import reportService from '../../services/reportService.js';
 import { formatDate, formatPercent } from '../../utils/formatters.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
 
@@ -38,10 +36,8 @@ export default function ECGResult() {
   const { t } = useI18n();
   const [ecg, setEcg] = useState(null);
   const [patient, setPatient] = useState(null);
-  const [completedMriId, setCompletedMriId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [askDelete, setAskDelete] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -50,14 +46,9 @@ export default function ECGResult() {
         const e = await ecgService.getById(id);
         if (!alive) return;
         setEcg(e);
-        const [p, mris] = await Promise.all([
-          patientService.getById(e.patient).catch(() => null),
-          mriService.getByPatient(e.patient).catch(() => []),
-        ]);
+        const p = await patientService.getById(e.patient).catch(() => null);
         if (!alive) return;
         setPatient(p);
-        const m = mris.find((x) => x.status === 'completed');
-        if (m) setCompletedMriId(m.id);
       } catch (err) {
         toast.error(err.response?.data?.detail || t('ecg.result.loadFailed'));
       } finally {
@@ -83,23 +74,9 @@ export default function ECGResult() {
     }
   };
 
-  const onGenerateReport = async () => {
-    if (!patient) return;
-    setGenerating(true);
-    try {
-      const r = await reportService.generate({
-        patientId: patient.id,
-        ecgId: ecg.id,
-        mriId: completedMriId,
-      });
-      toast.success(completedMriId ? t('ecg.result.combinedGenerated') : t('ecg.result.ecgOnlyGenerated'));
-      const blob = await reportService.downloadPdf(r.id);
-      triggerBlobDownload(blob, `report_${patient.id}_${r.id}.pdf`);
-    } catch (e) {
-      toast.error(e.response?.data?.detail || t('ecg.result.reportFailed'));
-    } finally {
-      setGenerating(false);
-    }
+  const onSave = () => {
+    toast.success(t('ecg.result.saved'));
+    navigate(patient ? `/patients/${patient.id}` : '/patients');
   };
 
   const hrv = ecg.result_hrv_metrics || {};
@@ -249,12 +226,12 @@ export default function ECGResult() {
       <div className="flex flex-wrap gap-2 justify-end pt-2">
         <button
           type="button"
-          onClick={onGenerateReport}
-          disabled={generating || ecg.status !== 'completed' || !patient}
+          onClick={onSave}
+          disabled={ecg.status !== 'completed'}
           className="inline-flex items-center gap-2 bg-success text-ink px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
         >
-          <FileText size={16} />
-          {completedMriId ? t('ecg.result.generateCombined') : t('ecg.result.downloadPdf')}
+          <Save size={16} />
+          {t('common.save')}
         </button>
         <button
           type="button"
@@ -275,13 +252,4 @@ export default function ECGResult() {
       />
     </div>
   );
-}
-
-function triggerBlobDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -22,6 +22,7 @@ export default function Anatomy3DPanel({ accent, highlight }) {
   // the dark scene — far more visible than a red glow on red muscle. Severity is
   // conveyed by glow intensity + the legend text, not hue.
   const glowColor = colors.neuro;
+  const gradcamColor = colors.cardio;  // distinct hue for the on-demand Grad-CAM marker
   const sevIntensity = (s) => (s === 'high' ? 1.7 : s === 'medium' ? 1.2 : 0.8);
 
   // id -> { color, intensity } for the 3D model.
@@ -33,11 +34,11 @@ export default function Anatomy3DPanel({ accent, highlight }) {
     } else {
       for (const r of highlight.regions || []) m[r.id] = { color: glowColor, intensity: sevIntensity(r.severity) };
     }
-    // Positioned focus marker (e.g. MRI tumour location from the 2D mask).
-    if (highlight.focus) {
-      m.focus = {
-        x: highlight.focus.x, y: highlight.focus.y, z: 0.4,
-        color: glowColor, intensity: sevIntensity(highlight.focus.severity),
+    // On-demand Grad-CAM peak marker ("where the classifier looked"), distinct hue.
+    if (highlight.gradcamFocus) {
+      m.gradcamFocus = {
+        x: highlight.gradcamFocus.x, y: highlight.gradcamFocus.y, z: 0.4,
+        color: gradcamColor, intensity: sevIntensity(highlight.gradcamFocus.severity),
       };
     }
     return m;
@@ -80,23 +81,7 @@ export default function Anatomy3DPanel({ accent, highlight }) {
                   />
                   <span>{t('anatomy3d.rateNote')}</span>
                 </p>
-              ) : highlight.focus ? (
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                    {t('anatomy3d.implicated')}
-                  </div>
-                  <p className="flex items-center gap-2 text-sm text-gray-800">
-                    <span
-                      className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ background: glowColor, boxShadow: `0 0 8px ${glowColor}` }}
-                    />
-                    <span className="font-medium">{t('anatomy3d.tumorLocated')}</span>
-                  </p>
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-2">
-                    {t('anatomy3d.maskProjected')}
-                  </p>
-                </div>
-              ) : (
+              ) : highlight.regions?.length > 0 ? (
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
                     {t('anatomy3d.implicated')}
@@ -114,6 +99,16 @@ export default function Anatomy3DPanel({ accent, highlight }) {
                     ))}
                   </ul>
                 </div>
+              ) : null}
+
+              {highlight.gradcamFocus && (
+                <p className="flex items-center gap-2 text-sm text-gray-800">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: gradcamColor, boxShadow: `0 0 8px ${gradcamColor}` }}
+                  />
+                  <span>{t('anatomy3d.gradcamLooked')}</span>
+                </p>
               )}
 
               {highlight.findingCodes?.length > 0 && (

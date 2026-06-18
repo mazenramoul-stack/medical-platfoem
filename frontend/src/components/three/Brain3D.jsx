@@ -123,7 +123,7 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
   const stemMesh = useRef();
   const leftMarker = useRef();
   const rightMarker = useRef();
-  const focusMarker = useRef();
+  const gradcamMarker = useRef();
   const [hovered, setHovered] = useState(false);
   const [active, setActive] = useState(false);
   const reduced = useMemo(() => prefersReducedMotion(), []);
@@ -151,7 +151,7 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
       }),
       markerL: marker(),
       markerR: marker(),
-      markerFocus: marker(),
+      markerGradcam: marker(),
       palette: {
         cortex: new THREE.Color(cCortex),
         cerebellum: new THREE.Color(cCereb),
@@ -204,8 +204,8 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
     mesh.material.emissiveIntensity = 0.85 + 0.35 * wave;
   };
 
-  // Focus marker — a small glow placed at a specific point (MRI tumour position
-  // projected from the 2D mask). Shown only while a focus point is supplied.
+  // Grad-CAM peak marker — a small glow at a specific point (the on-demand Grad-CAM
+  // peak). Shown only while a gradcamFocus is supplied.
   const applyFocus = (ref, focus, tsec) => {
     const mesh = ref.current;
     if (!mesh) return;
@@ -227,7 +227,7 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
     applyMesh(stemMesh, 'stem', mats.palette.stem, 0.05);
     applyMarker(leftMarker, 'left', tsec);
     applyMarker(rightMarker, 'right', tsec);
-    applyFocus(focusMarker, highlight && highlight.focus, tsec);
+    applyFocus(gradcamMarker, highlight && highlight.gradcamFocus, tsec);
   });
 
   const target = (active ? 1.1 : 1) * (hovered ? 1.05 : 1) * scale;
@@ -255,9 +255,9 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
       <mesh ref={rightMarker} material={mats.markerR} position={[0.5, 0.2, 0.12]} visible={false}>
         <sphereGeometry args={[0.6, 24, 24]} />
       </mesh>
-      {/* focus marker — positioned at the MRI tumour location from the 2D mask */}
-      <mesh ref={focusMarker} material={mats.markerFocus} visible={false}>
-        <sphereGeometry args={[0.32, 24, 24]} />
+      {/* Grad-CAM peak marker — where the classifier looked (shown on demand) */}
+      <mesh ref={gradcamMarker} material={mats.markerGradcam} visible={false}>
+        <sphereGeometry args={[0.26, 24, 24]} />
       </mesh>
       <Sparkles count={24} scale={3.2} size={2.5} speed={0.4} color={accent} />
     </group>

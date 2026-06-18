@@ -23,6 +23,8 @@ const mriService = {
   getById:      (id) => api.get(`/mri/${id}/`).then((r) => r.data),
   getByPatient: (patientId) => api.get(`/mri/?patient_id=${patientId}`).then((r) => r.data),
   delete:       (id) => api.delete(`/mri/${id}/`).then((r) => r.data),
+  // On-demand explainability: Grad-CAM + SHAP overlays for an analyzed scan.
+  explainMri:   (id) => api.post(`/mri/${id}/explain/`).then((r) => r.data),
 };
 
 export default mriService;

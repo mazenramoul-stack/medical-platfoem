@@ -1,0 +1,77 @@
+{
+  "results": [
+    {
+      "p": "STACH",
+      "base_bal_acc": 0.8128198626031629,
+      "base_auc": 0.9904963345474664,
+      "base_f1": 0.6842105263157895,
+      "base_thr": 0.97,
+      "ft_bal_acc": 0.952827470146157,
+      "ft_auc": 0.9928535202176219,
+      "ft_f1": 0.8522727272727272,
+      "ft_thr": 0.92,
+      "kept": true,
+      "reason": "passed no-regression rule (F1)"
+    },
+    {
+      "p": "SBRAD",
+      "base_bal_acc": 0.7690663074039363,
+      "base_auc": 0.9502328373945642,
+      "base_f1": 0.47368421052631576,
+      "base_thr": 0.97,
+      "ft_bal_acc": 0.7625790768509841,
+      "ft_auc": 0.9551312089971884,
+      "ft_f1": 0.6126126126126127,
+      "ft_thr": 0.89,
+      "kept": true,
+      "reason": "passed no-regression rule (F1)"
+    },
+    {
+      "p": "1AVB",
+      "base_bal_acc": 0.8355535510540558,
+      "base_auc": 0.9599882915872665,
+      "base_f1": 0.5209302325581395,
+      "base_thr": 0.9400000000000001,
+      "ft_bal_acc": 0.867712857151391,
+      "ft_auc": 0.9753645438199294,
+      "ft_f1": 0.6315789473684211,
+      "ft_thr": 0.9,
+      "kept": true,
+      "reason": "passed no-regression rule (F1)"
+    },
+    {
+      "p": "LBBB",
+      "base_bal_acc": 0.9618898755587773,
+      "base_auc": 0.9823079014135556,
+      "base_f1": 0.8000000000000002,
+      "base_thr": 0.99,
+      "ft_bal_acc": 0.9084813338166002,
+      "ft_auc": 0.9820360637912287,
+      "ft_f1": 0.8160000000000001,
+      "ft_thr": 0.9600000000000001,
+      "kept": true,
+      "reason": "passed no-regression rule (F1)"
+    }
+  ],
+  "config": {
+    "ptbxl_dir": "physionet.org/files/ptb-xl/1.0.3",
+    "pathologies": [
+      "STACH",
+      "SBRAD",
+      "1AVB",
+      "LBBB"
+    ],
+    "epochs": 20,
+    "batch_size": 64,
+    "lr": 0.0002,
+    "patience": 5,
+    "augment": true,
+    "focal_gamma": 0.0,
+    "select_metric": "f1",
+    "auc_tolerance": 0.01,
+    "min_likelihood": 0.0,
+    "out_dir": "/content/drive/My Drive/colab_pfe_outputs/ecg_finetuned",
+    "cache_dir": "/content/ecg_ft_cache",
+    "seed": 0
+  }
+}

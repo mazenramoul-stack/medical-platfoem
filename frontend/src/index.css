@@ -198,8 +198,13 @@ input::placeholder, textarea::placeholder { color: var(--text-low); }
 .dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1b1b2c; }
 
 /* hovers that assumed a light background */
+.dark .hover\:bg-gray-50:hover { background-color: #14142a; }
 .dark .hover\:bg-gray-100:hover { background-color: #1a1a2e; }
 .dark .hover\:bg-red-50:hover { background-color: rgba(244,63,94,0.12); }
+.dark .hover\:bg-blue-50:hover { background-color: rgba(96,165,250,0.12); }
+
+/* tinted surface elements assumed light backgrounds */
+.dark .bg-blue-100 { background-color: rgba(96,165,250,0.18); }
 
 /* primary-action blues (pages that hardcode blue buttons) -> neon */
 .dark .bg-blue-600, .dark .bg-blue-700 { background-color: #00ffcc; color: #07070f; }

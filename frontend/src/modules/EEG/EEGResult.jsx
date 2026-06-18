@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Brain, Trash2 } from 'lucide-react';
+import { ArrowLeft, Brain, Save, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Badge from '../../components/UI/Badge.jsx';
@@ -59,10 +59,15 @@ export default function EEGResult() {
     try {
       await eegService.delete(id);
       toast.success(t('eeg.result.deleted'));
-      navigate(-1);
+      navigate(patient ? `/patients/${patient.id}` : '/patients');
     } catch {
       toast.error(t('eeg.result.deleteFailed'));
     }
+  };
+
+  const onSave = () => {
+    toast.success(t('eeg.result.saved'));
+    navigate(patient ? `/patients/${patient.id}` : '/patients');
   };
 
   const brainHighlight = useMemo(() => mapEegToHighlight(eeg), [eeg]);
@@ -164,6 +169,25 @@ export default function EEGResult() {
           <pre className="text-xs text-mid whitespace-pre-wrap font-mono leading-relaxed">{eeg.result_report}</pre>
         </div>
       )}
+
+      <div className="flex flex-wrap gap-2 justify-end pt-2">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={eeg.status !== 'completed'}
+          className="inline-flex items-center gap-2 bg-success text-ink px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+        >
+          <Save size={16} />
+          {t('common.save')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirm(true)}
+          className="inline-flex items-center gap-2 bg-white text-danger border border-edge px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50"
+        >
+          <Trash2 size={16} /> {t('common.delete')}
+        </button>
+      </div>
 
       <ConfirmDialog
         open={confirm}

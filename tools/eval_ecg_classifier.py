@@ -80,7 +80,7 @@ def predict_probs(file_path: str, loader, np, torch):
     from apps.inference.ecg_pipeline import _scalar_probability
     from apps.inference.utils import load_ecg_signal
 
-    signal, fs = load_ecg_signal(file_path)              # (12, 5000)
+    signal, fs, _ = load_ecg_signal(file_path)           # (12, 5000); 3rd = lead quality (unused)
     b, a = butter(4, [0.5, 40], btype="bandpass", fs=fs)
     filtered = filtfilt(b, a, signal, axis=1)
     norm = (filtered - filtered.mean(axis=1, keepdims=True)) / (filtered.std(axis=1, keepdims=True) + 1e-8)

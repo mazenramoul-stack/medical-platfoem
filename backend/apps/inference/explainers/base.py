@@ -35,16 +35,24 @@ def heatmap_peak_xy(cam):
 
 
 def attribution_agreement(a, b, topk_frac=0.1):
-    """Agreement between two heatmaps: Spearman rank-corr + top-k IoU.
+    """Agreement between two heatmaps at their COARSER common resolution.
 
-    ``b`` is resized to ``a``'s shape first. Returns a dict
-    ``{"spearman": float, "topk_iou": float}``; NaN correlation maps to 0.0.
+    Grad-CAM (e.g. 7x7) and SHAP (e.g. 224x224) live at very different granularities;
+    comparing at the full pixel grid over-penalises the coarse map (high-frequency SHAP
+    structure the CAM cannot represent drives the correlation to ~0). We therefore
+    downsample BOTH maps to the coarser of the two resolutions (min of each axis) and
+    measure *regional* agreement there: Spearman rank-corr + top-k IoU.
+
+    Returns ``{"spearman": float, "topk_iou": float}``; NaN correlation maps to 0.0.
     """
     from scipy.stats import spearmanr
     a = np.asarray(a, dtype=np.float32)
     b = np.asarray(b, dtype=np.float32)
-    if b.shape != a.shape:
-        b = resize_to(b, a.shape)
+    th, tw = min(a.shape[0], b.shape[0]), min(a.shape[1], b.shape[1])
+    if a.shape != (th, tw):
+        a = resize_to(a, (th, tw))
+    if b.shape != (th, tw):
+        b = resize_to(b, (th, tw))
     af, bf = a.ravel(), b.ravel()
     rho = spearmanr(af, bf).correlation
     k = max(1, int(len(af) * topk_frac))

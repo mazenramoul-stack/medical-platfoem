@@ -12,12 +12,6 @@ export default function MRILanding() {
       accent={accents.mri.color}
       model="brain"
       description={t('mri.landing.description')}
-      metrics={[
-        { label: t('mri.landing.metrics.classifierAcc'), value: '95.4%' },
-        { label: t('mri.landing.metrics.macroF1'), value: '0.95' },
-        { label: t('mri.landing.metrics.segDice'), value: '0.85' },
-        { label: t('mri.landing.metrics.classes'), value: '4' },
-      ]}
       classes={[
         { name: t('mri.types.glioma'), desc: t('mri.landing.classes.glioma') },
         { name: t('mri.types.meningioma'), desc: t('mri.landing.classes.meningioma') },

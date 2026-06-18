@@ -2,14 +2,13 @@ import { describe, it, expect } from 'vitest';
 
 import { mapEcgToHighlight } from './ecgAnatomy.js';
 
-// Build a result envelope with the given detected pathology codes (each at the
-// given probability, default 0.9). Non-listed codes are present but not detected.
-const ecgWith = (detectedCodes, { bpm, prob = 0.9 } = {}) => {
+// Build a result envelope with the given detected pathology codes.
+const ecgWith = (detectedCodes, { bpm } = {}) => {
   const all = ['AFIB', '1AVB', 'STACH', 'SBRAD', 'RBBB', 'LBBB', 'PVC'];
   const result_pathology_probabilities = {};
   for (const code of all) {
     const detected = detectedCodes.includes(code);
-    result_pathology_probabilities[code] = { probability: detected ? prob : 0.02, detected };
+    result_pathology_probabilities[code] = { probability: detected ? 0.9 : 0.02, detected };
   }
   return {
     result_pathology_probabilities,
@@ -18,7 +17,6 @@ const ecgWith = (detectedCodes, { bpm, prob = 0.9 } = {}) => {
 };
 
 const ids = (h) => h.regions.map((r) => r.id).sort();
-const codes = (h) => h.findings.map((f) => f.code).sort();
 
 describe('mapEcgToHighlight', () => {
   it('maps RBBB to the right ventricle (structural, not rate-only)', () => {
@@ -26,7 +24,7 @@ describe('mapEcgToHighlight', () => {
     expect(ids(h)).toContain('rv');
     expect(h.rateOnly).toBe(false);
     expect(h.normal).toBe(false);
-    expect(codes(h)).toContain('RBBB');
+    expect(h.findingCodes).toContain('RBBB');
   });
 
   it('maps LBBB to the left ventricle', () => {
@@ -45,15 +43,15 @@ describe('mapEcgToHighlight', () => {
     expect(ids(mapEcgToHighlight(ecgWith(['1AVB'])))).toContain('av-node');
   });
 
-  it('treats STACH (only rate finding) as rate-only with no structure', () => {
+  it('treats STACH as a rate-only finding with NO localized structure', () => {
     const h = mapEcgToHighlight(ecgWith(['STACH']));
-    expect(ids(h)).toEqual([]);
+    expect(ids(h)).toEqual([]); // rate findings do not pinpoint a site
     expect(h.rateOnly).toBe(true);
-    expect(h.rateScore).toBeGreaterThan(0);
-    expect(codes(h)).toContain('STACH');
+    expect(h.normal).toBe(false);
+    expect(h.findingCodes).toContain('STACH');
   });
 
-  it('treats SBRAD (only rate finding) as rate-only', () => {
+  it('treats SBRAD as a rate-only finding with no structure', () => {
     const h = mapEcgToHighlight(ecgWith(['SBRAD']));
     expect(h.rateOnly).toBe(true);
     expect(ids(h)).toEqual([]);
@@ -66,56 +64,44 @@ describe('mapEcgToHighlight', () => {
     expect(h.rateOnly).toBe(false);
   });
 
-  it('shows ALL detected structural findings, each scored by probability', () => {
+  it('highlights only the PRIMARY (highest-probability) detected finding', () => {
     const ecg = {
       result_pathology_probabilities: {
         RBBB: { probability: 0.95, detected: true },
         AFIB: { probability: 0.70, detected: true },
-        STACH: { probability: 0.80, detected: true }, // rate → no structure
+        STACH: { probability: 0.80, detected: true },
         LBBB: { probability: 0.02, detected: false },
       },
     };
     const h = mapEcgToHighlight(ecg);
-    expect(ids(h)).toEqual(['la', 'ra', 'rv']); // RBBB + AFIB structures (STACH none)
-    expect(h.rateOnly).toBe(false);
-    expect(codes(h)).toEqual(['AFIB', 'RBBB', 'STACH']);
-    // green strength tracks probability: RBBB (0.95) brighter than AFIB (0.70)
-    const rv = h.regions.find((r) => r.id === 'rv');
-    const la = h.regions.find((r) => r.id === 'la');
-    expect(rv.score).toBeGreaterThan(la.score);
-  });
-
-  it('a rate + structural mix shows the structure (not rate-only)', () => {
-    const ecg = {
-      result_pathology_probabilities: {
-        SBRAD: { probability: 0.92, detected: true }, // headline rate finding
-        RBBB: { probability: 0.40, detected: true },  // weaker structural
-      },
-    };
-    const h = mapEcgToHighlight(ecg);
-    expect(h.rateOnly).toBe(false);
+    expect(h.findingCodes).toEqual(['RBBB']); // highest-probability detected
     expect(ids(h)).toEqual(['rv']);
-    expect(codes(h)).toEqual(['RBBB', 'SBRAD']);
+    expect(h.rateOnly).toBe(false);
   });
 
-  it('region score reflects each finding probability (gradation)', () => {
+  it('a rate primary stays rate-only even when a structural finding co-occurs lower', () => {
+    // The screenshot case: Sinus Tachycardia is the headline; a secondary AFIB
+    // flag from the liberal thresholds must NOT light up the atria.
     const ecg = {
       result_pathology_probabilities: {
-        RBBB: { probability: 0.90, detected: true },
-        LBBB: { probability: 0.40, detected: true },
+        STACH: { probability: 0.92, detected: true },
+        AFIB: { probability: 0.40, detected: true },
       },
     };
     const h = mapEcgToHighlight(ecg);
-    const rv = h.regions.find((r) => r.id === 'rv');
-    const lv = h.regions.find((r) => r.id === 'lv');
-    expect(rv.score).toBeCloseTo(0.90, 5);
-    expect(lv.score).toBeCloseTo(0.40, 5);
-    expect(rv.score).toBeGreaterThan(lv.score);
+    expect(h.findingCodes).toEqual(['STACH']);
+    expect(h.rateOnly).toBe(true);
+    expect(ids(h)).toEqual([]); // no pinpoint
   });
 
   it('passes through the measured heart rate, rounded', () => {
     expect(mapEcgToHighlight(ecgWith(['RBBB'], { bpm: 78.4 })).beatsPerMinute).toBe(78);
     expect(mapEcgToHighlight(ecgWith(['RBBB'])).beatsPerMinute).toBe(null);
+  });
+
+  it('assigns a severity to each highlighted region', () => {
+    const h = mapEcgToHighlight(ecgWith(['RBBB']));
+    expect(['low', 'medium', 'high']).toContain(h.regions[0].severity);
   });
 
   it('is null-safe on a missing/empty envelope', () => {

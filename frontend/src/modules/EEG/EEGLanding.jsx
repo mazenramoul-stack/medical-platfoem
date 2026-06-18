@@ -12,12 +12,6 @@ export default function EEGLanding() {
       accent={accents.eeg.color}
       model="brain"
       description={t('eeg.landing.description')}
-      metrics={[
-        { label: t('eeg.landing.metrics.patterns'), value: '6 IIIC' },
-        { label: t('eeg.landing.metrics.model'), value: 'BIOT' },
-        { label: t('eeg.landing.metrics.segment'), value: '10 s' },
-        { label: t('eeg.landing.metrics.flag'), value: t('eeg.landing.metrics.flagValue') },
-      ]}
       classes={[
         { name: t('eeg.landing.classes.sz.name'), desc: t('eeg.landing.classes.sz.desc') },
         { name: t('eeg.landing.classes.lpd.name'), desc: t('eeg.landing.classes.lpd.desc') },

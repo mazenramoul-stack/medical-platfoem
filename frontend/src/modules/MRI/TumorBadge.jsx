@@ -1,6 +1,7 @@
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 import { useI18n } from '../../i18n/LanguageContext.jsx';
+import { normalizeTumorType } from './tumorType.js';
 
 const TYPE_META = {
   glioma:     { variant: 'danger',    icon: AlertCircle,  labelKey: 'mri.types.glioma',     tipKey: 'mri.badge.glioma' },
@@ -21,7 +22,7 @@ const VARIANT_BG = {
 
 export default function TumorBadge({ tumorType, detected }) {
   const { t } = useI18n();
-  const key = (tumorType || '').toLowerCase();
+  const key = normalizeTumorType(tumorType);
   const meta = TYPE_META[key];
   const variant = meta ? meta.variant : (detected ? 'danger' : 'gray');
   const Icon = meta ? meta.icon : (detected ? AlertCircle : CheckCircle2);

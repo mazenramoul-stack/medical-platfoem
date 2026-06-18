@@ -23,6 +23,9 @@ export default {
     viewer: {
       unavailable: 'PDF file is not available.',
       downloadPdf: 'Download PDF',
+      loading: 'Loading report…',
+      loadFailed: 'Could not load the PDF preview.',
+      downloadInstead: 'Download PDF instead',
     },
     generator: {
       forPatient: 'Generating a report for',
@@ -64,6 +67,9 @@ export default {
     viewer: {
       unavailable: 'Le fichier PDF n’est pas disponible.',
       downloadPdf: 'Télécharger le PDF',
+      loading: 'Chargement du rapport…',
+      loadFailed: 'Impossible de charger l’aperçu PDF.',
+      downloadInstead: 'Télécharger le PDF à la place',
     },
     generator: {
       forPatient: 'Génération d’un rapport pour',

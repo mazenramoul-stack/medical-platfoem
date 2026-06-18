@@ -9,10 +9,17 @@ const FOCUSABLE = [
   'input:not([disabled])', 'select:not([disabled])', '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
-export default function Modal({ open, onClose, title, children, footer }) {
+export default function Modal({ open, onClose, title, children, footer, size = 'lg' }) {
   const { t } = useI18n();
   const dialogRef = useRef(null);
   const titleId = useId();
+  const sizeClass = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-4xl',
+    full: 'max-w-6xl',
+  }[size] || 'max-w-lg';
   // Keep the latest onClose without re-running the focus effect (parents often
   // pass a fresh arrow each render, which would otherwise re-trap focus).
   const onCloseRef = useRef(onClose);
@@ -65,7 +72,7 @@ export default function Modal({ open, onClose, title, children, footer }) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="bg-white rounded-xl shadow-xl w-full max-w-lg outline-none"
+        className={`bg-white rounded-xl shadow-xl w-full ${sizeClass} outline-none`}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 id={titleId} className="text-base font-semibold text-gray-900">{title}</h2>

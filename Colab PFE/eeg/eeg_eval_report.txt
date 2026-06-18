@@ -1,0 +1,40 @@
+Device: cuda  (BIOT IIIC classifier loaded from biot_iiic.pt)
+
+BIOT / IIIC evaluation — 2681 windows (patient-disjoint held-out split)
+
+Headline (imbalance-aware):
+  Balanced accuracy : 0.415
+  Cohen's kappa     : 0.264
+  Macro F1          : 0.332
+  Weighted F1       : 0.428
+  KL divergence     : 2.127   (true votes || predicted, lower is better)
+  Raw accuracy      : 0.420   (reported last — misleading under imbalance)
+
+Per-class:
+  class     prec    rec     f1  support
+  SZ       0.272  0.203  0.232      138
+  LPD      0.167  0.346  0.225      231
+  GPD      0.625  0.744  0.679      724
+  LRDA     0.567  0.325  0.413      925
+  GRDA     0.361  0.248  0.294      626
+  Other    0.084  0.622  0.147       37
+
+Confusion matrix (rows = true, cols = predicted):
+             SZ    LPD    GPD   LRDA   GRDA  Other
+  SZ         28     35     35     20      5     15
+  LPD        26     80     50     46     17     12
+  GPD        11    131    539     21     16      6
+  LRDA       22    143    151    301    233     75
+  GRDA       16     90     80    141    155    144
+  Other       0      1      8      2      3     23
+
+Binary screen — harmful pattern (any of the 5) vs Other:
+  abnormal-detection RECALL    : 0.905   (252 harmful windows missed as 'Other')
+  abnormal-detection precision : 0.994
+  specificity (Other correct)  : 0.622
+  seizure flagged as harmful   : 123/138 = 0.891  (routed for review, even if mislabelled)
+  NOTE: 6-way TYPE accuracy stays modest (IIIC is inter-rater-ambiguous);
+  this screen must not be used to RULE OUT a seizure by type — only to route.
+
+Reproduce:
+  python tools/eval_eeg.py --hms-dir /content/drive/MyDrive/hms --weights /content/biot_iiic.pt --limit 20000 --seed 0

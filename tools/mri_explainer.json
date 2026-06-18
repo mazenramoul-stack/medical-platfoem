@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Te-gl_1.jpg",
+    "pred_idx": 1,
+    "spearman": 0.4500444758366752,
+    "topk_iou": 0.3333333333333333,
+    "pred": "meningioma",
+    "truth": "glioma",
+    "conf_drop": 0.5100376307964325
+  },
+  {
+    "name": "Te-gl_10.jpg",
+    "pred_idx": 0,
+    "spearman": 0.25865517638379426,
+    "topk_iou": 0.14285714285714285,
+    "pred": "glioma",
+    "truth": "glioma",
+    "conf_drop": 0.00045120716094970703
+  },
+  {
+    "name": "Te-gl_100.jpg",
+    "pred_idx": 0,
+    "spearman": -0.44121931170033196,
+    "topk_iou": 0.0,
+    "pred": "glioma",
+    "truth": "glioma",
+    "conf_drop": 0.010138750076293945
+  }
+]

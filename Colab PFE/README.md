@@ -43,6 +43,28 @@ weights.
 | 2 | `colab_mri_vit_finetune.ipynb` | MRI Swin 4-class accuracy (the `vit` in the notebook name is historical; the model is a Swin-T) | **0.804 → 0.92–0.97** — ✅ **DONE June 11 2026: 0.9544 on Colab, re-verified 95.4 % locally** | ~30–60 min |
 | 3 | `colab_ecg_finetune.ipynb` | ECG weak-class F1 / macro balanced-acc | ✅ **DONE June 11 2026: 3/7 kept (1AVB, RBBB, PVC) — verified locally: macro F1 0.711→0.727, mean AUC 0.980, macro bal-acc 0.887; under the notebook's bal-acc objective: 0.942→0.946** | ~1–3 h (actual: 155 min) |
 
+### ECG — second pass to lift macro F1 (`tools/finetune_ecg_f1.py`)
+
+The June run (`colab_ecg_finetune.ipynb`) optimised **balanced accuracy** and kept
+3/7. To specifically lift **macro F1** (the weak classes SBRAD / 1AVB / STACH),
+run the F1-objective trainer instead — it selects and keeps checkpoints on **F1**
+and adds ECG-domain augmentation (the main lever for rare classes). After the
+setup cells (mount Drive, unzip, `pip install ecglib==1.0.1 wfdb`, download PTB-XL):
+
+```bash
+python tools/finetune_ecg_f1.py \
+    --ptbxl-dir physionet.org/files/ptb-xl/1.0.3 \
+    --pathologies SBRAD 1AVB STACH --epochs 20 --augment
+```
+
+Honest target: macro F1 ~0.73 → ~0.78–0.82, **not** 0.90 (the threshold-tuning
+ceiling is ~0.75; SBRAD/1AVB are prevalence-limited). Same no-regression rule
+(now on F1) and same output dir, so kept `<PATHOLOGY>.pt` files drop into
+`backend/models_weights/ecg_finetuned/` and are auto-detected exactly as before.
+(Note: `load_ecg_signal` now returns 3 values — the new script handles that; the
+old `colab_ecg_finetune.ipynb` preprocess cell unpacks only 2 and needs that fix
+if you run it.)
+
 ### Why EEG cannot reach 90–95 % — read this before the defence
 
 The IIIC task (6-class harmful-brain-activity) is **not like the MRI task**.

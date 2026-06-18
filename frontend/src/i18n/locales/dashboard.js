@@ -9,7 +9,7 @@ export default {
     systemOperational: 'System operational',
     quickActions: 'QUICK ACTIONS',
     newPatient: 'New patient',
-    uploadMriEcg: 'Upload MRI / ECG',
+    uploadMriEcg: 'Upload MRI / ECG / Echo / EEG',
     soon: 'SOON',
     tiles: {
       patients: 'Patients',
@@ -48,7 +48,7 @@ export default {
     systemOperational: 'Système opérationnel',
     quickActions: 'ACTIONS RAPIDES',
     newPatient: 'Nouveau patient',
-    uploadMriEcg: 'Téléverser IRM / ECG',
+    uploadMriEcg: 'Téléverser IRM / ECG / Écho / EEG',
     soon: 'BIENTÔT',
     tiles: {
       patients: 'Patients',

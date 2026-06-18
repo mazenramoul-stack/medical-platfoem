@@ -49,20 +49,24 @@ LEAD_NAMES = ['I', 'II', 'III', 'aVR', 'aVL', 'aVF', 'V1', 'V2', 'V3', 'V4', 'V5
 # (per-pathology AUC ~0.97-1.00) but output high probabilities. Two calibrated
 # operating points are provided, BOTH tuned on PTB-XL fold 9 (validation) and
 # verified on fold 10 (test) — no leakage. Switch with the ECG_THRESHOLD_MODE
-# env var ('recall' default, or 'f1').
+# env var ('f1' default — balanced; set 'recall' for screening / safety-first).
 #
-#   RECALL_FIRST (default) — screening / safety-first. Chosen so every pathology
+#   RECALL_FIRST (opt-in: ECG_THRESHOLD_MODE=recall) — screening / safety-first.
+#       Chosen so every pathology
 #       reaches recall >= 0.95 on the held-out TEST fold (macro recall 0.98,
 #       only 13 false negatives in 2,198 records). This is the clinical posture:
 #       a screening tool must not MISS a positive. The cost is precision — macro
 #       ~0.35 (more false alarms); the tool flags liberally for human review.
 #       Reproduce: python tools/tune_ecg_recall.py --target 0.98
 #
-#   F1_BALANCED — balanced precision/recall (macro F1 0.727, precision 0.69,
-#       recall 0.78). Best when minimizing TOTAL errors matters more than never
-#       missing. Re-tuned June 2026 for the fine-tuned 1AVB/RBBB/PVC checkpoints
-#       (PVC 0.69 -> 0.96; stock-only values: AFIB 0.89, 1AVB 0.96, RBBB 0.94,
-#       PVC 0.69). Reproduce: tools/eval_ecg_classifier.py --tune-fold 9 --fold 10
+#   F1_BALANCED (default) — balanced precision/recall. Best when minimizing TOTAL
+#       errors matters more than never missing. Thresholds tuned per pathology on
+#       fold 9 (no test leakage). Updated 2026-06-16 for the F1 fine-tuned
+#       STACH/SBRAD/1AVB/LBBB checkpoints (tools/finetune_ecg_f1.py — F1
+#       objective + augmentation) layered on the earlier 1AVB/RBBB/PVC fine-tune;
+#       per-class F1 verified locally 2026-06-16 (STACH 0.85, SBRAD 0.61, 1AVB
+#       0.63, LBBB 0.82; macro F1 0.727 -> 0.777 on PTB-XL fold 10). Reproduce:
+#       tools/eval_ecg_classifier.py --tune-fold 9 --fold 10
 #
 # See VALIDATION.md §1 for both operating-point tables.
 RECALL_FIRST_THRESHOLDS = {
@@ -76,16 +80,16 @@ RECALL_FIRST_THRESHOLDS = {
 }
 F1_BALANCED_THRESHOLDS = {
     'AFIB':  0.91,
-    '1AVB':  0.85,
-    'STACH': 0.97,
-    'SBRAD': 0.97,
+    '1AVB':  0.90,   # F1 fine-tune (2026-06-16): F1 0.521 -> 0.632
+    'STACH': 0.92,   # F1 fine-tune (2026-06-16): F1 0.684 -> 0.852
+    'SBRAD': 0.89,   # F1 fine-tune (2026-06-16): F1 0.474 -> 0.613
     'RBBB':  0.95,
-    'LBBB':  0.99,
+    'LBBB':  0.96,   # F1 fine-tune (2026-06-16): F1 0.800 -> 0.816
     'PVC':   0.96,
 }
-_THRESHOLD_MODE = os.environ.get('ECG_THRESHOLD_MODE', 'recall').strip().lower()
+_THRESHOLD_MODE = os.environ.get('ECG_THRESHOLD_MODE', 'f1').strip().lower()
 DETECTION_THRESHOLDS = (
-    F1_BALANCED_THRESHOLDS if _THRESHOLD_MODE == 'f1' else RECALL_FIRST_THRESHOLDS
+    RECALL_FIRST_THRESHOLDS if _THRESHOLD_MODE == 'recall' else F1_BALANCED_THRESHOLDS
 )
 DEFAULT_DETECTION_THRESHOLD = 0.5  # fallback for any code not tuned above
 

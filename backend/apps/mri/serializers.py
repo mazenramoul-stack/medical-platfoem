@@ -17,6 +17,7 @@ class MRIAnalysisSerializer(serializers.ModelSerializer):
     mask_url = serializers.SerializerMethodField()
     overlay_url = serializers.SerializerMethodField()
     analysis_url = serializers.SerializerMethodField()
+    gradcam_url = serializers.SerializerMethodField()
 
     class Meta:
         model = MRIAnalysis
@@ -33,9 +34,11 @@ class MRIAnalysisSerializer(serializers.ModelSerializer):
             'result_mask_path',
             'result_overlay_path',
             'result_analysis_path',
+            'result_gradcam_path',
             'mask_url',
             'overlay_url',
             'analysis_url',
+            'gradcam_url',
             'result_report',
             'created_at',
         )
@@ -43,8 +46,9 @@ class MRIAnalysisSerializer(serializers.ModelSerializer):
             'id', 'status', 'model_used',
             'result_tumor_detected', 'result_tumor_type', 'result_confidence',
             'result_mask_path', 'result_overlay_path', 'result_analysis_path',
+            'result_gradcam_path',
             'result_report', 'created_at',
-            'file_url', 'mask_url', 'overlay_url', 'analysis_url',
+            'file_url', 'mask_url', 'overlay_url', 'analysis_url', 'gradcam_url',
         )
 
     # ---- url helpers (signed, time-limited — see core.media) -----------
@@ -62,3 +66,6 @@ class MRIAnalysisSerializer(serializers.ModelSerializer):
 
     def get_analysis_url(self, obj):
         return signed_media_url(self.context.get('request'), obj.result_analysis_path)
+
+    def get_gradcam_url(self, obj):
+        return signed_media_url(self.context.get('request'), obj.result_gradcam_path)

@@ -50,13 +50,12 @@ def _ef_category(ef: float) -> str:
     return 'Normal'
 
 
-# Safety-margin screen for reduced EF (false-negative minimization). The EF
-# regressor has ~4-5 % error (RMSE 5.3 % on EchoNet TEST), so flagging at the
-# 50 % clinical cutoff alone misses ~22 % of truly-reduced studies. Flagging at
-# EF < 55 % (a +5 % safety margin) lifts reduced-EF detection recall to 0.952
-# (vs 0.783 at no margin) — see tools/eval_echo_recall.py. Sensitive by design:
-# a borderline-normal EF is routed for review rather than silently cleared.
-REDUCED_EF_SCREEN_CUTOFF = 55.0
+# Reduced-EF screen. Default flags at the clinical EF < 50 % cutoff (standard
+# operating point). The EF regressor has ~4-5 % error (RMSE 5.3 % on EchoNet
+# TEST); a safety-margin variant (flag EF < 55 %, +5 % margin) lifts reduced-EF
+# detection recall 0.783 -> 0.952 at a precision cost — opt in by setting the
+# REDUCED_EF_SCREEN_CUTOFF env var to 55. See tools/eval_echo_recall.py.
+REDUCED_EF_SCREEN_CUTOFF = float(os.environ.get('REDUCED_EF_SCREEN_CUTOFF', 50.0))
 
 
 def _reduced_ef_screen(ef: float) -> bool:
@@ -185,8 +184,7 @@ Generated: {timestamp}
 EJECTION FRACTION (R(2+1)D-18, EchoNet-Dynamic):
   Estimated EF: {ef:.1f}%
   Category: {category}
-  Reduced-EF screen (EF < {REDUCED_EF_SCREEN_CUTOFF:.0f}%, +5% safety margin): {'FLAG — review' if reduced_ef_screen else 'clear'}
-  (high-sensitivity: detection recall 0.95 for true EF<50% — borderline cases routed for review)
+  Reduced-EF screen (EF < {REDUCED_EF_SCREEN_CUTOFF:.0f}%): {'FLAG — review' if reduced_ef_screen else 'clear'}
 
 LEFT-VENTRICLE SEGMENTATION (DeepLabV3, EchoNet-Dynamic):
   End-diastolic LV area: {ed_area} px (frame {ed_idx})

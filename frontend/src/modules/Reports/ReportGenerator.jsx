@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import reportService from '../../services/reportService.js';
 import { formatDateShort } from '../../utils/formatters.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
+import { normalizeTumorType } from '../MRI/tumorType.js';
 
 export default function ReportGenerator({ patient, mriOptions = [], ecgOptions = [], echoOptions = [], eegOptions = [], onComplete }) {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function ReportGenerator({ patient, mriOptions = [], ecgOptions =
 
   const optionLabels = {
     mri: (m) => t('reports.generator.mriOption', {
-      id: m.id, result: m.result_tumor_type || '—', date: formatDateShort(m.created_at),
+      id: m.id, result: normalizeTumorType(m.result_tumor_type) || '—', date: formatDateShort(m.created_at),
     }),
     ecg: (e) => t('reports.generator.ecgOption', {
       id: e.id, result: e.result_arrhythmia_type || '—', date: formatDateShort(e.created_at),

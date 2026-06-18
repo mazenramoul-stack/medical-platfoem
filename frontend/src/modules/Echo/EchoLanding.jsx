@@ -12,12 +12,6 @@ export default function EchoLanding() {
       accent={accents.echo.color}
       model="heart"
       description={t('echo.landing.description')}
-      metrics={[
-        { label: t('echo.landing.metrics.efModel'), value: 'R(2+1)D' },
-        { label: t('echo.landing.metrics.segmentation'), value: 'DeepLabV3' },
-        { label: t('echo.landing.metrics.output'), value: 'EF %' },
-        { label: t('echo.landing.metrics.source'), value: 'EchoNet' },
-      ]}
       classes={[
         { name: t('echo.landing.classes.ef.name'), desc: t('echo.landing.classes.ef.desc') },
         { name: t('echo.landing.classes.category.name'), desc: t('echo.landing.classes.category.desc') },

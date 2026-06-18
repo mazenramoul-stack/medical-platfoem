@@ -16,6 +16,7 @@ import eegService from '../../services/eegService.js';
 import mriService from '../../services/mriService.js';
 import patientService from '../../services/patientService.js';
 import reportService from '../../services/reportService.js';
+import { normalizeTumorType } from '../MRI/tumorType.js';
 
 function firstName(fullName, fallback) {
   return (fullName || '').trim().split(/\s+/)[0] || fallback;
@@ -45,7 +46,7 @@ export default function Dashboard() {
         if (!alive) return;
         setCounts({ patients: patients.length, mri: mri.length, ecg: ecg.length, echo: echo.length, eeg: eeg.length, reports: reports.length });
         const merged = [
-          ...mri.map((m) => ({ type: 'mri', id: m.id, created_at: m.created_at, status: m.status, label: m.result_tumor_type || 'MRI', patient: m.patient })),
+          ...mri.map((m) => ({ type: 'mri', id: m.id, created_at: m.created_at, status: m.status, label: normalizeTumorType(m.result_tumor_type) || 'MRI', patient: m.patient })),
           ...ecg.map((e) => ({ type: 'ecg', id: e.id, created_at: e.created_at, status: e.status, label: e.result_arrhythmia_type || 'ECG', patient: e.patient })),
           ...echo.map((ec) => ({ type: 'echo', id: ec.id, created_at: ec.created_at, status: ec.status, label: ec.result_ef_category || 'Echo', patient: ec.patient })),
           ...eeg.map((eg) => ({ type: 'eeg', id: eg.id, created_at: eg.created_at, status: eg.status, label: eg.result_dominant_pattern || 'EEG', patient: eg.patient })),
@@ -62,9 +63,9 @@ export default function Dashboard() {
     { key: 'patients', icon: Users,      accent: colors.blue,   to: '/patients', value: counts.patients },
     { key: 'mri',      icon: Brain,      accent: colors.neuro,  to: '/mri',      value: counts.mri },
     { key: 'ecg',      icon: Heart,      accent: colors.cardio, to: '/ecg',      value: counts.ecg },
-    { key: 'reports',  icon: FileText,   accent: colors.neuro,  to: '/reports',  value: counts.reports },
     { key: 'echo',     icon: HeartPulse, accent: colors.amber,  to: '/echo',     value: counts.echo },
     { key: 'eeg',      icon: Waves,      accent: colors.violet, to: '/eeg',      value: counts.eeg },
+    { key: 'reports',  icon: FileText,   accent: colors.neuro,  to: '/reports',  value: counts.reports },
   ];
 
   return (

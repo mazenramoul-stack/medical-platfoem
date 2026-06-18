@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Brain, Download, Eye, FileText, Heart, Trash2 } from 'lucide-react';
+import { Activity, Brain, Download, Eye, FileText, Heart, HeartPulse, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Badge from '../../components/UI/Badge.jsx';
@@ -99,6 +99,12 @@ export default function ReportList({ items: itemsProp, onDelete: onDeleteProp })
                 {r.ecg_analysis && (
                   <Badge variant="danger"><Heart size={10} className="mr-0.5 inline" />ECG</Badge>
                 )}
+                {r.echo_analysis && (
+                  <Badge variant="warning"><HeartPulse size={10} className="mr-0.5 inline" />Echo</Badge>
+                )}
+                {r.eeg_analysis && (
+                  <Badge variant="secondary"><Activity size={10} className="mr-0.5 inline" />EEG</Badge>
+                )}
               </div>
             </div>
             <div className="text-xs text-gray-600 mb-3">
@@ -131,7 +137,7 @@ export default function ReportList({ items: itemsProp, onDelete: onDeleteProp })
         ))}
       </div>
 
-      <Modal open={!!viewer} onClose={() => setViewer(null)} title={viewer ? t('reports.reportNumber', { id: viewer.id }) : ''}>
+      <Modal open={!!viewer} onClose={() => setViewer(null)} title={viewer ? t('reports.reportNumber', { id: viewer.id }) : ''} size="xl">
         {viewer && <ReportViewer report={viewer} onDownload={() => onDownload(viewer)} />}
       </Modal>
 

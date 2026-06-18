@@ -3,9 +3,9 @@ export default {
   en: {
     landing: {
       title: 'Echocardiogram Analysis',
-      subtitle: 'Cardio · Ultrasound · EchoNet-Dynamic',
+      subtitle: 'Cardio · Ultrasound · Cardiac function',
       description:
-        "Upload an echocardiogram video to estimate left-ventricular ejection fraction (R(2+1)D-18) and segment the left ventricle (DeepLabV3). Analyses are launched from a patient's record.",
+        "Upload an echocardiogram video to automatically measure the left-ventricular ejection fraction and segment the heart chambers. The system evaluates cardiac pumping efficiency and classifies the result. Analyses are launched from a patient's record.",
       metrics: {
         efModel: 'EF model',
         segmentation: 'Segmentation',
@@ -25,7 +25,7 @@ export default {
       supported: 'Supported: .avi, .mp4, .mov, .webm, .mkv · Max 500 MB',
       remove: 'Remove',
       uploadingVideo: 'Uploading video…',
-      running: 'Running EchoNet analysis (DeepLabV3 + R(2+1)D)…',
+      running: 'Analysing echocardiogram…',
       cpuNote: 'Video inference can take 1–3 min on CPU. Keep this window open.',
       complete: 'Echo analysis complete',
       failed: 'Upload failed',
@@ -41,6 +41,7 @@ export default {
     result: {
       loadFailed: 'Could not load echo analysis',
       deleted: 'Echo analysis deleted',
+      saved: 'Echo analysis saved',
       deleteFailed: 'Delete failed',
       ejectionFraction: 'Ejection Fraction',
       edArea: 'End-diastolic LV',
@@ -67,9 +68,9 @@ export default {
   fr: {
     landing: {
       title: 'Analyse échocardiographique',
-      subtitle: 'Cardio · Ultrasons · EchoNet-Dynamic',
+      subtitle: 'Cardio · Ultrasons · Fonction cardiaque',
       description:
-        'Téléversez une vidéo d’échocardiographie pour estimer la fraction d’éjection du ventricule gauche (R(2+1)D-18) et segmenter le ventricule gauche (DeepLabV3). Les analyses se lancent depuis le dossier patient.',
+        'Téléversez une vidéo d\'échocardiographie pour mesurer automatiquement la fraction d\'éjection du ventricule gauche et segmenter les cavités cardiaques. Le système évalue l\'efficacité de la pompe cardiaque et classe le résultat. Les analyses se lancent depuis le dossier patient.',
       metrics: {
         efModel: 'Modèle FE',
         segmentation: 'Segmentation',
@@ -89,7 +90,7 @@ export default {
       supported: 'Pris en charge : .avi, .mp4, .mov, .webm, .mkv · 500 Mo max',
       remove: 'Retirer',
       uploadingVideo: 'Téléversement de la vidéo…',
-      running: 'Analyse EchoNet en cours (DeepLabV3 + R(2+1)D)…',
+      running: 'Analyse de l\'échocardiogramme en cours…',
       cpuNote: 'L’inférence vidéo peut prendre 1 à 3 min sur CPU. Gardez cette fenêtre ouverte.',
       complete: 'Analyse écho terminée',
       failed: 'Échec du téléversement',
@@ -105,6 +106,7 @@ export default {
     result: {
       loadFailed: 'Impossible de charger l’analyse écho',
       deleted: 'Analyse écho supprimée',
+      saved: 'Analyse écho enregistrée',
       deleteFailed: 'Échec de la suppression',
       ejectionFraction: 'Fraction d’éjection',
       edArea: 'VG télédiastolique',

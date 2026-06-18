@@ -3,9 +3,9 @@ export default {
   en: {
     landing: {
       title: 'EEG Analysis',
-      subtitle: 'Neuro · Electroencephalography · BIOT / IIIC',
+      subtitle: 'Neuro · Electroencephalography · Screening',
       description:
-        'Upload a scalp EEG (.edf) to screen for harmful brain activity along the Ictal-Interictal-Injury Continuum (IIIC). A pretrained BIOT transformer classifies each 10s segment into 6 patterns. This is functional screening — the complement to the structural MRI tumour analysis — not a tumour detector.',
+        'Upload a scalp EEG recording (.edf) to screen for harmful brain activity patterns. The system analyses 10-second segments and identifies seizures, periodic discharges, and rhythmic slowing. This is functional screening that complements structural brain imaging.',
       metrics: {
         patterns: 'Patterns',
         model: 'Model',
@@ -32,7 +32,7 @@ export default {
       supported: 'Supported: .edf (referential 10-20 montage) · Max 200 MB',
       remove: 'Remove',
       uploading: 'Uploading EEG…',
-      running: 'Running BIOT IIIC analysis…',
+      running: 'Running brain activity screening…',
       cpuNote: 'Segment-wise inference can take a minute on CPU. Keep this window open.',
       analyzing: 'Analyzing…',
       analyze: 'Analyze EEG',
@@ -40,11 +40,12 @@ export default {
     history: {
       emptyTitle: 'No EEG analyses yet',
       emptyDescription:
-        'Click “New EEG analysis” above to upload a .edf recording and run BIOT IIIC harmful-brain-activity screening.',
+        'Click "New EEG analysis" above to upload a .edf recording and screen for harmful brain activity patterns.',
     },
     result: {
       loadFailed: 'Could not load EEG analysis',
       deleted: 'EEG analysis deleted',
+      saved: 'EEG analysis saved',
       deleteFailed: 'Delete failed',
       dominantPattern: 'Dominant pattern',
       noHarmful: 'No harmful pattern',
@@ -80,9 +81,9 @@ export default {
   fr: {
     landing: {
       title: 'Analyse EEG',
-      subtitle: 'Neuro · Électroencéphalographie · BIOT / IIIC',
+      subtitle: 'Neuro · Électroencéphalographie · Dépistage',
       description:
-        'Téléversez un EEG de scalp (.edf) pour dépister une activité cérébrale nocive le long du continuum ictal-interictal-lésionnel (IIIC). Un transformeur BIOT pré-entraîné classe chaque segment de 10 s en 6 motifs. Il s’agit d’un dépistage fonctionnel — le complément de l’analyse structurelle des tumeurs par IRM — et non d’un détecteur de tumeurs.',
+        'Téléversez un enregistrement EEG de scalp (.edf) pour dépister les motifs d\'activité cérébrale nocive. Le système analyse des segments de 10 secondes et identifie les crises, les décharges périodiques et les ralentissements rythmiques. Il s\'agit d\'un dépistage fonctionnel complémentaire à l\'imagerie cérébrale structurelle.',
       metrics: {
         patterns: 'Motifs',
         model: 'Modèle',
@@ -109,7 +110,7 @@ export default {
       supported: 'Pris en charge : .edf (montage référentiel 10-20) · 200 Mo max',
       remove: 'Retirer',
       uploading: 'Téléversement de l’EEG…',
-      running: 'Analyse BIOT IIIC en cours…',
+      running: 'Dépistage de l\'activité cérébrale en cours…',
       cpuNote: 'L’inférence segment par segment peut prendre une minute sur CPU. Gardez cette fenêtre ouverte.',
       analyzing: 'Analyse en cours…',
       analyze: 'Analyser l’EEG',
@@ -117,11 +118,12 @@ export default {
     history: {
       emptyTitle: 'Aucune analyse EEG pour le moment',
       emptyDescription:
-        'Cliquez sur « Nouvelle analyse EEG » ci-dessus pour téléverser un enregistrement .edf et lancer le dépistage BIOT IIIC d’activité cérébrale nocive.',
+        'Cliquez sur « Nouvelle analyse EEG » ci-dessus pour téléverser un enregistrement .edf et lancer le dépistage d\'activité cérébrale nocive.',
     },
     result: {
       loadFailed: 'Impossible de charger l’analyse EEG',
       deleted: 'Analyse EEG supprimée',
+      saved: 'Analyse EEG enregistrée',
       deleteFailed: 'Échec de la suppression',
       dominantPattern: 'Motif dominant',
       noHarmful: 'Aucun motif nocif',

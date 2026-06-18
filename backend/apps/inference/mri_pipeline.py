@@ -490,3 +490,60 @@ def analyze_mri(file_path: str, mode: str = 'full') -> dict:
             'error': str(e),
             'error_type': type(e).__name__,
         }
+
+
+def explain_mri(file_path: str):
+    """On-demand Grad-CAM + SHAP explanation for one MRI image.
+
+    Runs the Swin classifier with Grad-CAM (spatial attribution) and Captum
+    GradientShap (pixel attribution), saves both as overlay PNGs, and reports
+    their agreement (a faithfulness signal). Returns the standard inference
+    envelope; it never raises into the view.
+
+    Args:
+        file_path: path to the uploaded MRI image on disk.
+
+    Returns:
+        On success: ``{status:'success', gradcam_path, shap_path (absolute paths),
+        peak:{nx,ny}, predicted_class, confidence, agreement:{spearman,topk_iou}}``.
+        On failure: ``{status:'failed', error, error_type}``.
+    """
+    try:
+        from .explainers.gradcam import swin_gradcam
+        from .explainers.shap_attr import swin_gradient_shap
+        from .explainers.base import gradcam_overlay_figure, attribution_agreement
+
+        loader = ModelLoader()
+        processor, vit = loader.get_mri_classifier()
+        image_rgb = load_image_universal(file_path)
+        pil = Image.fromarray(image_rgb)
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        os.makedirs(MRI_RESULTS_DIR, exist_ok=True)
+
+        cam, idx, conf, peak = swin_gradcam(processor, vit, pil)
+        fig_g = gradcam_overlay_figure(image_rgb, cam)
+        gradcam_path = save_visualization(fig_g, MRI_RESULTS_DIR, f'{timestamp}_gradcam.png')
+        plt.close(fig_g)
+
+        shap_map = swin_gradient_shap(processor, vit, pil, target_class=idx)
+        fig_s = gradcam_overlay_figure(image_rgb, shap_map)
+        shap_path = save_visualization(fig_s, MRI_RESULTS_DIR, f'{timestamp}_shap.png')
+        plt.close(fig_s)
+
+        agreement = attribution_agreement(cam, shap_map)
+        return {
+            'status': 'success',
+            'gradcam_path': gradcam_path,
+            'shap_path': shap_path,
+            'peak': {'nx': float(peak[0]), 'ny': float(peak[1])},
+            'predicted_class': int(idx),
+            'confidence': float(conf),
+            'agreement': agreement,
+        }
+    except Exception as e:
+        logger.exception("explain_mri failed")
+        return {
+            'status': 'failed',
+            'error': str(e),
+            'error_type': type(e).__name__,
+        }

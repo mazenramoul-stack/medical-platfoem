@@ -5,7 +5,7 @@ export default {
       title: 'ECG Arrhythmia Analysis',
       subtitle: 'Cardio · 12-lead · Multi-label',
       description:
-        "Upload a 12-lead ECG to screen for seven pathologies with a DenseNet-1D ensemble, cross-checked by NeuroKit2 heart-rate analysis. Analyses are launched from a patient's record.",
+        'Upload a standard 12-lead ECG recording to automatically screen for seven common cardiac pathologies. Heart-rate metrics and rhythm analysis are computed alongside the screening. Analyses are launched from a patient\'s record.',
       metrics: {
         meanAuc: 'Mean AUC',
         balAccuracy: 'Bal. accuracy',
@@ -31,8 +31,8 @@ export default {
       maxSize: 'Max 50 MB',
       remove: 'Remove',
       uploadingFile: 'Uploading file…',
-      running: 'Running 7 deep learning pathology classifiers…',
-      runningHint: 'Computing HRV metrics with NeuroKit2. This usually takes 5–15 seconds.',
+      running: 'Running pathology screening…',
+      runningHint: 'Computing heart-rate metrics. This usually takes 5–15 seconds.',
       complete: 'ECG analysis complete',
       failed: 'Upload failed',
       analyzing: 'Analyzing…',
@@ -51,6 +51,7 @@ export default {
       notFound: 'Analysis not found.',
       loadFailed: 'Failed to load ECG',
       deleted: 'Analysis deleted',
+      saved: 'ECG analysis saved',
       deleteFailed: 'Delete failed',
       combinedGenerated: 'Combined report generated',
       ecgOnlyGenerated: 'ECG-only report generated',
@@ -74,6 +75,8 @@ export default {
       inferenceReport: 'Inference report',
       generateCombined: 'Generate combined report (MRI + ECG)',
       downloadPdf: 'Download ECG report as PDF',
+      savePlot: 'Save ECG plot',
+      plotSaved: 'ECG plot saved successfully',
       deleteTitle: 'Delete ECG analysis?',
       deleteDescription: 'The analysis and its result plot will be permanently removed.',
     },
@@ -99,11 +102,12 @@ export default {
       pathology: 'Pathology',
       probability: 'Probability',
       detected: 'Detected',
-      threshold: 'Detection threshold',
-      thresholdNote:
-        'Detected = probability ≥ that pathology’s threshold (the “▏” mark), not a fixed %. '
-        + 'High-risk rhythms use deliberately low thresholds (recall-first screening), so a '
-        + 'low-probability finding can still flag while a higher-probability one does not.',
+      thresholdLabel: 'Detection threshold',
+      aboveThreshold: '+{margin}% above threshold',
+      screeningNote: 'The yellow marker shows each pathology\'s detection threshold (tuned for balanced precision/recall on PTB-XL). Probabilities above it are flagged for review.',
+      legendThreshold: 'Detection threshold',
+      legendDetected: 'Above threshold (flagged)',
+      legendBelow: 'Below threshold',
     },
     pathologies: {
       AFIB: 'Atrial Fibrillation',
@@ -120,9 +124,9 @@ export default {
   fr: {
     landing: {
       title: 'Analyse ECG des arythmies',
-      subtitle: 'Cardio · 12 dérivations · Multi-étiquettes',
+      subtitle: 'Cardio · 12 dérivations · Dépistage',
       description:
-        'Téléversez un ECG 12 dérivations pour dépister sept pathologies avec un ensemble DenseNet-1D, recoupé par l’analyse de fréquence cardiaque NeuroKit2. Les analyses se lancent depuis le dossier patient.',
+        'Téléversez un enregistrement ECG standard à 12 dérivations pour dépister automatiquement sept pathologies cardiaques courantes. Les métriques de fréquence cardiaque et l\'analyse du rythme sont calculées en parallèle. Les analyses se lancent depuis le dossier patient.',
       metrics: {
         meanAuc: 'AUC moyenne',
         balAccuracy: 'Exactitude équil.',
@@ -148,8 +152,8 @@ export default {
       maxSize: '50 Mo max',
       remove: 'Retirer',
       uploadingFile: 'Téléversement du fichier…',
-      running: 'Exécution des 7 classifieurs de pathologies…',
-      runningHint: 'Calcul des métriques VFC avec NeuroKit2. Cela prend généralement 5 à 15 secondes.',
+      running: 'Exécution du dépistage des pathologies…',
+      runningHint: 'Calcul des métriques de fréquence cardiaque. Cela prend généralement 5 à 15 secondes.',
       complete: 'Analyse ECG terminée',
       failed: 'Échec du téléversement',
       analyzing: 'Analyse en cours…',
@@ -168,6 +172,7 @@ export default {
       notFound: 'Analyse introuvable.',
       loadFailed: 'Échec du chargement de l’ECG',
       deleted: 'Analyse supprimée',
+      saved: 'Analyse ECG enregistrée',
       deleteFailed: 'Échec de la suppression',
       combinedGenerated: 'Rapport combiné généré',
       ecgOnlyGenerated: 'Rapport ECG seul généré',
@@ -191,6 +196,8 @@ export default {
       inferenceReport: 'Rapport d’inférence',
       generateCombined: 'Générer le rapport combiné (IRM + ECG)',
       downloadPdf: 'Télécharger le rapport ECG en PDF',
+      savePlot: 'Enregistrer le tracé ECG',
+      plotSaved: 'Tracé ECG enregistré avec succès',
       deleteTitle: 'Supprimer l’analyse ECG ?',
       deleteDescription: 'L’analyse et son tracé de résultat seront définitivement supprimés.',
     },
@@ -216,12 +223,12 @@ export default {
       pathology: 'Pathologie',
       probability: 'Probabilité',
       detected: 'Détectée',
-      threshold: 'Seuil de détection',
-      thresholdNote:
-        'Détectée = probabilité ≥ seuil de la pathologie (le repère « ▏ »), pas un % fixe. '
-        + 'Les rythmes à haut risque utilisent des seuils volontairement bas (dépistage axé '
-        + 'sur le rappel) : une probabilité faible peut donc être signalée alors qu’une plus '
-        + 'élevée ne l’est pas.',
+      thresholdLabel: 'Seuil de détection',
+      aboveThreshold: '+{margin}% au-dessus du seuil',
+      screeningNote: 'Le repère jaune indique le seuil de détection de chaque pathologie (réglé pour un équilibre précision/rappel sur PTB-XL). Les probabilités au-dessus sont signalées pour révision.',
+      legendThreshold: 'Seuil de détection',
+      legendDetected: 'Au-dessus du seuil (signalé)',
+      legendBelow: 'Sous le seuil',
     },
     pathologies: {
       AFIB: 'Fibrillation auriculaire',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Brain, Download, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, Brain, Download, Save, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Badge from '../../components/UI/Badge.jsx';
@@ -9,11 +9,10 @@ import Loader from '../../components/UI/Loader.jsx';
 import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
 import TumorBadge from './TumorBadge.jsx';
 import { mapMriToHighlight } from './mriAnatomy.js';
+import { normalizeTumorType } from './tumorType.js';
 
 import mriService from '../../services/mriService.js';
-import ecgService from '../../services/ecgService.js';
 import patientService from '../../services/patientService.js';
-import reportService from '../../services/reportService.js';
 import { formatDate, formatPercent } from '../../utils/formatters.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
 
@@ -39,14 +38,15 @@ export default function MRIResult() {
   const { t } = useI18n();
   const [mri, setMri] = useState(null);
   const [patient, setPatient] = useState(null);
-  const [completedEcgId, setCompletedEcgId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overlay');
   const [askDelete, setAskDelete] = useState(false);
-  const [generating, setGenerating] = useState(false);
   // Segmentation-mask analysis: null = not analysed (classifier fallback),
   // { present, x, y } once the U-Net mask has been read for tumour location.
   const [maskInfo, setMaskInfo] = useState(null);
+  // On-demand SHAP explanation (Grad-CAM is always inline via the 'gradcam' tab).
+  const [explain, setExplain] = useState(null);
+  const [explaining, setExplaining] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -61,10 +61,6 @@ export default function MRIResult() {
         const p = await patientService.getById(m.patient).catch(() => null);
         if (!alive) return;
         setPatient(p);
-        const ecgs = await ecgService.getByPatient(m.patient).catch(() => []);
-        if (!alive) return;
-        const completed = ecgs.find((e) => e.status === 'completed');
-        if (completed) setCompletedEcgId(completed.id);
       } catch (e) {
         toast.error(e.response?.data?.detail || t('mri.result.loadFailed'));
       } finally {
@@ -128,7 +124,18 @@ export default function MRIResult() {
 
   // 3D brain: localized tumour marker from the segmentation mask when available,
   // else the classifier verdict (whole cerebrum). Caption points to the 2D scan.
-  const brainHighlight = useMemo(() => mapMriToHighlight(mri, maskInfo), [mri, maskInfo]);
+  // Grad-CAM peak from the on-demand explanation, projected to brain coords (same
+  // formula the mask centroid used: flipped Y, per-axis scales).
+  const gradcamPeak = useMemo(
+    () => (explain?.peak
+      ? { x: (explain.peak.nx - 0.5) * 1.7, y: (0.5 - explain.peak.ny) * 1.3 }
+      : null),
+    [explain],
+  );
+  const brainHighlight = useMemo(
+    () => mapMriToHighlight(mri, maskInfo, gradcamPeak),
+    [mri, maskInfo, gradcamPeak],
+  );
 
   if (loading) return <Loader label={t('mri.result.loading')} className="py-12" />;
   if (!mri)    return <div className="py-12 text-center text-sm text-gray-500">{t('mri.result.notFound')}</div>;
@@ -143,27 +150,28 @@ export default function MRIResult() {
     }
   };
 
-  const onGenerateReport = async () => {
-    if (!patient) return;
-    setGenerating(true);
+  const onSave = () => {
+    toast.success(t('mri.result.saved'));
+    navigate(patient ? `/patients/${patient.id}` : '/patients');
+  };
+
+  const onExplain = async () => {
+    setExplaining(true);
     try {
-      const r = await reportService.generate({
-        patientId: patient.id,
-        mriId: mri.id,
-        ecgId: completedEcgId,
-      });
-      toast.success(completedEcgId ? t('mri.result.combinedGenerated') : t('mri.result.mriOnlyGenerated'));
-      const blob = await reportService.downloadPdf(r.id);
-      triggerBlobDownload(blob, `report_${patient.id}_${r.id}.pdf`);
+      setExplain(await mriService.explainMri(mri.id));
     } catch (e) {
-      toast.error(e.response?.data?.detail || t('mri.result.reportFailed'));
+      toast.error(e.response?.data?.detail || t('mri.explain.failed'));
     } finally {
-      setGenerating(false);
+      setExplaining(false);
     }
   };
 
-  const activeUrl = tab === 'mask' ? mri.mask_url : tab === 'original' ? mri.file_url : mri.overlay_url;
-  const typeKey = (mri.result_tumor_type || '').toLowerCase();
+  const tabIds = mri.gradcam_url ? [...TAB_IDS, 'gradcam'] : TAB_IDS;
+  const activeUrl = tab === 'mask' ? mri.mask_url
+    : tab === 'original' ? mri.file_url
+    : tab === 'gradcam' ? mri.gradcam_url
+    : mri.overlay_url;
+  const typeKey = normalizeTumorType(mri.result_tumor_type);
   const typeLabel = TYPE_KEYS.includes(typeKey)
     ? t(`mri.types.${typeKey === 'no_tumor' ? 'notumor' : typeKey}`)
     : (mri.result_tumor_type || '—');
@@ -203,7 +211,7 @@ export default function MRIResult() {
         <div className="lg:col-span-3">
           <div className="bg-card rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="flex border-b border-gray-200">
-              {TAB_IDS.map((tid) => (
+              {tabIds.map((tid) => (
                 <button
                   key={tid}
                   type="button"
@@ -284,6 +292,39 @@ export default function MRIResult() {
               </pre>
             </div>
           )}
+
+          {mri.result_tumor_detected !== null && (
+            <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">{t('mri.explain.title')}</h3>
+              {explain ? (
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{t('mri.explain.gradcamLabel')}</div>
+                    <img src={explain.gradcam_path} alt="Grad-CAM" className="max-w-full rounded shadow-sm" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">{t('mri.explain.shapLabel')}</div>
+                    <img src={explain.shap_path} alt="SHAP" className="max-w-full rounded shadow-sm" />
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {t('mri.explain.agreement', { rho: (explain.agreement?.spearman ?? 0).toFixed(2) })}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-500 mb-3">{t('mri.explain.hint')}</p>
+                  <button
+                    type="button"
+                    onClick={onExplain}
+                    disabled={mri.status !== 'completed' || explaining}
+                    className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                  >
+                    {explaining ? t('mri.explain.running') : t('mri.explain.button')}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -292,12 +333,12 @@ export default function MRIResult() {
       <div className="flex flex-wrap gap-2 justify-end pt-2">
         <button
           type="button"
-          onClick={onGenerateReport}
-          disabled={generating || mri.status !== 'completed' || !patient}
+          onClick={onSave}
+          disabled={mri.status !== 'completed'}
           className="inline-flex items-center gap-2 bg-success text-ink px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
         >
-          <FileText size={16} />
-          {completedEcgId ? t('mri.result.generateCombined') : t('mri.result.downloadPdf')}
+          <Save size={16} />
+          {t('common.save')}
         </button>
         <button
           type="button"
@@ -318,13 +359,4 @@ export default function MRIResult() {
       />
     </div>
   );
-}
-
-function triggerBlobDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

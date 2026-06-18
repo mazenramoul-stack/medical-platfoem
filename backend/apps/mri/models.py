@@ -27,6 +27,7 @@ class MRIAnalysis(models.Model):
     result_mask_path = models.CharField(max_length=500, null=True, blank=True)
     result_overlay_path = models.CharField(max_length=500, null=True, blank=True)
     result_analysis_path = models.CharField(max_length=500, null=True, blank=True)
+    result_gradcam_path = models.CharField(max_length=500, null=True, blank=True)
     result_report = models.TextField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

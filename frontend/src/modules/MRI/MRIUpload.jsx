@@ -25,13 +25,21 @@ const COLORED_FRACTION_CUTOFF = 0.02;  // >2% colored pixels ⇒ colored/masked 
 /**
  * Inspect an uploaded image in the browser and decide which MRI model to run.
  * Returns a Promise resolving to:
- *   'classify' — effectively grayscale (black/white raw scan) → Swin 4-class
- *   'segment'  — has meaningful color (a mask / colored overlay)  → U-Net
+ *   'classify' — effectively grayscale (black/white raw scan)
+ *   'segment'  — has meaningful color (a mask / colored overlay)
  *   null       — could not decode (e.g. DICOM/NIfTI) → caller falls back to a default
  */
 function detectImageMode(file) {
   return new Promise((resolve) => {
-    if (!file || !file.type || !file.type.startsWith('image/')) {
+    // Browsers cannot decode TIFF — treat as grayscale scans (classify).
+    const ext = (file?.name || '').toLowerCase();
+    const isTiff = ext.endsWith('.tif') || ext.endsWith('.tiff') ||
+                   ['image/tiff', 'image/tif'].includes(file?.type);
+    if (!file || isTiff) {
+      resolve(isTiff ? 'classify' : null);
+      return;
+    }
+    if (!file.type || !file.type.startsWith('image/')) {
       resolve(null);
       return;
     }
@@ -85,7 +93,11 @@ export default function MRIUpload({ patient, onComplete }) {
     const f = accepted[0];
     if (!f) return;
     setFile(f);
-    setPreview(f.type.startsWith('image/') ? URL.createObjectURL(f) : null);
+    // Browsers can't render TIFF — skip preview for .tif/.tiff files.
+    const isTiff = f.name.toLowerCase().endsWith('.tif') || f.name.toLowerCase().endsWith('.tiff') ||
+                   ['image/tiff', 'image/tif'].includes(f.type);
+    const canPreview = f.type.startsWith('image/') && !isTiff;
+    setPreview(canPreview ? URL.createObjectURL(f) : null);
     setDetecting(true);
     setAutoMode(null);
     detectImageMode(f).then((detected) => {

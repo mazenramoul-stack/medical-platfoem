@@ -2,40 +2,45 @@
  * Pure mapping from an MRI result (+ optional segmentation-mask analysis) to a
  * 3D-brain highlight descriptor.
  *
- * Two paths, in order of honesty:
- *  1. SEGMENTATION available (`maskInfo` supplied): the U-Net mask decides yes/no
- *     and WHERE. `maskInfo.present` → a focus marker at the mask's location
- *     (`{x, y}` already in brain coords, projected from the 2D mask); `!present`
- *     → no tumour. This is the real localization the user asked for.
- *  2. No mask analysed (`maskInfo === null`, e.g. classify-only mode or the mask
- *     couldn't be read): fall back to the Swin classifier verdict and glow the
- *     whole cerebrum (no location available).
- *
- * HONESTY: the mask is a single 2D slice — `{x, y}` is its in-plane position
- * projected onto the brain; depth/slice level is unknown (panel caption says so).
+ * The generic 3D brain is NOT auto-coloured (no whole-cerebrum glow, no mask point):
+ * that implies a precision the models don't have. Tumour PRESENCE drives only the
+ * finding-code text. The ONE positioned marker is the optional, on-demand Grad-CAM peak
+ * (`gradcamFocus`) — shown after the user clicks Explain. It marks where the *classifier*
+ * looked; for fine spatial detail use the 2D Grad-CAM/SHAP overlays (on the actual scan).
  */
-export function mapMriToHighlight(mri, maskInfo = null) {
-  const type = String((mri && mri.result_tumor_type) || '').toLowerCase();
-  const knownType = ['glioma', 'meningioma', 'pituitary'].includes(type) ? type : null;
+import { normalizeTumorType } from './tumorType.js';
 
-  // 1. Segmentation drives the verdict + location.
+export function mapMriToHighlight(mri, maskInfo = null, gradcamPeak = null) {
+  const type = normalizeTumorType(mri && mri.result_tumor_type);
+  const knownType = ['glioma', 'meningioma', 'pituitary'].includes(type) ? type : null;
+  // Optional on-demand Grad-CAM peak (already projected to brain coords).
+  const gradcamFocus = gradcamPeak
+    ? { x: gradcamPeak.x, y: gradcamPeak.y, severity: 'high' }
+    : undefined;
+
+  // 1. Segmentation decides yes/no. No auto brain colouring on a "yes" — just the
+  //    finding code (+ the Grad-CAM dot if an explanation was requested).
   if (maskInfo) {
     if (!maskInfo.present) return { organ: 'brain', regions: [], findingCodes: [], normal: true };
     return {
       organ: 'brain',
       regions: [],
-      focus: { x: maskInfo.x, y: maskInfo.y, severity: 'high' },
+      ...(gradcamFocus ? { gradcamFocus } : {}),
       findingCodes: [knownType || 'tumor'],
       normal: false,
     };
   }
 
-  // 2. No mask analysed → classifier fallback (whole-cerebrum glow, no location).
+  // 2. No mask analysed → classifier verdict. Still no auto colouring; finding code only.
   const detected = !!(mri && mri.result_tumor_detected);
   const isTumor = detected && type && type !== 'notumor' && type !== 'no_tumor';
   if (!isTumor) return { organ: 'brain', regions: [], findingCodes: [], normal: true };
 
-  const conf = mri && typeof mri.result_confidence === 'number' ? mri.result_confidence : 1;
-  const severity = conf >= 0.66 ? 'high' : 'medium';
-  return { organ: 'brain', regions: [{ id: 'cerebrum', severity }], findingCodes: [type], normal: false };
+  return {
+    organ: 'brain',
+    regions: [],
+    ...(gradcamFocus ? { gradcamFocus } : {}),
+    findingCodes: [type],
+    normal: false,
+  };
 }

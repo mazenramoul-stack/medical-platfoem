@@ -75,6 +75,17 @@ class MRIPipelineTest(SimpleTestCase):
         self.assertIn("gradcam_path", result)
         self.assertTrue(result["gradcam_path"] is None or result["gradcam_path"].endswith("_gradcam.png"))
 
+    def test_explain_mri_envelope(self):
+        from apps.inference import explain_mri
+
+        out = explain_mri(str(MRI_SAMPLE))
+        self.assertIn(out["status"], ("success", "failed"))
+        if out["status"] == "success":
+            for key in ("gradcam_path", "shap_path", "peak", "agreement"):
+                self.assertIn(key, out)
+            self.assertIn("spearman", out["agreement"])
+            self.assertIn("nx", out["peak"])
+
 
 @unittest.skipUnless(ECG_SAMPLE.exists(), f"Missing sample ECG at {ECG_SAMPLE}")
 class ECGPipelineTest(SimpleTestCase):

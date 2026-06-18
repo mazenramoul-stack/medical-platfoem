@@ -12,12 +12,6 @@ export default function ECGLanding() {
       accent={accents.ecg.color}
       model="heart"
       description={t('ecg.landing.description')}
-      metrics={[
-        { label: t('ecg.landing.metrics.meanAuc'), value: '0.980' },
-        { label: t('ecg.landing.metrics.balAccuracy'), value: '0.887' },
-        { label: t('ecg.landing.metrics.macroF1'), value: '0.73' },
-        { label: t('ecg.landing.metrics.pathologies'), value: '7' },
-      ]}
       classes={[
         { name: 'AFIB', desc: t('ecg.landing.classes.afib') },
         { name: '1AVB', desc: t('ecg.landing.classes.avb1') },

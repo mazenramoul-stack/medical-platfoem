@@ -8,6 +8,7 @@ Routes (mounted at /api/mri/):
 """
 
 import functools
+import io
 import logging
 import os
 
@@ -20,8 +21,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.inference import analyze_mri, run_inference_with_timeout
+from apps.inference import analyze_mri, explain_mri, run_inference_with_timeout
 from apps.patients.models import Patient
+from core.media import signed_media_url
 
 from .models import MRIAnalysis
 from .serializers import MRIAnalysisSerializer
@@ -62,6 +64,42 @@ def _relative_to_media(absolute_path: str) -> str | None:
     return rel.replace('\\', '/')
 
 
+def _convert_tiff_to_png(uploaded):
+    """Convert a TIFF UploadedFile to PNG in-memory.
+
+    Browsers cannot display TIFF images, so we convert on upload.
+    Returns the original file unchanged if it is not TIFF.
+    """
+    from django.core.files.uploadedfile import InMemoryUploadedFile
+    from PIL import Image
+
+    ext = _detected_extension(uploaded.name)
+    if ext not in ('.tif', '.tiff'):
+        return uploaded
+
+    try:
+        img = Image.open(uploaded)
+        # Convert to RGB if needed (some TIFFs are 16-bit or have weird modes)
+        if img.mode not in ('RGB', 'RGBA', 'L'):
+            img = img.convert('RGB')
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        new_name = os.path.splitext(uploaded.name)[0] + '.png'
+        return InMemoryUploadedFile(
+            file=buf,
+            field_name='file',
+            name=new_name,
+            content_type='image/png',
+            size=buf.getbuffer().nbytes,
+            charset=None,
+        )
+    except Exception as e:
+        logger.warning("TIFF→PNG conversion failed, keeping original: %s", e)
+        uploaded.seek(0)
+        return uploaded
+
+
 # Views --------------------------------------------------------------------
 
 class MRIUploadView(APIView):
@@ -100,10 +138,13 @@ class MRIUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ---- 2. resolve patient (must belong to requesting doctor) ----
+        # ---- 2. convert TIFF → PNG (browsers cannot display TIFF) ----
+        uploaded = _convert_tiff_to_png(uploaded)
+
+        # ---- 3. resolve patient (must belong to requesting doctor) ----
         patient = get_object_or_404(Patient, pk=patient_id, doctor=request.user)
 
-        # ---- 3. create record (processing) + persist upload ----
+        # ---- 4. create record (processing) + persist upload ----
         with transaction.atomic():
             analysis = MRIAnalysis.objects.create(
                 patient=patient,
@@ -113,7 +154,7 @@ class MRIUploadView(APIView):
         logger.info("MRI upload received: analysis_id=%s patient_id=%s file=%s size=%d",
                     analysis.pk, patient.pk, analysis.file.name, uploaded.size)
 
-        # ---- 4. run inference (synchronous, with 5-min timeout) ----
+        # ---- 5. run inference (synchronous, with 5-min timeout) ----
         # The chosen model(s) are selected by `mode`; bind it via partial since
         # run_inference_with_timeout only forwards the file path positionally.
         file_disk_path = analysis.file.path
@@ -123,7 +164,7 @@ class MRIUploadView(APIView):
         )
         logger.info("MRI inference done: analysis_id=%s status=%s", analysis.pk, result.get('status'))
 
-        # ---- 5. update record with results ----
+        # ---- 6. update record with results ----
         with transaction.atomic():
             if result.get('status') == 'success':
                 analysis.status = MRIAnalysis.Status.COMPLETED
@@ -134,6 +175,7 @@ class MRIUploadView(APIView):
                 analysis.result_mask_path = _relative_to_media(result.get('mask_path'))
                 analysis.result_overlay_path = _relative_to_media(result.get('overlay_path'))
                 analysis.result_analysis_path = _relative_to_media(result.get('analysis_path'))
+                analysis.result_gradcam_path = _relative_to_media(result.get('gradcam_path'))
                 analysis.result_report = result.get('report')
             else:
                 analysis.status = MRIAnalysis.Status.FAILED
@@ -182,7 +224,8 @@ class MRIDetailView(generics.RetrieveDestroyAPIView):
             logger.warning("Could not delete uploaded MRI file: %s", e)
 
         # 2. delete result artifacts (raw paths relative to MEDIA_ROOT)
-        for rel in (instance.result_mask_path, instance.result_overlay_path, instance.result_analysis_path):
+        for rel in (instance.result_mask_path, instance.result_overlay_path,
+                    instance.result_analysis_path, instance.result_gradcam_path):
             if not rel:
                 continue
             absolute = os.path.join(settings.MEDIA_ROOT, rel)
@@ -193,3 +236,26 @@ class MRIDetailView(generics.RetrieveDestroyAPIView):
                 logger.warning("Could not delete MRI artifact %s: %s", absolute, e)
 
         instance.delete()
+
+
+class MRIExplainView(APIView):
+    """POST /api/mri/{id}/explain/ — on-demand Grad-CAM + SHAP for one analysis.
+
+    Doctor-isolated: the record is resolved from the requesting doctor's queryset,
+    so another doctor's id returns 404 (never an authorization leak). Runs
+    synchronously (a few seconds for SHAP). Returns signed, time-limited media URLs.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        analysis = get_object_or_404(MRIAnalysis, pk=pk, patient__doctor=request.user)
+        if not analysis.file:
+            return Response({'detail': 'No image on this analysis.'}, status=status.HTTP_400_BAD_REQUEST)
+        result = run_inference_with_timeout(explain_mri, analysis.file.path, timeout_seconds=300)
+        if result.get('status') != 'success':
+            return Response(result, status=status.HTTP_502_BAD_GATEWAY)
+        # Return signed, time-limited URLs for the generated overlays (never raw /media/).
+        for key in ('gradcam_path', 'shap_path'):
+            result[key] = signed_media_url(request, _relative_to_media(result.get(key)))
+        return Response(result, status=status.HTTP_200_OK)

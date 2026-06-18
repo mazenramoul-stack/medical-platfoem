@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, HeartPulse, Trash2 } from 'lucide-react';
+import { ArrowLeft, HeartPulse, Save, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Badge from '../../components/UI/Badge.jsx';
@@ -53,10 +53,15 @@ export default function EchoResult() {
     try {
       await echoService.delete(id);
       toast.success(t('echo.result.deleted'));
-      navigate(-1);
+      navigate(patient ? `/patients/${patient.id}` : '/patients');
     } catch {
       toast.error(t('echo.result.deleteFailed'));
     }
+  };
+
+  const onSave = () => {
+    toast.success(t('echo.result.saved'));
+    navigate(patient ? `/patients/${patient.id}` : '/patients');
   };
 
   if (loading) return <Loader />;
@@ -159,6 +164,25 @@ export default function EchoResult() {
           <pre className="text-xs text-mid whitespace-pre-wrap font-mono leading-relaxed">{echo.result_report}</pre>
         </div>
       )}
+
+      <div className="flex flex-wrap gap-2 justify-end pt-2">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={echo.status !== 'completed'}
+          className="inline-flex items-center gap-2 bg-success text-ink px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+        >
+          <Save size={16} />
+          {t('common.save')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirm(true)}
+          className="inline-flex items-center gap-2 bg-white text-danger border border-edge px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-50"
+        >
+          <Trash2 size={16} /> {t('common.delete')}
+        </button>
+      </div>
 
       <ConfirmDialog
         open={confirm}

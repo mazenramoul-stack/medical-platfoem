@@ -12,6 +12,7 @@ export default {
     tumorLocated: 'Tumour location — from the segmentation mask',
     maskProjected: 'Position projected from the 2D segmentation mask (one slice) — '
       + 'depth/level not shown; see the scan above for the actual location.',
+    gradcamLooked: 'Where the classifier looked (Grad-CAM) — projected from the 2D scan',
     measuredRate: 'Beating at the measured rate ({bpm} bpm)',
     severity: { high: 'High', medium: 'Moderate', low: 'Low' },
     regions: {
@@ -60,6 +61,7 @@ export default {
     tumorLocated: 'Localisation de la tumeur — d’après le masque de segmentation',
     maskProjected: 'Position projetée depuis le masque de segmentation 2D (une coupe) — '
       + 'profondeur/niveau non affichés ; voir le scan ci-dessus pour la localisation réelle.',
+    gradcamLooked: 'Où le classifieur a regardé (Grad-CAM) — projeté depuis le scan 2D',
     measuredRate: 'Battant au rythme mesuré ({bpm} bpm)',
     severity: { high: 'Élevée', medium: 'Modérée', low: 'Faible' },
     regions: {
