@@ -15,6 +15,14 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'email', 'is_active', 'created_at')
 
 
+class DoctorSerializer(serializers.ModelSerializer):
+    """Minimal doctor identity for the technician's assignment picker."""
+
+    class Meta:
+        model = User
+        fields = ('id', 'full_name', 'email')
+
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,

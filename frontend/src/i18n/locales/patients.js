@@ -25,6 +25,8 @@ export default {
       noMatchTitle: 'No patients match your filters',
       noMatchDescription: 'Try clearing the search or changing the gender filter.',
       created: 'Created',
+      doctors: 'Doctors',
+      noDoctors: 'Unassigned',
       count: '{count} patients',
       deleted: 'Patient deleted',
       deleteTitle: 'Delete patient?',
@@ -43,6 +45,10 @@ export default {
       created: 'Patient created',
       updated: 'Patient updated',
       saveFailed: 'Save failed',
+      assignDoctors: 'Assign to doctors',
+      assignDoctorsHint: 'Select one or more doctors who will see this patient.',
+      loadingDoctors: 'Loading doctors…',
+      noDoctorsAvailable: 'No doctors available.',
       errors: {
         fullName: 'Full name is required.',
         age: 'Age must be between 0 and 150.',
@@ -52,6 +58,8 @@ export default {
     detail: {
       patientNumber: 'Patient #{id}',
       doctor: 'Doctor',
+      doctors: 'Assigned doctors',
+      noDoctors: 'No doctors assigned',
       added: 'Added',
       notFound: 'Patient not found.',
       tabs: {
@@ -108,6 +116,8 @@ export default {
       noMatchTitle: 'Aucun patient ne correspond à vos filtres',
       noMatchDescription: 'Essayez d’effacer la recherche ou de modifier le filtre de sexe.',
       created: 'Créé le',
+      doctors: 'Médecins',
+      noDoctors: 'Non assigné',
       count: '{count} patients',
       deleted: 'Patient supprimé',
       deleteTitle: 'Supprimer le patient ?',
@@ -126,6 +136,10 @@ export default {
       created: 'Patient créé',
       updated: 'Patient mis à jour',
       saveFailed: 'Échec de l’enregistrement',
+      assignDoctors: 'Assigner à des médecins',
+      assignDoctorsHint: 'Sélectionnez un ou plusieurs médecins qui verront ce patient.',
+      loadingDoctors: 'Chargement des médecins…',
+      noDoctorsAvailable: 'Aucun médecin disponible.',
       errors: {
         fullName: 'Le nom complet est obligatoire.',
         age: 'L’âge doit être compris entre 0 et 150.',
@@ -135,6 +149,8 @@ export default {
     detail: {
       patientNumber: 'Patient n°{id}',
       doctor: 'Médecin',
+      doctors: 'Médecins assignés',
+      noDoctors: 'Aucun médecin assigné',
       added: 'Ajouté le',
       notFound: 'Patient introuvable.',
       tabs: {

@@ -23,7 +23,7 @@ import django
 django.setup()
 
 from django.contrib.auth import get_user_model
-from apps.patients.models import Patient
+from apps.patients.models import Patient, PatientAssignment
 
 
 DOCTOR = {
@@ -65,13 +65,16 @@ def seed_doctor() -> 'User':  # type: ignore[name-defined]
 
 def seed_patients(doctor) -> None:
     for spec in PATIENTS:
+        # Idempotency by created_by + name (a plain FK field — djongo-safe).
         existing = Patient.objects.filter(
-            doctor=doctor, full_name=spec["full_name"],
+            created_by=doctor, full_name=spec["full_name"],
         ).first()
         if existing:
             print(f"  [skip] patient {spec['full_name']!r} already exists (id={existing.pk})")
             continue
-        p = Patient.objects.create(doctor=doctor, **spec)
+        p = Patient.objects.create(created_by=doctor, **spec)
+        PatientAssignment.objects.get_or_create(
+            patient=p, doctor=doctor, defaults={"assigned_by": doctor})
         print(f"  [new]  patient {spec['full_name']!r} created (id={p.pk})")
 
 
@@ -81,7 +84,7 @@ def main() -> int:
     seed_patients(doctor)
 
     from apps.patients.models import Patient as P
-    n_patients = P.objects.filter(doctor=doctor).count()
+    n_patients = P.objects.filter(created_by=doctor).count()
     print(f"\nDone. doctor={doctor.email}  patients={n_patients}")
     print(f"Login: {DOCTOR['email']} / {DOCTOR['password']}")
     return 0

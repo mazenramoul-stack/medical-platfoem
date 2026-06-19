@@ -110,7 +110,7 @@ export default function PatientDetail() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 mt-4 text-sm">
                 <div><div className="text-xs text-gray-500">{t('patients.fields.age')}</div><div className="text-gray-900 font-medium">{patient.age}</div></div>
                 <div><div className="text-xs text-gray-500">{t('patients.fields.gender')}</div><div className="text-gray-900 font-medium">{gender}</div></div>
-                <div><div className="text-xs text-gray-500">{t('patients.detail.doctor')}</div><div className="text-gray-900 font-medium">{patient.doctor_name || '—'}</div></div>
+                <div><div className="text-xs text-gray-500">{t('patients.detail.doctors')}</div><div className="text-gray-900 font-medium">{patient.doctors && patient.doctors.length > 0 ? patient.doctors.map((d) => d.full_name).join(', ') : t('patients.detail.noDoctors')}</div></div>
                 <div><div className="text-xs text-gray-500">{t('patients.detail.added')}</div><div className="text-gray-900 font-medium">{formatDate(patient.created_at)}</div></div>
               </div>
               {patient.medical_history && (

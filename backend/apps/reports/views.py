@@ -26,7 +26,7 @@ from apps.ecg.models import ECGAnalysis
 from apps.echo.models import EchoAnalysis
 from apps.eeg.models import EEGAnalysis
 from apps.mri.models import MRIAnalysis
-from apps.patients.models import Patient
+from apps.patients.access import get_patient_or_404, scope_by_patient
 
 from .models import Report
 from .pdf_generator import MedicalReportGenerator
@@ -55,7 +55,7 @@ class ReportGenerateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        patient = get_object_or_404(Patient, pk=patient_id, doctor=request.user)
+        patient = get_patient_or_404(request.user, patient_id)
 
         mri = None
         if mri_id:
@@ -132,7 +132,7 @@ class ReportListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Report.objects.filter(patient__doctor=self.request.user)
+        qs = scope_by_patient(self.request.user, Report.objects.all())
         patient_id = self.request.query_params.get('patient_id')
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
@@ -146,7 +146,7 @@ class ReportDetailView(generics.RetrieveDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Report.objects.filter(patient__doctor=self.request.user)
+        return scope_by_patient(self.request.user, Report.objects.all())
 
     def perform_destroy(self, instance):
         try:
@@ -163,7 +163,8 @@ class ReportDownloadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk, *args, **kwargs):
-        report = get_object_or_404(Report, pk=pk, patient__doctor=request.user)
+        report = get_object_or_404(
+            scope_by_patient(request.user, Report.objects.all()), pk=pk)
         if not report.pdf_file or not os.path.exists(report.pdf_file.path):
             raise Http404('PDF file is not available on disk.')
 

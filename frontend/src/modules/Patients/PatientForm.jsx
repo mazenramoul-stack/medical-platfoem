@@ -5,7 +5,9 @@ import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import patientService from '../../services/patientService.js';
+import doctorService from '../../services/doctorService.js';
 import { createPatient, updatePatient } from '../../store/slices/patientsSlice.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { GENDERS } from '../../utils/constants.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
 
@@ -17,27 +19,51 @@ export default function PatientForm() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { t } = useI18n();
+  const { user } = useAuth();
+  // Only a technician chooses which doctor(s) a patient is assigned to (the
+  // backend IsTechnician/serializer is the real gate; this is the matching UI).
+  const isTechnician = user?.role === 'technician';
 
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [doctors, setDoctors] = useState([]);
+  const [doctorIds, setDoctorIds] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
 
   useEffect(() => {
     if (!isEdit) return;
     let alive = true;
     setLoading(true);
     patientService.getById(id)
-      .then((p) => { if (alive) setForm({
-        full_name: p.full_name,
-        age: String(p.age),
-        gender: p.gender,
-        medical_history: p.medical_history || '',
-      }); })
+      .then((p) => { if (alive) {
+        setForm({
+          full_name: p.full_name,
+          age: String(p.age),
+          gender: p.gender,
+          medical_history: p.medical_history || '',
+        });
+        setDoctorIds((p.doctors || []).map((d) => d.id));
+      } })
       .catch((e) => toast.error(e.response?.data?.detail || t('patients.loadFailed')))
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [id, isEdit, t]);
+
+  useEffect(() => {
+    if (!isTechnician) return undefined;
+    let alive = true;
+    setLoadingDoctors(true);
+    doctorService.getAll()
+      .then((list) => { if (alive) setDoctors(list); })
+      .catch(() => { /* a doctor would 403 here; the section just stays empty */ })
+      .finally(() => { if (alive) setLoadingDoctors(false); });
+    return () => { alive = false; };
+  }, [isTechnician]);
+
+  const toggleDoctor = (docId) =>
+    setDoctorIds((ids) => (ids.includes(docId) ? ids.filter((x) => x !== docId) : [...ids, docId]));
 
   const onChange = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -60,6 +86,9 @@ export default function PatientForm() {
       gender: form.gender,
       medical_history: form.medical_history,
     };
+    // Doctor assignment is technician-only; a doctor's patient is auto-assigned
+    // to them server-side, so we never send doctor_ids for a doctor.
+    if (isTechnician) payload.doctor_ids = doctorIds;
     setSaving(true);
     try {
       if (isEdit) {
@@ -148,6 +177,37 @@ export default function PatientForm() {
                 placeholder={t('patients.form.historyPlaceholder')}
               />
             </div>
+
+            {isTechnician && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('patients.form.assignDoctors')}
+                </label>
+                <p className="text-xs text-gray-500 mb-2">{t('patients.form.assignDoctorsHint')}</p>
+                {loadingDoctors ? (
+                  <div className="text-sm text-gray-500">{t('patients.form.loadingDoctors')}</div>
+                ) : doctors.length === 0 ? (
+                  <div className="text-sm text-gray-500">{t('patients.form.noDoctorsAvailable')}</div>
+                ) : (
+                  <div className="max-h-44 overflow-y-auto border border-gray-300 rounded-lg divide-y divide-gray-100">
+                    {doctors.map((d) => (
+                      <label
+                        key={d.id}
+                        className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={doctorIds.includes(d.id)}
+                          onChange={() => toggleDoctor(d.id)}
+                        />
+                        <span className="text-gray-900">{d.full_name}</span>
+                        {d.email && <span className="text-xs text-gray-500">{d.email}</span>}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button

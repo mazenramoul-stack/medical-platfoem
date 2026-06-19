@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.inference import analyze_mri, explain_mri, run_inference_with_timeout
-from apps.patients.models import Patient
+from apps.patients.access import get_patient_or_404, scope_by_patient
 from core.media import signed_media_url
 
 from .models import MRIAnalysis
@@ -141,8 +141,9 @@ class MRIUploadView(APIView):
         # ---- 2. convert TIFF → PNG (browsers cannot display TIFF) ----
         uploaded = _convert_tiff_to_png(uploaded)
 
-        # ---- 3. resolve patient (must belong to requesting doctor) ----
-        patient = get_object_or_404(Patient, pk=patient_id, doctor=request.user)
+        # ---- 3. resolve patient (must be visible to the requester) ----
+        # Doctor -> patient must be assigned to them; technician -> any patient.
+        patient = get_patient_or_404(request.user, patient_id)
 
         # ---- 4. create record (processing) + persist upload ----
         with transaction.atomic():
@@ -201,7 +202,7 @@ class MRIListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = MRIAnalysis.objects.filter(patient__doctor=self.request.user)
+        qs = scope_by_patient(self.request.user, MRIAnalysis.objects.all())
         patient_id = self.request.query_params.get('patient_id')
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
@@ -215,7 +216,7 @@ class MRIDetailView(generics.RetrieveDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return MRIAnalysis.objects.filter(patient__doctor=self.request.user)
+        return scope_by_patient(self.request.user, MRIAnalysis.objects.all())
 
     def perform_destroy(self, instance):
         # 1. delete uploaded file via FileField (also handles the storage backend)
@@ -251,7 +252,8 @@ class MRIExplainView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        analysis = get_object_or_404(MRIAnalysis, pk=pk, patient__doctor=request.user)
+        analysis = get_object_or_404(
+            scope_by_patient(request.user, MRIAnalysis.objects.all()), pk=pk)
         if not analysis.file:
             return Response({'detail': 'No image on this analysis.'}, status=status.HTTP_400_BAD_REQUEST)
         result = run_inference_with_timeout(explain_mri, analysis.file.path, timeout_seconds=300)

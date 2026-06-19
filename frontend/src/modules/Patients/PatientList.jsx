@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import EmptyState from '../../components/UI/EmptyState.jsx';
 import Loader from '../../components/UI/Loader.jsx';
 import { usePatients } from '../../hooks/usePatients.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { deletePatient } from '../../store/slices/patientsSlice.js';
 import { formatDateShort } from '../../utils/formatters.js';
 import { GENDERS } from '../../utils/constants.js';
@@ -24,6 +25,10 @@ export default function PatientList() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { t } = useI18n();
+  const { user } = useAuth();
+  // Only the technician (back-office) needs to see which doctor(s) a patient is
+  // assigned to — a doctor's own list is, by definition, all assigned to them.
+  const isTechnician = user?.role === 'technician';
   const [search, setSearch] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -119,6 +124,7 @@ export default function PatientList() {
                   <th className="px-4 py-3 text-left">{t('common.patient')}</th>
                   <th className="px-4 py-3 text-left">{t('patients.fields.age')}</th>
                   <th className="px-4 py-3 text-left">{t('patients.fields.gender')}</th>
+                  {isTechnician && <th className="px-4 py-3 text-left">{t('patients.list.doctors')}</th>}
                   <th className="px-4 py-3 text-left">{t('patients.list.created')}</th>
                   <th className="px-4 py-3 text-right">{t('common.actions')}</th>
                 </tr>
@@ -143,6 +149,24 @@ export default function PatientList() {
                     </td>
                     <td className="px-4 py-3 text-gray-700">{p.age}</td>
                     <td className="px-4 py-3 text-gray-700">{genderLabel(p.gender)}</td>
+                    {isTechnician && (
+                      <td className="px-4 py-3">
+                        {p.doctors && p.doctors.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {p.doctors.map((d) => (
+                              <span
+                                key={d.id}
+                                className="inline-block px-2 py-0.5 rounded-full bg-blue-50 text-primary text-xs"
+                              >
+                                {d.full_name}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">{t('patients.list.noDoctors')}</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-gray-700">{formatDateShort(p.created_at)}</td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-1">

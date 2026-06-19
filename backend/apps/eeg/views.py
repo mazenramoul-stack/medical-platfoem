@@ -11,7 +11,6 @@ import os
 
 from django.conf import settings
 from django.db import transaction
-from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -19,7 +18,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.inference import analyze_eeg, run_inference_with_timeout
-from apps.patients.models import Patient
+from apps.patients.access import get_patient_or_404, scope_by_patient
 
 from .models import EEGAnalysis
 from .serializers import EEGAnalysisSerializer
@@ -70,7 +69,7 @@ class EEGUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        patient = get_object_or_404(Patient, pk=patient_id, doctor=request.user)
+        patient = get_patient_or_404(request.user, patient_id)
 
         with transaction.atomic():
             analysis = EEGAnalysis.objects.create(
@@ -114,7 +113,7 @@ class EEGListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = EEGAnalysis.objects.filter(patient__doctor=self.request.user)
+        qs = scope_by_patient(self.request.user, EEGAnalysis.objects.all())
         patient_id = self.request.query_params.get('patient_id')
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
@@ -128,7 +127,7 @@ class EEGDetailView(generics.RetrieveDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return EEGAnalysis.objects.filter(patient__doctor=self.request.user)
+        return scope_by_patient(self.request.user, EEGAnalysis.objects.all())
 
     def perform_destroy(self, instance):
         try:

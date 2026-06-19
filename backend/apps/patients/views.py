@@ -8,7 +8,7 @@ from apps.echo.serializers import EchoAnalysisSerializer
 from apps.eeg.serializers import EEGAnalysisSerializer
 from apps.mri.serializers import MRIAnalysisSerializer
 
-from .models import Patient
+from .access import scope_patients
 from .serializers import PatientSerializer
 
 
@@ -17,10 +17,12 @@ class PatientViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Patient.objects.filter(doctor=self.request.user)
+        # Doctor -> only patients assigned to them; technician -> all patients.
+        return scope_patients(self.request.user)
 
-    def perform_create(self, serializer):
-        serializer.save(doctor=self.request.user)
+    # Creation + doctor assignment (with the technician-only / self-assign rules)
+    # live in PatientSerializer.create/update, which reads request.user from
+    # context — so no perform_create override is needed here.
 
     @action(detail=True, methods=['get'])
     def history(self, request, pk=None):

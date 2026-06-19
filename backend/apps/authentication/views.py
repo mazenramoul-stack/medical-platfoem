@@ -6,11 +6,17 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from django.contrib.auth import get_user_model
+
+from .permissions import IsTechnician
 from .serializers import (
+    DoctorSerializer,
     EmailTokenObtainPairSerializer,
     UserRegistrationSerializer,
     UserSerializer,
 )
+
+User = get_user_model()
 
 
 class RegisterView(generics.CreateAPIView):
@@ -68,3 +74,18 @@ class MeView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class DoctorListView(generics.ListAPIView):
+    """GET /api/auth/doctors/ — technician-only list of doctors for assignment.
+
+    Doctors do not get the user directory; only a technician (who must pick which
+    doctor(s) a patient goes to) can read this.
+    """
+
+    serializer_class = DoctorSerializer
+    permission_classes = [IsTechnician]
+    pagination_class = None
+
+    def get_queryset(self):
+        return User.objects.filter(role=User.Role.DOCTOR).order_by('full_name')

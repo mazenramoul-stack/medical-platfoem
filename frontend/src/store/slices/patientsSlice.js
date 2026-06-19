@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 import patientService from '../../services/patientService.js';
+import { login, logout, register } from './authSlice.js';
 
 const initialState = {
   items: [],
@@ -8,6 +9,18 @@ const initialState = {
   loading: false,
   error: null,
 };
+
+// Drop the cached patient list whenever the logged-in user changes. The store
+// survives login/logout within a single SPA session (no page reload), so
+// without this a technician's full list would still be in `items` when a doctor
+// logs in next — and the doctor would briefly see every patient. Clearing here
+// forces a fresh, correctly-scoped refetch for the new user.
+function resetPatients(state) {
+  state.items = [];
+  state.selected = null;
+  state.error = null;
+  state.loading = false;
+}
 
 export const fetchPatients = createAsyncThunk('patients/fetch', async (_, { rejectWithValue }) => {
   try {
@@ -61,7 +74,11 @@ const patientsSlice = createSlice({
       })
       .addCase(deletePatient.fulfilled,(s, a) => {
         s.items = s.items.filter((p) => p.id !== a.payload);
-      });
+      })
+      // Reset the cache on every auth transition (new user => fresh data).
+      .addCase(logout, resetPatients)
+      .addCase(login.fulfilled, resetPatients)
+      .addCase(register.fulfilled, resetPatients);
   },
 });
 

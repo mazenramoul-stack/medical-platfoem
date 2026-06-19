@@ -145,7 +145,12 @@ class MedicalReportGenerator:
         self.ecg = ecg_analysis
         self.echo = echo_analysis
         self.eeg = eeg_analysis
-        self.doctor = doctor or patient.doctor
+        # The generating user is passed explicitly; fall back to the patient's
+        # first assigned doctor when called without one.
+        self.doctor = doctor
+        if self.doctor is None and patient is not None:
+            first = patient.assignments.select_related('doctor').first()
+            self.doctor = first.doctor if first else None
         self.generated_at = datetime.datetime.now()
         self._styles = self._build_styles()
 

@@ -1,24 +1,10 @@
-"""Permission gate for the Technician-only conversion tools."""
+"""Permission gate for the Technician-only conversion tools.
 
-from rest_framework.permissions import BasePermission
+``IsTechnician`` now lives in apps.authentication.permissions (shared with the
+doctor-assignment / patient-intake surface); re-exported here for backward
+compatibility with existing imports.
+"""
 
-from apps.authentication.models import User
+from apps.authentication.permissions import IsTechnician
 
-
-class IsTechnician(BasePermission):
-    """Allow only authenticated users whose app role is `technician`.
-
-    This is the real server-side enforcement for the data-conversion endpoints
-    (the frontend also hides the page, but that is UX only). A doctor — or any
-    other authenticated user — gets a 403.
-    """
-
-    message = 'Only technicians may use the data-conversion tools.'
-
-    def has_permission(self, request, view):
-        user = getattr(request, 'user', None)
-        return bool(
-            user
-            and user.is_authenticated
-            and getattr(user, 'role', None) == User.Role.TECHNICIAN
-        )
+__all__ = ['IsTechnician']

@@ -11,7 +11,7 @@ from rest_framework.test import APITestCase
 from apps.mri.models import MRIAnalysis
 from apps.mri.serializers import MRIAnalysisSerializer
 from apps.mri.views import MRIExplainView
-from apps.patients.models import Patient
+from apps.patients.models import Patient, PatientAssignment
 
 User = get_user_model()
 
@@ -31,7 +31,8 @@ class MRIExplainIsolationTest(APITestCase):
         self.doc_b = User.objects.create_user(
             email='xai_b@example.com', password='PassB1!xx', full_name='XAI B')
         self.patient_a = Patient.objects.create(
-            doctor=self.doc_a, full_name='XAI Patient', age=55, gender='F')
+            full_name='XAI Patient', age=55, gender='F', created_by=self.doc_a)
+        PatientAssignment.objects.create(patient=self.patient_a, doctor=self.doc_a)
         self.mri_a = MRIAnalysis.objects.create(
             patient=self.patient_a, file='mri/uploads/a.png',
             status=MRIAnalysis.Status.COMPLETED)
