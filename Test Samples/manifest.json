@@ -1,0 +1,292 @@
+[
+  {
+    "file": "mri_01_glioma.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "meningioma (61%)"
+  },
+  {
+    "file": "mri_02_glioma.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "glioma (100%)"
+  },
+  {
+    "file": "mri_03_glioma.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "glioma (100%)"
+  },
+  {
+    "file": "mri_04_meningioma.jpg",
+    "modality": "mri",
+    "truth": "meningioma",
+    "prediction": "meningioma (100%)"
+  },
+  {
+    "file": "mri_05_meningioma.jpg",
+    "modality": "mri",
+    "truth": "meningioma",
+    "prediction": "meningioma (100%)"
+  },
+  {
+    "file": "mri_06_meningioma.jpg",
+    "modality": "mri",
+    "truth": "meningioma",
+    "prediction": "meningioma (100%)"
+  },
+  {
+    "file": "mri_07_pituitary.jpg",
+    "modality": "mri",
+    "truth": "pituitary",
+    "prediction": "pituitary (100%)"
+  },
+  {
+    "file": "mri_08_pituitary.jpg",
+    "modality": "mri",
+    "truth": "pituitary",
+    "prediction": "pituitary (100%)"
+  },
+  {
+    "file": "mri_09_notumor.jpg",
+    "modality": "mri",
+    "truth": "notumor",
+    "prediction": "no_tumor (100%)"
+  },
+  {
+    "file": "mri_10_notumor.jpg",
+    "modality": "mri",
+    "truth": "notumor",
+    "prediction": "no_tumor (100%)"
+  },
+  {
+    "file": "eeg_01_Seizure.edf",
+    "modality": "eeg",
+    "truth": "Seizure",
+    "truth_code": "SZ",
+    "prediction": "SZ (harmful=True)"
+  },
+  {
+    "file": "eeg_02_Seizure.edf",
+    "modality": "eeg",
+    "truth": "Seizure",
+    "truth_code": "SZ",
+    "prediction": "GPD (harmful=True)"
+  },
+  {
+    "file": "eeg_03_LateralizedPeriodicDischarges.edf",
+    "modality": "eeg",
+    "truth": "Lateralized Periodic Discharges",
+    "truth_code": "LPD",
+    "prediction": "SZ (harmful=True)"
+  },
+  {
+    "file": "eeg_04_LateralizedPeriodicDischarges.edf",
+    "modality": "eeg",
+    "truth": "Lateralized Periodic Discharges",
+    "truth_code": "LPD",
+    "prediction": "LPD (harmful=True)"
+  },
+  {
+    "file": "eeg_05_GeneralizedPeriodicDischarges.edf",
+    "modality": "eeg",
+    "truth": "Generalized Periodic Discharges",
+    "truth_code": "GPD",
+    "prediction": "GPD (harmful=True)"
+  },
+  {
+    "file": "eeg_06_GeneralizedPeriodicDischarges.edf",
+    "modality": "eeg",
+    "truth": "Generalized Periodic Discharges",
+    "truth_code": "GPD",
+    "prediction": "GPD (harmful=True)"
+  },
+  {
+    "file": "eeg_07_LateralizedRhythmicDeltaActivity.edf",
+    "modality": "eeg",
+    "truth": "Lateralized Rhythmic Delta Activity",
+    "truth_code": "LRDA",
+    "prediction": "LRDA (harmful=False)"
+  },
+  {
+    "file": "eeg_08_LateralizedRhythmicDeltaActivity.edf",
+    "modality": "eeg",
+    "truth": "Lateralized Rhythmic Delta Activity",
+    "truth_code": "LRDA",
+    "prediction": "SZ (harmful=True)"
+  },
+  {
+    "file": "eeg_09_GeneralizedRhythmicDeltaActivity.edf",
+    "modality": "eeg",
+    "truth": "Generalized Rhythmic Delta Activity",
+    "truth_code": "GRDA",
+    "prediction": "LRDA (harmful=False)"
+  },
+  {
+    "file": "eeg_10_GeneralizedRhythmicDeltaActivity.edf",
+    "modality": "eeg",
+    "truth": "Generalized Rhythmic Delta Activity",
+    "truth_code": "GRDA",
+    "prediction": "LRDA (harmful=False)"
+  },
+  {
+    "file": "ecg_01_AFIB.csv",
+    "modality": "ecg",
+    "truth": "AFIB",
+    "source_record": "JS07555",
+    "prediction": "Atrial Fibrillation (100%)"
+  },
+  {
+    "file": "ecg_02_1AVB.csv",
+    "modality": "ecg",
+    "truth": "1AVB",
+    "source_record": "JS05617",
+    "prediction": "1st Degree AV Block (98%)"
+  },
+  {
+    "file": "ecg_03_STACH.csv",
+    "modality": "ecg",
+    "truth": "STACH",
+    "source_record": "JS43060",
+    "prediction": "Sinus Tachycardia (99%)"
+  },
+  {
+    "file": "ecg_04_STACH.csv",
+    "modality": "ecg",
+    "truth": "STACH",
+    "source_record": "JS11192",
+    "prediction": "Sinus Tachycardia (99%)"
+  },
+  {
+    "file": "ecg_05_SBRAD.csv",
+    "modality": "ecg",
+    "truth": "SBRAD",
+    "source_record": "JS20128",
+    "prediction": "Normal Sinus Rhythm (66%)"
+  },
+  {
+    "file": "ecg_06_SBRAD.csv",
+    "modality": "ecg",
+    "truth": "SBRAD",
+    "source_record": "JS04802",
+    "prediction": "Normal Sinus Rhythm (46%)"
+  },
+  {
+    "file": "ecg_07_RBBB.csv",
+    "modality": "ecg",
+    "truth": "RBBB",
+    "source_record": "JS18798",
+    "prediction": "Right Bundle Branch Block (95%)"
+  },
+  {
+    "file": "ecg_08_LBBB.csv",
+    "modality": "ecg",
+    "truth": "LBBB",
+    "source_record": "JS08702",
+    "prediction": "Atrial Fibrillation (100%)"
+  },
+  {
+    "file": "ecg_09_PVC.csv",
+    "modality": "ecg",
+    "truth": "PVC",
+    "source_record": "JS23644",
+    "prediction": "Normal Sinus Rhythm (5%)"
+  },
+  {
+    "file": "ecg_10_Normal.csv",
+    "modality": "ecg",
+    "truth": "Normal",
+    "source_record": "JS34667",
+    "prediction": "Normal Sinus Rhythm (92%)"
+  },
+  {
+    "file": "echo_01_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 37.784202575683594% (Reduced (HFrEF))"
+  },
+  {
+    "file": "echo_02_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 52.19525909423828% (Normal)"
+  },
+  {
+    "file": "echo_03_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 60.599002838134766% (Normal)"
+  },
+  {
+    "file": "echo_04_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 65.46852111816406% (Normal)"
+  },
+  {
+    "file": "echo_05_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 67.61801147460938% (Normal)"
+  },
+  {
+    "file": "echo_06_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 70.00071716308594% (Normal)"
+  },
+  {
+    "file": "echo_07_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 71.93423461914062% (Normal)"
+  },
+  {
+    "file": "echo_08_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 72.00162506103516% (Normal)"
+  },
+  {
+    "file": "echo_09_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 71.06957244873047% (Normal)"
+  },
+  {
+    "file": "echo_10_synthetic.mp4",
+    "modality": "echo",
+    "truth": "synthetic",
+    "prediction": "EF 70.31402587890625% (Normal)"
+  },
+  {
+    "file": "mri_11_glioma_70pct.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "glioma (70%)"
+  },
+  {
+    "file": "mri_12_glioma_51pct.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "glioma (51%)"
+  },
+  {
+    "file": "mri_13_glioma_75pct.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "glioma (75%)"
+  },
+  {
+    "file": "mri_14_glioma_75pct.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "glioma (75%)"
+  },
+  {
+    "file": "mri_15_glioma_54pct.jpg",
+    "modality": "mri",
+    "truth": "glioma",
+    "prediction": "glioma (54%)"
+  }
+]
