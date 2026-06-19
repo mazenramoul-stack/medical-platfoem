@@ -7,6 +7,7 @@ import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import EmptyState from '../../components/UI/EmptyState.jsx';
 import { formatRelative } from '../../utils/formatters.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
+import { deriveDiagnosis, DIAG_VARIANT } from './diagnosis.js';
 
 const STATUS_VARIANT = { completed: 'success', processing: 'warning', pending: 'gray', failed: 'danger' };
 
@@ -27,7 +28,9 @@ export default function ECGHistory({ items = [], onDelete }) {
   return (
     <>
       <div className="divide-y divide-gray-100">
-        {items.map((e) => (
+        {items.map((e) => {
+          const diag = deriveDiagnosis(e, t);
+          return (
           <div key={e.id} className="flex items-center gap-3 py-3">
             <Link
               to={`/ecg/${e.id}`}
@@ -42,8 +45,8 @@ export default function ECGHistory({ items = [], onDelete }) {
                   {STATUS_VARIANT[e.status] ? t(`ecg.status.${e.status}`) : e.status}
                 </Badge>
                 {e.result_arrhythmia_type && (
-                  <Badge variant={e.result_arrhythmia_detected ? 'danger' : 'success'}>
-                    {e.result_arrhythmia_type}
+                  <Badge variant={DIAG_VARIANT[diag.state] || 'gray'}>
+                    {diag.label}
                   </Badge>
                 )}
               </div>
@@ -60,7 +63,8 @@ export default function ECGHistory({ items = [], onDelete }) {
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
       <ConfirmDialog
         open={!!pending}

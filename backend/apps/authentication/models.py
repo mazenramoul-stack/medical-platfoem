@@ -13,7 +13,11 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('role', User.Role.ADMIN)
+        # Django-admin access comes from is_staff / is_superuser below, which are
+        # INDEPENDENT of the app `role` field. A superuser defaults to the
+        # technician role (the privileged app role); staff/superuser are what
+        # actually gate the Django admin.
+        extra_fields.setdefault('role', User.Role.TECHNICIAN)
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         if extra_fields.get('is_staff') is not True:
@@ -26,7 +30,7 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     class Role(models.TextChoices):
         DOCTOR = 'doctor', 'Doctor'
-        ADMIN = 'admin', 'Admin'
+        TECHNICIAN = 'technician', 'Technician'
 
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)

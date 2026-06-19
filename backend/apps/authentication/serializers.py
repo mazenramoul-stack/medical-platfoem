@@ -22,23 +22,29 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validators=[validate_password],
         style={'input_type': 'password'},
     )
+    # Self-registration may pick one of the two self-service roles. The
+    # ChoiceField rejects anything outside {doctor, technician} with a 400, so a
+    # client can no longer invent a privileged value. It defaults to DOCTOR when
+    # omitted. Note this is ONLY the app role embedded in the JWT — it can never
+    # set Django's is_staff / is_superuser (those are not serializer fields and
+    # are stripped in create(); they stay server-controlled via create_superuser).
+    role = serializers.ChoiceField(
+        choices=[User.Role.DOCTOR, User.Role.TECHNICIAN],
+        required=False,
+        default=User.Role.DOCTOR,
+    )
 
     class Meta:
         model = User
         fields = ('id', 'email', 'password', 'full_name', 'role')
-        # `role` is read-only: it is returned in the response but can NEVER be
-        # set by the client. Public self-registration always creates a DOCTOR
-        # (the model default). Without this, an anonymous POST with
-        # {"role": "admin"} would self-elevate to admin — a mass-assignment
-        # privilege-escalation flaw, since the role is embedded in the JWT.
-        # Admin accounts must be created out-of-band (createsuperuser / admin).
-        read_only_fields = ('role',)
 
     def create(self, validated_data):
-        # Defence in depth: even if a future edit makes `role` writable, force
-        # the safe default here so this endpoint can never mint a non-doctor.
-        validated_data.pop('role', None)
-        return User.objects.create_user(role=User.Role.DOCTOR, **validated_data)
+        role = validated_data.pop('role', User.Role.DOCTOR)
+        # Defence in depth: even though they are not declared fields, make sure a
+        # malicious payload can never carry staff/superuser into create_user.
+        validated_data.pop('is_staff', None)
+        validated_data.pop('is_superuser', None)
+        return User.objects.create_user(role=role, **validated_data)
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):

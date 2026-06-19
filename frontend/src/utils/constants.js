@@ -8,7 +8,7 @@ export const GENDERS = [
 
 export const ROLES = [
   { value: 'doctor', label: 'Doctor' },
-  { value: 'admin', label: 'Admin' },
+  { value: 'technician', label: 'Technician' },
 ];
 
 export const MRI_ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.dcm', '.nii', '.nii.gz'];

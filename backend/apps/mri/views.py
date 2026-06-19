@@ -172,6 +172,8 @@ class MRIUploadView(APIView):
                 analysis.result_tumor_detected = result.get('tumor_detected')
                 analysis.result_tumor_type = result.get('tumor_type')
                 analysis.result_confidence = result.get('tumor_type_confidence')
+                analysis.result_segmentation_confidence = result.get('segmentation_confidence')
+                analysis.result_class_probabilities = result.get('class_probabilities')
                 analysis.result_mask_path = _relative_to_media(result.get('mask_path'))
                 analysis.result_overlay_path = _relative_to_media(result.get('overlay_path'))
                 analysis.result_analysis_path = _relative_to_media(result.get('analysis_path'))

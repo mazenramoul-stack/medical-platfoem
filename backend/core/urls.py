@@ -18,6 +18,7 @@ urlpatterns = [
     path('api/ecg/', include('apps.ecg.urls')),
     path('api/echo/', include('apps.echo.urls')),
     path('api/eeg/', include('apps.eeg.urls')),
+    path('api/convert/', include('apps.conversion.urls')),
     path('api/reports/', include('apps.reports.urls')),
     # OpenAPI schema + interactive docs (drf-spectacular).
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

@@ -31,6 +31,8 @@ class MRIAnalysisSerializer(serializers.ModelSerializer):
             'result_tumor_detected',
             'result_tumor_type',
             'result_confidence',
+            'result_segmentation_confidence',
+            'result_class_probabilities',
             'result_mask_path',
             'result_overlay_path',
             'result_analysis_path',
@@ -45,6 +47,7 @@ class MRIAnalysisSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'id', 'status', 'model_used',
             'result_tumor_detected', 'result_tumor_type', 'result_confidence',
+            'result_segmentation_confidence', 'result_class_probabilities',
             'result_mask_path', 'result_overlay_path', 'result_analysis_path',
             'result_gradcam_path',
             'result_report', 'created_at',

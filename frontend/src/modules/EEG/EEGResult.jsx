@@ -126,11 +126,13 @@ export default function EEGResult() {
                   const pct = Math.round(((dist[code] ?? 0) * 100));
                   return (
                     <div key={code}>
-                      <div className="flex justify-between text-xs mb-0.5">
-                        <span className="text-mid" title={t(`eeg.classes.${key}`)}>
-                          {code}{harmful && <span className="text-danger"> •</span>}
+                      <div className="flex justify-between items-baseline gap-2 text-xs mb-0.5">
+                        <span className="text-mid min-w-0" title={t(`eeg.classes.${key}`)}>
+                          <span className="font-semibold">{code}</span>
+                          <span className="text-low"> · {t(`eeg.classes.${key}`)}</span>
+                          {harmful && <span className="text-danger"> •</span>}
                         </span>
-                        <span className="text-low font-mono">{pct}%</span>
+                        <span className="text-low font-mono shrink-0">{pct}%</span>
                       </div>
                       <div className="w-full h-2 bg-paneldeep rounded overflow-hidden">
                         <div className="h-2 rounded transition-all"

@@ -4,6 +4,7 @@
 import anatomy3d from './anatomy3d.js';
 import auth from './auth.js';
 import common from './common.js';
+import convert from './convert.js';
 import dashboard from './dashboard.js';
 import ecg from './ecg.js';
 import echo from './echo.js';
@@ -14,7 +15,7 @@ import patients from './patients.js';
 import reports from './reports.js';
 import ui from './ui.js';
 
-const NAMESPACES = { anatomy3d, auth, common, dashboard, ecg, echo, eeg, mri, nav, patients, reports, ui };
+const NAMESPACES = { anatomy3d, auth, common, convert, dashboard, ecg, echo, eeg, mri, nav, patients, reports, ui };
 
 export function buildMessages(lang) {
   const out = {};

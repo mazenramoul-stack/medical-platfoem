@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import DashboardLayout from './components/Layout/DashboardLayout.jsx';
@@ -20,8 +21,15 @@ import EEGResult from './modules/EEG/EEGResult.jsx';
 import EchoLanding from './modules/Echo/EchoLanding.jsx';
 import EchoResult from './modules/Echo/EchoResult.jsx';
 import ReportList from './modules/Reports/ReportList.jsx';
+import ConvertPage from './modules/Convert/ConvertPage.jsx';
 
 export default function App() {
+  // The data-conversion tool is a Technician-only capability. The backend
+  // IsTechnician permission is the real gate; registering the route only for
+  // technicians is the matching UX gate (a doctor hitting /convert falls through
+  // to the catch-all redirect below). The role is also embedded in the JWT.
+  const role = useSelector((s) => s.auth.user?.role);
+  const isTechnician = role === 'technician';
   return (
     <ErrorBoundary>
       <Routes>
@@ -52,6 +60,7 @@ export default function App() {
           <Route path="/echo/:id" element={<EchoResult />} />
           <Route path="/reports" element={<ReportList />} />
           <Route path="/reports/:patientId" element={<ReportList />} />
+          {isTechnician && <Route path="/convert" element={<ConvertPage />} />}
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

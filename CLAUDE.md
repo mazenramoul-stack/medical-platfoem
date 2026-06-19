@@ -57,12 +57,13 @@ python tools/eval_eeg.py                  # BIOT/IIIC head (after training)
 python tools/train_eeg_head.py            # fine-tune IIIC head on Kaggle HMS (encoder frozen)
 python tools/tune_ecg_recall.py           # recall-first ECG thresholds (reads cached scores from eval_ecg_classifier.py --save-scores)
 python tools/eval_mri_recall.py           # tumor-vs-notumor detection recall + notumor confidence-gate sweep
+python tools/eval_mri_explainer.py        # MRI Grad-CAM↔SHAP faithfulness: agreement (Spearman + top-k IoU), --localize (peak-in-mask), --deletion (causal sanity)
 python tools/eval_echo_recall.py          # reduced-EF detection recall vs safety margin
 python tools/bootstrap_cis.py             # 95% CIs (bootstrap) + EEG permutation test on cached eval predictions — no model/GPU; backs the CI numbers in VALIDATION.md
 # tools/eeg_hms.py — HMS dataset helpers shared by EEG train/eval (not a standalone entry point)
 ```
 
-The `tools/eval_*.py` harnesses read evaluation datasets from `data/` (`brain-tumor-mri`, `hms`, `samples`) and write cached per-record predictions back into `tools/` (`mri_preds.json`, `ecg_scores_finetuned.json`, `echo_ef_pairs.json`, `eeg_preds.json`, plus `*.log`/`*.txt` run logs); `bootstrap_cis.py` and `tune_ecg_recall.py` consume those caches, so run the eval that produces a cache before the script that reads it.
+The `tools/eval_*.py` harnesses read evaluation datasets from `data/` (`brain-tumor-mri`, `hms`, `samples`) and write cached per-record predictions back into `tools/` (`mri_preds.json`, `mri_explainer.json`, `ecg_scores_finetuned.json`, `echo_ef_pairs.json`, `eeg_preds.json`, plus `*.log`/`*.txt` run logs); `bootstrap_cis.py` and `tune_ecg_recall.py` consume those caches, so run the eval that produces a cache before the script that reads it.
 
 EEG-head training and echo eval can also run on GPU in Colab — see [tools/COLAB.md](tools/COLAB.md) and the `tools/colab_echo.ipynb` / `tools/colab_eeg.ipynb` notebooks (the local CPU path above is the default).
 
@@ -74,7 +75,7 @@ Frontend linting is **ESLint 9** (flat config in [frontend/eslint.config.js](fro
 
 `docker-compose.yml` exists but is **explicitly NOT tested end-to-end** (see its header comment). It's a starting point, not a supported path — don't assume `docker compose up` works or treat its config as authoritative. Local dev is the `runserver` + `npm run dev` flow above.
 
-Backend deps are split: [backend/requirements-core.txt](backend/requirements-core.txt) is the lightweight Django/DRF/djongo stack; [backend/requirements.txt](backend/requirements.txt) adds the heavy ML stack (torch, torchvision, monai, transformers, huggingface-hub, ecglib). Install `requirements.txt` to run inference; `requirements-core.txt` alone boots the API but the pipelines will fail to import.
+Backend deps are split: [backend/requirements-core.txt](backend/requirements-core.txt) is the lightweight Django/DRF/djongo stack; [backend/requirements.txt](backend/requirements.txt) adds the heavy ML stack (torch, torchvision, monai, transformers, huggingface-hub, ecglib, plus `captum>=0.7,<0.8` for the MRI explainers). Install `requirements.txt` to run inference; `requirements-core.txt` alone boots the API but the pipelines will fail to import.
 
 ## Reference docs
 
@@ -108,14 +109,14 @@ Secrets and DB/CORS config are read from `backend/.env` via **python-decouple** 
 |---|---|
 | `apps/authentication` | Custom User (email login), JWT views |
 | `apps/patients` | Doctor-scoped CRUD + `/history/` aggregate endpoint |
-| `apps/mri` | Upload + synchronous inference + result URLs |
+| `apps/mri` | Upload + synchronous inference + result URLs; on-demand `/explain/` (Grad-CAM + SHAP) |
 | `apps/ecg` | Upload + synchronous inference + plot URL |
 | `apps/echo` | Upload + synchronous EchoNet inference (LV segmentation + EF regression) |
 | `apps/eeg` | Upload (.edf) + synchronous BIOT/IIIC inference (6-class harmful-brain-activity) |
 | `apps/reports` | ReportLab PDF generation with combined interpretation |
-| `apps/inference` | Lazy singleton model loader + MRI/ECG/Echo/EEG pipelines + utils. BIOT model code is vendored under `apps/inference/biot/`; `eeg_preprocess.py` is the shared train/inference-parity preprocessing. |
+| `apps/inference` | Lazy singleton model loader + MRI/ECG/Echo/EEG pipelines + utils. BIOT model code is vendored under `apps/inference/biot/`; `eeg_preprocess.py` is the shared train/inference-parity preprocessing. Post-hoc MRI explainers (Grad-CAM, Captum GradientShap) live under `apps/inference/explainers/` (`gradcam.py`, `shap_attr.py`, shared helpers in `base.py`). |
 
-URL prefixes (`core/urls.py`): `api/auth/`, `api/` (patients), `api/mri/`, `api/ecg/`, `api/echo/`, `api/eeg/`, `api/reports/`.
+URL prefixes (`core/urls.py`): `api/auth/`, `api/` (patients), `api/mri/`, `api/ecg/`, `api/echo/`, `api/eeg/`, `api/reports/`. MRI also exposes a per-analysis explainability sub-route: `POST api/mri/{id}/explain/` (`MRIExplainView`).
 
 Inference is **synchronous in the request thread**. There is no Celery / RQ. First call downloads ~700 MB of MRI/ECG weights; subsequent calls hit the local cache (`~/.cache/torch/hub/`, `~/.cache/huggingface/`). EchoNet weights are the exception — they are **not auto-downloaded** (see below).
 
@@ -123,6 +124,18 @@ Inference is **synchronous in the request thread**. There is no Celery / RQ. Fir
 
 1. **Doctor isolation.** Every queryset in `patients`, `mri`, `ecg`, `echo`, `reports` filters by the requesting doctor. A new endpoint that returns another doctor's data is a bug. The FK chain is `<Analysis> → patient → doctor`.
 2. **Pipeline result envelope.** Inference functions return a plain dict shaped `{status, ...result_fields, error?, error_type?}`. They must never raise into the view — structured failure is part of the contract so the API can report partial results (e.g. ECG with 5/7 pathology models loaded).
+
+### MRI explainability (Grad-CAM + SHAP)
+
+Post-hoc attribution for the Swin classifier, added on the `feat/mri-xai-pilot` branch (design + plan under [docs/superpowers/](docs/)). Two entry points:
+
+- **Inline** — `analyze_mri()` computes a Grad-CAM overlay during normal inference and returns `gradcam_path` + `gradcam_peak` (normalized `{nx, ny}`) in the result envelope; the view persists `gradcam_path` to the new `MRIAnalysis.result_gradcam_path` field (migration `0003`), surfaced as a signed `gradcam_url`.
+- **On-demand** — `POST api/mri/{id}/explain/` (`MRIExplainView`) calls `explain_mri()` for a fuller Grad-CAM **+** Captum GradientShap pass, returning signed `gradcam_path` + `shap_path` URLs. Doctor-isolated (resolved from the requesting doctor's queryset → 404, never a leak) and run through `run_inference_with_timeout` (300 s).
+
+Gotchas to preserve:
+- Grad-CAM hooks the Swin **final LayerNorm** (token sequence `[B, L, C]`, `L = side²`, folded back to a `side×side` grid — there is no conv feature map). Both explainers **must run outside `torch.no_grad()`** — they backprop, while the pipeline's normal classifier forward is under `no_grad`.
+- `swin_gradcam` is **not thread-safe**: it calls `model.zero_grad()` on the shared model singleton. Safe today only because inference is synchronous; don't parallelize MRI requests without revisiting this.
+- Faithfulness is checked by `tools/eval_mri_explainer.py`. `base.attribution_agreement` compares Grad-CAM vs SHAP at the **coarser** common resolution (Spearman + top-k IoU) on purpose — comparing a 7×7 CAM against a 224×224 SHAP map at full grid spuriously drives correlation to ~0.
 
 ### Adding a new modality
 
@@ -145,6 +158,17 @@ Follow the 8-step recipe in [CONTRIBUTING.md](maybe%20read/CONTRIBUTING.md#addin
 - **The pipelines run the STANDARD / balanced operating point by default (reverted 2026-06-15); recall-first screening is opt-in via env vars.** Earlier (June 2026) the defaults were recall-first; that was rolled back so the platform behaves like a conventional diagnostic tool. Current defaults: **ECG** uses the balanced macro-F1-**0.777** thresholds (`F1_BALANCED_THRESHOLDS`; verified locally 2026-06-16 after the F1 fine-tune of STACH/SBRAD/1AVB/LBBB — was 0.727); **MRI** trusts the Swin classifier's argmax (`NOTUMOR_MIN_CONFIDENCE` defaults to 0.0 → no `screening_flag` over-flag); **Echo** flags only true reduced EF < 50% (`REDUCED_EF_SCREEN_CUTOFF` defaults to 50.0); **EEG** is plain argmax (its `screen_positive`/`harmful` fields are reporting only — there was never a recall threshold to revert). The recall-first / high-sensitivity behavior is still fully available behind env vars (the tables/gates remain in the pipelines): `ECG_THRESHOLD_MODE=recall` (every pathology recall ≥ 0.95, macro precision ~0.35), `MRI_NOTUMOR_MIN_CONFIDENCE=0.99` (tumor-detection recall 0.983 → 0.998, or 1.0 for zero misses), `REDUCED_EF_SCREEN_CUTOFF=55` (reduced-EF recall 0.783 → 0.952). VALIDATION.md §0–§5 documents both operating points and how each was measured. Don't flip the defaults back to recall-first without being asked.
 - **PDF generator runs everything through `_ascii()` in [backend/apps/reports/pdf_generator.py](backend/apps/reports/pdf_generator.py).** Helvetica lacks box-drawing glyphs; the substitution prevents `?` rendering. Don't remove it.
 - **Reports survive patient deletion via null FK.** Patient cascade removes MRI/ECG/Echo records but keeps the generated PDF.
+- **On the Hugging Face Space, the first boot prints a `token_blacklist` migration traceback (`SQLDecodeError: Unknown token: TYPE`) — that is expected.** djongo 1.3.6 can't translate SimpleJWT's BigAutoField retypes into MongoDB; `backend/start-space.sh` works around it with a three-pass migrate (apply everything possible → `migrate token_blacklist --fake` → finish remainder). MongoDB is schemaless so the retypes are no-ops; the step is idempotent and later restarts are clean. Don't "fix" the traceback. See [Deployment](#deployment-hugging-face-space--vercel).
+
+## Deployment (Hugging Face Space + Vercel)
+
+Cloud deploy splits the monorepo: **backend → a Hugging Face Docker Space**, **frontend → Vercel**, **DB → MongoDB Atlas**. This is separate from local dev (`runserver` + `npm run dev`) and from the untested `docker-compose.yml`.
+
+- **Backend Space** — built from [deploy/huggingface/Dockerfile](deploy/huggingface/Dockerfile); the API listens on **port 7860** (`app_port: 7860` in the Space `README.md` YAML — [deploy/huggingface/README.md](deploy/huggingface/README.md) is the canonical copy of that file). Startup is `backend/start-space.sh` (three-pass migrate, then `gunicorn core.wsgi --bind 0.0.0.0:7860 --workers 1 --timeout 600` — long timeout because inference is synchronous in-request).
+- **MongoDB Atlas** — set `MONGO_URI` to the `mongodb+srv://…` connection string. `core/settings.py` detects it and passes the full URI straight to pymongo **without** adding a separate port (pymongo rejects an explicit port alongside `mongodb+srv://`); absent `MONGO_URI`, it falls back to local host/port.
+- **Space secrets** (Settings → Variables and secrets): `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS`, `MONGO_URI`, `DB_NAME`, `CORS_ALLOWED_ORIGINS` (your Vercel URL), `SECURE_SSL_REDIRECT=False` (HF terminates HTTPS). Full table in [deploy/huggingface/README.md](deploy/huggingface/README.md).
+- **Frontend Vercel** — needs an SPA rewrite so client-side routes resolve (deep links / refresh don't 404). Point its API base at the Space URL.
+- **Model weights** — the same not-bundled rule applies (Echo/EEG heads must be provided); a fresh Space without them returns the documented `FileNotFoundError`.
 
 ## Testing notes
 

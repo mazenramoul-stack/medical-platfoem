@@ -33,6 +33,12 @@ export default function Anatomy3DPanel({ accent, highlight }) {
       for (const id of ['lv', 'rv', 'la', 'ra']) m[id] = { color: glowColor, intensity: 0.6 };
     } else {
       for (const r of highlight.regions || []) m[r.id] = { color: glowColor, intensity: sevIntensity(r.severity) };
+      // Context regions (e.g. the ventricle a blocked fascicle serves) get a
+      // gentle backdrop glow for side-orientation — kept dim on purpose so the
+      // bright fascicle marker on top stays the focus. Never override a primary.
+      for (const r of highlight.contextRegions || []) {
+        if (!m[r.id]) m[r.id] = { color: glowColor, intensity: 0.4 };
+      }
     }
     // On-demand Grad-CAM peak marker ("where the classifier looked"), distinct hue.
     if (highlight.gradcamFocus) {

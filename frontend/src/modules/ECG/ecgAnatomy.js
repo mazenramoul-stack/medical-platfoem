@@ -2,31 +2,38 @@
  * Pure mapping from an ECG result envelope to a 3D-heart "highlight" descriptor.
  *
  * HONESTY: ecglib outputs per-pathology probabilities, not coordinates. We map
- * each *detected* finding to the heart structure it legitimately implicates
- * (conduction pathway / chamber). Rate findings (STACH/SBRAD) are flagged
- * `rateOnly` so the UI can state they are NOT localized to a myocardial wall.
+ * each *detected* finding to the heart structure it legitimately implicates —
+ * the exact conduction element (SA node, AV node, bundle branch) or chamber
+ * where the pathology arises. Sinus rate findings (STACH/SBRAD) localise to the
+ * SA node, the sinus pacemaker in the upper right atrium.
  * Returns region ids + finding codes only — the component does the i18n labels,
  * keeping this function pure and unit-testable.
  */
 
-// Heart structures the 3D model can highlight.
-export const HEART_REGION_IDS = ['lv', 'rv', 'la', 'ra', 'av-node', 'sa-node'];
+import { maybePathology } from './diagnosis.js';
 
-// Detected pathology code -> implicated structure(s) + whether it is a rate
-// finding (rhythm/rate, no wall localization). IRBBB/CRBBB are historical
-// ecglib aliases for RBBB; mapped to the same structure for robustness.
+// Heart structures the 3D model can highlight (chambers, conduction nodes, and
+// the two bundle branches of the His-Purkinje system).
+export const HEART_REGION_IDS = ['lv', 'rv', 'la', 'ra', 'av-node', 'sa-node', 'rbb', 'lbb'];
+
+// Detected pathology code -> the EXACT implicated structure(s). IRBBB/CRBBB are
+// historical ecglib aliases for RBBB; mapped to the right bundle branch too.
 const ECG_PATHOLOGY_MAP = {
-  RBBB: { regions: ['rv'], rateOnly: false },
-  IRBBB: { regions: ['rv'], rateOnly: false },
-  CRBBB: { regions: ['rv'], rateOnly: false },
-  LBBB: { regions: ['lv'], rateOnly: false },
+  // Bundle-branch blocks localise to the conduction fascicle itself — NOT the
+  // ventricular myocardium (that is PVC). The fascicle marker is tiny, so we
+  // also softly glow the ventricle it serves (`context`) to make the affected
+  // SIDE read clearly, without claiming the ventricle muscle is the lesion.
+  RBBB: { regions: ['rbb'], context: ['rv'], rateOnly: false },
+  IRBBB: { regions: ['rbb'], context: ['rv'], rateOnly: false },
+  CRBBB: { regions: ['rbb'], context: ['rv'], rateOnly: false },
+  LBBB: { regions: ['lbb'], context: ['lv'], rateOnly: false },
   PVC: { regions: ['lv', 'rv'], rateOnly: false },
+  // AFIB arises in the atria, often near the pulmonary veins of the left atrium.
   AFIB: { regions: ['la', 'ra'], rateOnly: false },
   '1AVB': { regions: ['av-node'], rateOnly: false },
-  // Rate findings have NO localized site — they contribute no structural region.
-  // The UI shows the whole heart "examined" (no pinpoint) for these.
-  STACH: { regions: [], rateOnly: true },
-  SBRAD: { regions: [], rateOnly: true },
+  // Sinus rate findings originate at the SA node (sinus pacemaker, upper RA).
+  STACH: { regions: ['sa-node', 'ra'], rateOnly: false },
+  SBRAD: { regions: ['sa-node', 'ra'], rateOnly: false },
 };
 
 function severityFor(probability) {
@@ -38,6 +45,7 @@ function severityFor(probability) {
 const EMPTY = (beatsPerMinute) => ({
   organ: 'heart',
   regions: [],
+  contextRegions: [],
   findingCodes: [],
   beatsPerMinute,
   rateOnly: false,
@@ -63,18 +71,34 @@ export function mapEcgToHighlight(ecg) {
     }
   }
 
+  // No confirmed detection, but a tentative "maybe" pathology (the class closest
+  // to its threshold, above the normal likelihood) drives the same structural
+  // highlight as a detected finding — so the 3D view tracks the "Maybe …" headline.
+  let maybe = false;
+  if (!primary) {
+    const m = maybePathology(probs);
+    if (m) { primary = m.code; best = m.probability; maybe = true; }
+  }
+
   if (!primary) return EMPTY(beatsPerMinute);
 
   const entry = ECG_PATHOLOGY_MAP[primary];
   const severity = severityFor(best);
   const regions = entry ? entry.regions.map((id) => ({ id, severity })) : [];
+  // Context = the chamber the implicated fascicle serves, glowed softly (low)
+  // for orientation only — it is NOT listed as a lesion in the legend.
+  const contextRegions = entry && entry.context
+    ? entry.context.map((id) => ({ id, severity: 'low' }))
+    : [];
 
   return {
     organ: 'heart',
     regions,
+    contextRegions,
     findingCodes: [primary],
     beatsPerMinute,
     rateOnly: !!(entry && entry.rateOnly),
     normal: false,
+    maybe,
   };
 }

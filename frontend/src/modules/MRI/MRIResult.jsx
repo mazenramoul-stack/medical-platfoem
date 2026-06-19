@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
 import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
 import TumorBadge from './TumorBadge.jsx';
+import ClassProbabilities from './ClassProbabilities.jsx';
 import { mapMriToHighlight } from './mriAnatomy.js';
 import { normalizeTumorType } from './tumorType.js';
 
@@ -19,6 +20,16 @@ import { useI18n } from '../../i18n/LanguageContext.jsx';
 const STATUS_VARIANT = { completed: 'success', processing: 'warning', pending: 'gray', failed: 'danger' };
 const TAB_IDS = ['overlay', 'mask', 'original'];
 const TYPE_KEYS = ['glioma', 'meningioma', 'pituitary', 'notumor', 'no_tumor'];
+
+// Fallback for analyses created before `result_segmentation_confidence` existed:
+// the value is still embedded in the saved report ("Segmentation Confidence: 99.82%").
+function parseSegConfidence(report) {
+  if (!report) return null;
+  const m = report.match(/Segmentation Confidence:\s*([\d.]+)\s*%/i);
+  if (!m) return null;
+  const v = parseFloat(m[1]) / 100;
+  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : null;
+}
 
 function ConfidenceBar({ value }) {
   const pct = typeof value === 'number' ? Math.max(0, Math.min(1, value)) * 100 : 0;
@@ -44,7 +55,8 @@ export default function MRIResult() {
   // Segmentation-mask analysis: null = not analysed (classifier fallback),
   // { present, x, y } once the U-Net mask has been read for tumour location.
   const [maskInfo, setMaskInfo] = useState(null);
-  // On-demand SHAP explanation (Grad-CAM is always inline via the 'gradcam' tab).
+  // On-demand explanation: the Explain (SHAP) panel renders both Grad-CAM and
+  // SHAP, so there is no separate inline Grad-CAM image tab.
   const [explain, setExplain] = useState(null);
   const [explaining, setExplaining] = useState(false);
 
@@ -166,15 +178,27 @@ export default function MRIResult() {
     }
   };
 
-  const tabIds = mri.gradcam_url ? [...TAB_IDS, 'gradcam'] : TAB_IDS;
+  const tabIds = TAB_IDS;
   const activeUrl = tab === 'mask' ? mri.mask_url
     : tab === 'original' ? mri.file_url
-    : tab === 'gradcam' ? mri.gradcam_url
     : mri.overlay_url;
   const typeKey = normalizeTumorType(mri.result_tumor_type);
   const typeLabel = TYPE_KEYS.includes(typeKey)
     ? t(`mri.types.${typeKey === 'no_tumor' ? 'notumor' : typeKey}`)
     : (mri.result_tumor_type || '—');
+  // Segmentation-only result: the classifier never ran (no classification
+  // confidence) yet a U-Net mask exists. There, "Classification confidence" and
+  // "Tumor type" don't apply — show the segmentation confidence under a plain
+  // "Confidence" label and drop the tumour-type cell.
+  const classificationRan = typeof mri.result_confidence === 'number';
+  const segmentationOnly = !classificationRan && Boolean(mri.mask_url);
+  // Prefer the structured field; fall back to the value parsed from the report
+  // so segmentation analyses created before that field existed still show it.
+  const segConfidence = typeof mri.result_segmentation_confidence === 'number'
+    ? mri.result_segmentation_confidence
+    : parseSegConfidence(mri.result_report);
+  const confidenceValue = segmentationOnly ? segConfidence : mri.result_confidence;
+  const confidenceLabel = segmentationOnly ? t('mri.result.confidence') : t('mri.result.classificationConfidence');
 
   return (
     <div className="space-y-5">
@@ -255,16 +279,18 @@ export default function MRIResult() {
             <div className="space-y-3 text-sm">
               <div>
                 <div className="flex justify-between mb-1">
-                  <span className="text-gray-600">{t('mri.result.classificationConfidence')}</span>
-                  <span className="font-medium text-gray-900">{formatPercent(mri.result_confidence)}</span>
+                  <span className="text-gray-600">{confidenceLabel}</span>
+                  <span className="font-medium text-gray-900">{formatPercent(confidenceValue)}</span>
                 </div>
-                <ConfidenceBar value={mri.result_confidence} />
+                <ConfidenceBar value={confidenceValue} />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-gray-50 rounded px-3 py-2">
-                  <div className="text-gray-500">{t('mri.result.tumorType')}</div>
-                  <div className="text-gray-900 font-medium">{typeLabel}</div>
-                </div>
+              <div className={`grid ${segmentationOnly ? 'grid-cols-1' : 'grid-cols-2'} gap-2 text-xs`}>
+                {!segmentationOnly && (
+                  <div className="bg-gray-50 rounded px-3 py-2">
+                    <div className="text-gray-500">{t('mri.result.tumorType')}</div>
+                    <div className="text-gray-900 font-medium">{typeLabel}</div>
+                  </div>
+                )}
                 <div className="bg-gray-50 rounded px-3 py-2">
                   <div className="text-gray-500">{t('mri.result.detected')}</div>
                   <div className="text-gray-900 font-medium">{mri.result_tumor_detected ? t('common.yes') : t('common.no')}</div>
@@ -284,51 +310,61 @@ export default function MRIResult() {
             </div>
           )}
 
-          {mri.result_report && (
-            <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">{t('mri.result.inferenceReport')}</h3>
-              <pre className="text-[11px] font-mono text-gray-700 whitespace-pre-wrap leading-relaxed max-h-72 overflow-auto bg-gray-50 rounded p-3 border border-gray-100">
-{mri.result_report}
-              </pre>
-            </div>
-          )}
-
-          {mri.result_tumor_detected !== null && (
-            <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">{t('mri.explain.title')}</h3>
-              {explain ? (
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-xs font-medium text-gray-500 mb-1">{t('mri.explain.gradcamLabel')}</div>
-                    <img src={explain.gradcam_path} alt="Grad-CAM" className="max-w-full rounded shadow-sm" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium text-gray-500 mb-1">{t('mri.explain.shapLabel')}</div>
-                    <img src={explain.shap_path} alt="SHAP" className="max-w-full rounded shadow-sm" />
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    {t('mri.explain.agreement', { rho: (explain.agreement?.spearman ?? 0).toFixed(2) })}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <p className="text-xs text-gray-500 mb-3">{t('mri.explain.hint')}</p>
-                  <button
-                    type="button"
-                    onClick={onExplain}
-                    disabled={mri.status !== 'completed' || explaining}
-                    className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                  >
-                    {explaining ? t('mri.explain.running') : t('mri.explain.button')}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
+      {mri.result_class_probabilities && (
+        <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">{t('mri.classProb.title')}</h3>
+          <ClassProbabilities probabilities={mri.result_class_probabilities} />
+        </div>
+      )}
+
+      {mri.result_tumor_detected !== null && (
+        <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">{t('mri.explain.title')}</h3>
+          {explain ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium text-gray-500 mb-1">{t('mri.explain.gradcamLabel')}</div>
+                  <img src={explain.gradcam_path} alt="Grad-CAM" className="max-w-full max-h-[26rem] rounded shadow-sm" />
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500 mb-1">{t('mri.explain.shapLabel')}</div>
+                  <img src={explain.shap_path} alt="SHAP" className="max-w-full max-h-[26rem] rounded shadow-sm" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-600">
+                {t('mri.explain.agreement', { rho: (explain.agreement?.spearman ?? 0).toFixed(2) })}
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500 mb-3">{t('mri.explain.hint')}</p>
+              <button
+                type="button"
+                onClick={onExplain}
+                disabled={mri.status !== 'completed' || explaining}
+                className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {explaining ? t('mri.explain.running') : t('mri.explain.button')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {mri.status === 'completed' && <Anatomy3DPanel highlight={brainHighlight} />}
+
+      {mri.result_report && (
+        <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">{t('mri.result.inferenceReport')}</h3>
+          <pre className="text-[11px] font-mono text-gray-700 whitespace-pre-wrap leading-relaxed max-h-96 overflow-auto bg-gray-50 rounded p-3 border border-gray-100">
+{mri.result_report}
+          </pre>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 justify-end pt-2">
         <button

@@ -53,6 +53,7 @@ class MRIPipelineTest(SimpleTestCase):
         for key in (
             "tumor_detected", "tumor_type", "tumor_type_confidence",
             "tumor_area_pixels", "segmentation_confidence",
+            "class_probabilities",
             "models_agree", "overall_verdict",
             "mask_path", "overlay_path", "analysis_path",
             "report", "models_used", "elapsed_seconds",
@@ -67,6 +68,20 @@ class MRIPipelineTest(SimpleTestCase):
         self.assertIsInstance(result["report"], str)
         self.assertGreater(len(result["report"]), 100)
 
+        # Full softmax distribution: a dict of label -> prob in [0,1] summing to
+        # ~1, whose argmax matches the reported tumour type & confidence.
+        probs = result["class_probabilities"]
+        self.assertIsInstance(probs, dict)
+        self.assertGreater(len(probs), 0)
+        for label, p in probs.items():
+            self.assertIsInstance(label, str)
+            self.assertGreaterEqual(p, 0.0)
+            self.assertLessEqual(p, 1.0)
+        self.assertAlmostEqual(sum(probs.values()), 1.0, places=4)
+        top_label, top_prob = max(probs.items(), key=lambda kv: kv[1])
+        self.assertEqual(top_label, result["tumor_type"])
+        self.assertAlmostEqual(top_prob, result["tumor_type_confidence"], places=4)
+
     def test_classify_emits_gradcam_path(self):
         from apps.inference import analyze_mri
 
@@ -74,6 +89,16 @@ class MRIPipelineTest(SimpleTestCase):
         self.assertEqual(result["status"], "success")
         self.assertIn("gradcam_path", result)
         self.assertTrue(result["gradcam_path"] is None or result["gradcam_path"].endswith("_gradcam.png"))
+
+    def test_segment_mode_has_no_class_probabilities(self):
+        """Segmentation-only never runs the classifier, so the per-class
+        distribution is absent (None) — the result page hides the breakdown."""
+        from apps.inference import analyze_mri
+
+        result = analyze_mri(str(MRI_SAMPLE), mode="segment")
+        self.assertEqual(result["status"], "success")
+        self.assertIsNone(result["class_probabilities"])
+        self.assertIsNone(result["tumor_type_confidence"])
 
     def test_explain_mri_envelope(self):
         from apps.inference import explain_mri

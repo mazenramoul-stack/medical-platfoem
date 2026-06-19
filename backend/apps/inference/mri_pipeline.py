@@ -215,6 +215,7 @@ def analyze_mri(file_path: str, mode: str = 'full') -> dict:
         mask_resized = None
         tumor_type = None
         cls_conf = 0.0
+        class_probabilities = None
         screening_flag = None
         models_agree = None
         overall_verdict = None
@@ -314,6 +315,19 @@ def analyze_mri(file_path: str, mode: str = 'full') -> dict:
             tumor_type = id2label.get(pred_idx) or (
                 fallback_labels[pred_idx] if 0 <= pred_idx < len(fallback_labels) else f'class_{pred_idx}'
             )
+
+            # Full softmax distribution over every class, keyed by the canonical
+            # normalized label (glioma, meningioma, pituitary, notumor) the
+            # frontend / i18n dictionaries use. Powers the per-class probability
+            # breakdown on the result page. Probabilities sum to ~1 (softmax).
+            probs_list = probs.detach().squeeze(0).tolist()
+            class_probabilities = {}
+            for idx, p in enumerate(probs_list):
+                raw_label = id2label.get(idx) or (
+                    fallback_labels[idx] if 0 <= idx < len(fallback_labels) else f'class_{idx}'
+                )
+                class_probabilities[_normalize_tumor_label(raw_label)] = float(p)
+
             # The Swin config's id2label carries a '_tumor' suffix
             # (glioma_tumor, meningioma_tumor, ...). Canonicalize the structured
             # output to the bare label so the persisted value and the frontend /
@@ -462,6 +476,7 @@ def analyze_mri(file_path: str, mode: str = 'full') -> dict:
             'tumor_detected': tumor_detected,
             'tumor_type': tumor_type,
             'tumor_type_confidence': cls_conf if run_cls else None,
+            'class_probabilities': class_probabilities if run_cls else None,
             'tumor_area_pixels': tumor_area_pixels if run_seg else None,
             'segmentation_confidence': seg_conf if run_seg else None,
             'models_agree': models_agree,

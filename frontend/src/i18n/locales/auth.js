@@ -33,7 +33,7 @@ export default {
       role: 'Role',
       roles: {
         doctor: 'Doctor',
-        admin: 'Admin',
+        technician: 'Technician',
       },
       nameRequired: 'Full name is required.',
       emailInvalid: 'Enter a valid email address.',
@@ -80,7 +80,7 @@ export default {
       role: 'Rôle',
       roles: {
         doctor: 'Médecin',
-        admin: 'Administrateur',
+        technician: 'Technicien',
       },
       nameRequired: 'Le nom complet est obligatoire.',
       emailInvalid: 'Saisissez une adresse e-mail valide.',

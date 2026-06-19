@@ -64,6 +64,11 @@ export default {
       'Mildly reduced': 'Mildly reduced',
       'Reduced': 'Reduced',
     },
+    gauge: {
+      reduced: 'Reduced',
+      mild: 'Mildly reduced',
+      normal: 'Normal',
+    },
   },
   fr: {
     landing: {
@@ -128,6 +133,11 @@ export default {
       'Normal': 'Normale',
       'Mildly reduced': 'Légèrement réduite',
       'Reduced': 'Réduite',
+    },
+    gauge: {
+      reduced: 'Réduite',
+      mild: 'Légèrement réduite',
+      normal: 'Normale',
     },
   },
 };

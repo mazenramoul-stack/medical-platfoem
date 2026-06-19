@@ -7,6 +7,7 @@ import Badge from '../../components/UI/Badge.jsx';
 import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
 import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
+import EFGauge from './EFGauge.jsx';
 import { mapEchoToHighlight } from './echoAnatomy.js';
 import echoService from '../../services/echoService.js';
 import patientService from '../../services/patientService.js';
@@ -82,7 +83,6 @@ export default function EchoResult() {
 
   const ef = echo.result_ef;
   const color = efColor(echo.result_ef_category);
-  const pct = typeof ef === 'number' ? Math.max(0, Math.min(100, ef)) : 0;
   const statusLabel = STATUS_VARIANT[echo.status] ? t(`echo.status.${echo.status}`) : echo.status;
 
   return (
@@ -124,10 +124,7 @@ export default function EchoResult() {
                   {categoryLabel(echo.result_ef_category)}
                 </Badge>
               </div>
-              <div className="w-full h-2.5 bg-gray-200 rounded mt-4 overflow-hidden">
-                <div className="h-2.5 rounded transition-all" style={{ width: `${pct}%`, background: color, boxShadow: `0 0 12px ${color}` }} />
-              </div>
-              <div className="flex justify-between text-[10px] text-low mt-1"><span>0</span><span>40</span><span>50</span><span>100</span></div>
+              <EFGauge ef={ef} category={echo.result_ef_category} color={color} />
               <div className="grid grid-cols-2 gap-3 mt-5 text-sm">
                 <div className="rounded-lg p-3" style={{ border: '1px solid var(--edge)', background: 'var(--paneldeep)' }}>
                   <div className="text-low text-xs">{t('echo.result.edArea')}</div>

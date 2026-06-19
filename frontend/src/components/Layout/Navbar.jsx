@@ -14,6 +14,7 @@ const TITLE_KEYS = {
   '/eeg':       'nav.eeg',
   '/echo':      'nav.echo',
   '/reports':   'nav.reports',
+  '/convert':   'nav.convert',
 };
 
 function titleKeyFor(pathname) {
@@ -34,6 +35,9 @@ export default function Navbar({ onMenuClick = () => {} }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const title = t(titleKeyFor(pathname));
+  const roleLabel = user?.role
+    ? t(`auth.register.roles.${user.role}`)
+    : t('nav.doctor');
   return (
     <header
       className="h-14 glass flex items-center justify-between px-4 lg:px-6 shrink-0 relative"
@@ -55,7 +59,7 @@ export default function Navbar({ onMenuClick = () => {} }) {
         <div className="flex items-center gap-2">
           <div className="text-right hidden sm:block">
             <div className="text-sm font-medium text-hi leading-tight">{user?.full_name || '—'}</div>
-            <div className="leading-tight"><Badge variant="primary">{user?.role || t('nav.doctor')}</Badge></div>
+            <div className="leading-tight"><Badge variant="primary">{roleLabel}</Badge></div>
           </div>
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-ink"

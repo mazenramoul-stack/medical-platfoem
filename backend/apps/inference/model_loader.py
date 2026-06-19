@@ -115,9 +115,19 @@ class ModelLoader:
             default_dir = os.path.abspath(
                 os.path.join(here, '..', '..', 'models_weights', 'vit_brain_tumor'))
             local_dir = os.environ.get('VIT_BRAIN_TUMOR_WEIGHTS', default_dir)
+            # Require BOTH the config AND an actual weights file: the repo ships
+            # config.json/preprocessor_config.json as sidecars but gitignores the
+            # large weights (*.bin/*.safetensors). On a deploy without the weights
+            # the dir has a config but no model — fall back to the hub model
+            # instead of crashing in from_pretrained.
+            _weight_files = (
+                'pytorch_model.bin', 'model.safetensors',
+                'pytorch_model.bin.index.json', 'model.safetensors.index.json',
+            )
             use_local = (
                 os.path.isdir(local_dir)
                 and os.path.exists(os.path.join(local_dir, 'config.json'))
+                and any(os.path.exists(os.path.join(local_dir, w)) for w in _weight_files)
             )
 
             if use_local:

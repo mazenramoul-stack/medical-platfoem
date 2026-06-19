@@ -1,4 +1,5 @@
 import { useI18n } from '../../i18n/LanguageContext.jsx';
+import { maybePathology } from './diagnosis.js';
 
 const KNOWN_CODES = ['AFIB', '1AVB', 'STACH', 'SBRAD', 'IRBBB', 'CRBBB', 'RBBB', 'LBBB', 'PVC'];
 
@@ -6,6 +7,9 @@ export default function PathologyTable({ results }) {
   const { t } = useI18n();
   if (!results) return null;
   const rows = Object.entries(results).sort(([, a], [, b]) => b.probability - a.probability);
+  // The tentative "maybe" pathology (closest to its threshold, still below it)
+  // is highlighted in yellow, mirroring the "Maybe …" headline.
+  const maybeCode = maybePathology(results)?.code;
   return (
     <div className="space-y-4">
       {/* Screening-mode explanation banner */}
@@ -30,11 +34,16 @@ export default function PathologyTable({ results }) {
             {rows.map(([code, r]) => {
               const pct = (r.probability || 0) * 100;
               const detected = !!r.detected;
+              const isMaybe = !detected && code === maybeCode;
               const thresholdPct = (r.threshold || 0.5) * 100;
+              const rowBg = detected ? 'bg-cardio/10' : isMaybe ? 'bg-warning/10' : '';
+              const accent = detected ? 'text-danger' : isMaybe ? 'text-warning' : 'text-mid';
+              const barColor = detected ? 'bg-danger' : isMaybe ? 'bg-warning' : 'bg-primary';
+              const emphasized = detected || isMaybe;
               return (
-                <tr key={code} className={detected ? 'bg-cardio/10' : ''}>
+                <tr key={code} className={rowBg}>
                   <td className="px-3 py-2 font-mono text-xs text-low">{code}</td>
-                  <td className={'px-3 py-2 ' + (detected ? 'text-danger font-medium' : 'text-mid')}>
+                  <td className={'px-3 py-2 ' + accent + (emphasized ? ' font-medium' : '')}>
                     {KNOWN_CODES.includes(code) ? t(`ecg.pathologies.${code}`) : code}
                   </td>
                   <td className="px-3 py-2">
@@ -43,7 +52,7 @@ export default function PathologyTable({ results }) {
                       <div className="flex-1 relative">
                         <div className="h-2.5 bg-paneldeep rounded overflow-hidden">
                           <div
-                            className={'h-2.5 rounded transition-all duration-500 ' + (detected ? 'bg-danger' : 'bg-primary')}
+                            className={'h-2.5 rounded transition-all duration-500 ' + barColor}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -64,7 +73,7 @@ export default function PathologyTable({ results }) {
                           {thresholdPct.toFixed(0)}%
                         </div>
                       </div>
-                      <span className={'text-xs tabular-nums w-12 text-right ' + (detected ? 'text-danger font-semibold' : 'text-mid')}>
+                      <span className={'text-xs tabular-nums w-12 text-right ' + (emphasized ? accent + ' font-semibold' : 'text-mid')}>
                         {pct.toFixed(1)}%
                       </span>
                     </div>
@@ -74,11 +83,18 @@ export default function PathologyTable({ results }) {
                         {t('ecg.table.aboveThreshold', { margin: (pct - thresholdPct).toFixed(1) })}
                       </div>
                     )}
+                    {isMaybe && (
+                      <div className="text-[10px] text-warning/80 mt-2">
+                        {t('ecg.table.maybeNote', { margin: (thresholdPct - pct).toFixed(1) })}
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-center">
                     {detected
                       ? <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-danger text-ink text-xs">✓</span>
-                      : <span className="text-low">—</span>}
+                      : isMaybe
+                        ? <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-warning text-ink text-xs">?</span>
+                        : <span className="text-low">—</span>}
                   </td>
                 </tr>
               );
@@ -96,6 +112,10 @@ export default function PathologyTable({ results }) {
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-2 bg-danger rounded" />
           {t('ecg.table.legendDetected')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-2 bg-warning rounded" />
+          {t('ecg.table.legendMaybe')}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-2 bg-primary rounded" />

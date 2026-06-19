@@ -19,16 +19,36 @@ const ecgWith = (detectedCodes, { bpm } = {}) => {
 const ids = (h) => h.regions.map((r) => r.id).sort();
 
 describe('mapEcgToHighlight', () => {
-  it('maps RBBB to the right ventricle (structural, not rate-only)', () => {
+  it('maps RBBB to the right bundle branch (conduction, not the ventricle wall)', () => {
     const h = mapEcgToHighlight(ecgWith(['RBBB']));
-    expect(ids(h)).toContain('rv');
+    expect(ids(h)).toContain('rbb');
+    expect(ids(h)).not.toContain('rv');
     expect(h.rateOnly).toBe(false);
     expect(h.normal).toBe(false);
     expect(h.findingCodes).toContain('RBBB');
   });
 
-  it('maps LBBB to the left ventricle', () => {
-    expect(ids(mapEcgToHighlight(ecgWith(['LBBB'])))).toContain('lv');
+  it('maps LBBB to the left bundle branch', () => {
+    const h = mapEcgToHighlight(ecgWith(['LBBB']));
+    expect(ids(h)).toContain('lbb');
+    expect(ids(h)).not.toContain('lv');
+  });
+
+  it('adds a low-severity context glow on the served ventricle for bundle-branch blocks', () => {
+    const rbbb = mapEcgToHighlight(ecgWith(['RBBB']));
+    expect(rbbb.contextRegions.map((r) => r.id)).toEqual(['rv']);
+    expect(rbbb.contextRegions[0].severity).toBe('low');
+
+    const lbbb = mapEcgToHighlight(ecgWith(['LBBB']));
+    expect(lbbb.contextRegions.map((r) => r.id)).toEqual(['lv']);
+    // The lesion itself stays the fascicle, not the ventricle wall.
+    expect(ids(lbbb)).toEqual(['lbb']);
+  });
+
+  it('has no context regions for non-bundle-branch findings', () => {
+    expect(mapEcgToHighlight(ecgWith(['1AVB'])).contextRegions).toEqual([]);
+    expect(mapEcgToHighlight(ecgWith(['STACH'])).contextRegions).toEqual([]);
+    expect(mapEcgToHighlight(ecgWith([])).contextRegions).toEqual([]);
   });
 
   it('maps PVC to both ventricles', () => {
@@ -43,18 +63,18 @@ describe('mapEcgToHighlight', () => {
     expect(ids(mapEcgToHighlight(ecgWith(['1AVB'])))).toContain('av-node');
   });
 
-  it('treats STACH as a rate-only finding with NO localized structure', () => {
+  it('maps STACH to the SA node (sinus pacemaker, upper right atrium)', () => {
     const h = mapEcgToHighlight(ecgWith(['STACH']));
-    expect(ids(h)).toEqual([]); // rate findings do not pinpoint a site
-    expect(h.rateOnly).toBe(true);
+    expect(ids(h)).toEqual(['ra', 'sa-node']);
+    expect(h.rateOnly).toBe(false);
     expect(h.normal).toBe(false);
     expect(h.findingCodes).toContain('STACH');
   });
 
-  it('treats SBRAD as a rate-only finding with no structure', () => {
+  it('maps SBRAD to the SA node', () => {
     const h = mapEcgToHighlight(ecgWith(['SBRAD']));
-    expect(h.rateOnly).toBe(true);
-    expect(ids(h)).toEqual([]);
+    expect(h.rateOnly).toBe(false);
+    expect(ids(h)).toEqual(['ra', 'sa-node']);
   });
 
   it('returns no regions and normal=true when nothing is detected', () => {
@@ -75,13 +95,13 @@ describe('mapEcgToHighlight', () => {
     };
     const h = mapEcgToHighlight(ecg);
     expect(h.findingCodes).toEqual(['RBBB']); // highest-probability detected
-    expect(ids(h)).toEqual(['rv']);
+    expect(ids(h)).toEqual(['rbb']);
     expect(h.rateOnly).toBe(false);
   });
 
-  it('a rate primary stays rate-only even when a structural finding co-occurs lower', () => {
-    // The screenshot case: Sinus Tachycardia is the headline; a secondary AFIB
-    // flag from the liberal thresholds must NOT light up the atria.
+  it('highlights only the rate primary, not a co-occurring secondary finding', () => {
+    // Sinus Tachycardia is the headline (highest probability); a secondary AFIB
+    // flag from the liberal thresholds must NOT also light up the left atrium.
     const ecg = {
       result_pathology_probabilities: {
         STACH: { probability: 0.92, detected: true },
@@ -90,8 +110,8 @@ describe('mapEcgToHighlight', () => {
     };
     const h = mapEcgToHighlight(ecg);
     expect(h.findingCodes).toEqual(['STACH']);
-    expect(h.rateOnly).toBe(true);
-    expect(ids(h)).toEqual([]); // no pinpoint
+    expect(ids(h)).toEqual(['ra', 'sa-node']); // SA node + right atrium only
+    expect(ids(h)).not.toContain('la'); // AFIB's left atrium must not appear
   });
 
   it('passes through the measured heart rate, rounded', () => {

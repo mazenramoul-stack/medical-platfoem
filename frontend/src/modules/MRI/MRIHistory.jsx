@@ -42,7 +42,8 @@ export default function MRIHistory({ items = [], onDelete }) {
                 <Badge variant={STATUS_VARIANT[m.status] || 'gray'}>
                   {STATUS_VARIANT[m.status] ? t(`mri.status.${m.status}`) : m.status}
                 </Badge>
-                {m.result_tumor_type && <TumorBadge tumorType={m.result_tumor_type} detected={m.result_tumor_detected} />}
+                {(m.result_tumor_type || m.result_tumor_detected != null)
+                  && <TumorBadge tumorType={m.result_tumor_type} detected={m.result_tumor_detected} />}
               </div>
               <div className="text-xs text-gray-500 mt-1">{formatRelative(m.created_at)}</div>
             </Link>

@@ -13,6 +13,7 @@ milliseconds and never trigger model downloads/inference.
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -27,18 +28,35 @@ User = get_user_model()
 
 
 class RegistrationSecurityTest(APITestCase):
-    """The public register endpoint must never mint a non-doctor."""
+    """The public register endpoint may pick doctor/technician but never staff."""
 
-    def test_cannot_self_register_as_admin(self):
+    def setUp(self):
+        # Reset the register throttle (shared LocMemCache) between tests so the
+        # 5/min limit doesn't 429 a later test in the same process.
+        cache.clear()
+
+    def test_cannot_self_register_with_an_invalid_role(self):
+        # 'admin' is no longer a valid role → rejected, no account created.
         resp = self.client.post('/api/auth/register/', {
             'email': 'evil@example.com', 'password': 'StrongPass1!',
             'full_name': 'Evil User', 'role': 'admin',
         }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST, msg=resp.content)
+        self.assertFalse(User.objects.filter(email='evil@example.com').exists())
+
+    def test_cannot_self_register_as_staff_or_superuser(self):
+        # A technician self-registration is allowed, but a malicious is_staff /
+        # is_superuser in the same payload must be ignored.
+        resp = self.client.post('/api/auth/register/', {
+            'email': 'tech@example.com', 'password': 'StrongPass1!',
+            'full_name': 'Tech User', 'role': 'technician',
+            'is_staff': True, 'is_superuser': True,
+        }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, msg=resp.content)
-        # Response reflects doctor, not the requested admin…
-        self.assertEqual(resp.data['user']['role'], 'doctor')
-        # …and the persisted user is a doctor, not an admin.
-        self.assertEqual(User.objects.get(email='evil@example.com').role, 'doctor')
+        user = User.objects.get(email='tech@example.com')
+        self.assertEqual(user.role, 'technician')
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
 
 
 class DoctorIsolationTest(APITestCase):

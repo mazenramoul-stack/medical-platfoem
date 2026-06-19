@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, Brain, FileText, Heart, HeartPulse, Home, LogOut, Users, Waves, X } from 'lucide-react';
+import { Activity, Brain, FileCog, FileText, Heart, HeartPulse, Home, LogOut, Users, Waves, X } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
@@ -15,10 +15,15 @@ const LINKS = [
   { to: '/reports',  labelKey: 'nav.reports',   icon: FileText,   accent: 'neuro' },
 ];
 
+// Technician-only entry (matches the IsTechnician-gated backend endpoint and the
+// role-gated /convert route in App.jsx).
+const TECHNICIAN_LINK = { to: '/convert', labelKey: 'nav.convert', icon: FileCog, accent: 'violet' };
+
 export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { logout, user } = useAuth();
   const { t } = useI18n();
   const { colors } = useTokens();
+  const links = user?.role === 'technician' ? [...LINKS, TECHNICIAN_LINK] : LINKS;
   return (
     <>
       {mobileOpen && (
@@ -55,7 +60,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {LINKS.map(({ to, labelKey, icon: Icon, end, accent }) => {
+          {links.map(({ to, labelKey, icon: Icon, end, accent }) => {
             const accentHex = colors[accent];
             return (
               <NavLink

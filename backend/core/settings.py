@@ -44,6 +44,7 @@ LOCAL_APPS = [
     'apps.eeg',
     'apps.reports',
     'apps.inference',
+    'apps.conversion',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -201,6 +202,9 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True
+# Let cross-origin JS (Vercel frontend -> HF Space backend) read the download
+# filename returned by the converter endpoint.
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
 
 
 # Cache — DRF throttle backend --------------------------------------------

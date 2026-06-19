@@ -24,6 +24,15 @@ class MRIAnalysis(models.Model):
     result_tumor_detected = models.BooleanField(null=True, blank=True)
     result_tumor_type = models.CharField(max_length=255, null=True, blank=True)
     result_confidence = models.FloatField(null=True, blank=True)
+    # U-Net segmentation confidence (mean prob over the mask). Distinct from
+    # result_confidence (the Swin/ViT *classification* confidence): in
+    # segmentation-only mode the classifier never runs, so result_confidence is
+    # null while this field carries the only meaningful confidence.
+    result_segmentation_confidence = models.FloatField(null=True, blank=True)
+    # Full Swin/ViT softmax distribution {label: prob} over the 4 classes
+    # (glioma, meningioma, pituitary, notumor). Null when the classifier did not
+    # run (segmentation-only). Powers the per-class probability breakdown.
+    result_class_probabilities = models.JSONField(null=True, blank=True)
     result_mask_path = models.CharField(max_length=500, null=True, blank=True)
     result_overlay_path = models.CharField(max_length=500, null=True, blank=True)
     result_analysis_path = models.CharField(max_length=500, null=True, blank=True)

@@ -9,10 +9,11 @@ const VARIANTS = {
   gray:      { bg: 'rgb(var(--rgb-hi) / 0.06)',     fg: 'var(--text-mid)',  bd: 'rgb(var(--rgb-hi) / 0.12)' },
 };
 
-export default function Badge({ variant = 'gray', children, className = '' }) {
+export default function Badge({ variant = 'gray', children, className = '', title }) {
   const v = VARIANTS[variant] || VARIANTS.gray;
   return (
     <span
+      title={title}
       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${className}`}
       style={{
         background: v.bg,

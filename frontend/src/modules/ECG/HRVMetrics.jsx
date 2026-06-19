@@ -35,11 +35,12 @@ function MetricCard({ label, value, unit, range }) {
   return (
     <div className="rounded-lg border border-gray-200 p-3">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium text-gray-600">{label}</span>
+        <span className="text-xs font-semibold text-gray-700">{label}</span>
         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${STATUS_BG[status]}`}>
           {statusLabel}
         </span>
       </div>
+      <div className="text-[10px] text-gray-500 leading-tight mb-1">{t(`ecg.hrv.names.${label}`)}</div>
       <div className="text-2xl font-semibold text-gray-900 leading-none">
         {typeof value === 'number' ? value.toFixed(2) : '—'}
         <span className="text-xs text-gray-500 ml-1 font-normal">{unit}</span>

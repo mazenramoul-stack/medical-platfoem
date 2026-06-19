@@ -16,8 +16,9 @@ import { prefersReducedMotion } from '../../theme/tokens.js';
  *
  * `highlight` (optional) is a map of structure id -> { color, intensity } used
  * to glow the structure implicated by a finding. Recognised ids:
- *   'lv' | 'rv' | 'la' | 'ra' | 'av-node' | 'sa-node'.
- * The two nodes are non-anatomical markers shown only while highlighted.
+ *   'lv' | 'rv' | 'la' | 'ra' | 'av-node' | 'sa-node' | 'rbb' | 'lbb'.
+ * The nodes and bundle branches are schematic conduction markers shown only
+ * while highlighted.
  */
 
 function pulse(p, center, width) {
@@ -42,6 +43,8 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
   const raMesh = useRef();
   const saMarker = useRef();
   const avMarker = useRef();
+  const rbbMarker = useRef();
+  const lbbMarker = useRef();
   const phaseRef = useRef(0);
   const [hovered, setHovered] = useState(false);
   const reduced = useMemo(() => prefersReducedMotion(), []);
@@ -149,6 +152,17 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
         color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.2,
         roughness: 0.3, metalness: 0, transparent: true, opacity: 0.95,
       }),
+      // Bundle-branch fascicles sit INSIDE the ventricular mass, so they would
+      // be occluded by the (solid, glowing) served ventricle. depthTest:false +
+      // a high renderOrder draws them on top so the lesion is always visible.
+      markerRbb: new THREE.MeshStandardMaterial({
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.4,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.98, depthTest: false,
+      }),
+      markerLbb: new THREE.MeshStandardMaterial({
+        color: '#ffffff', emissive: new THREE.Color('#ffffff'), emissiveIntensity: 1.4,
+        roughness: 0.3, metalness: 0, transparent: true, opacity: 0.98, depthTest: false,
+      }),
     };
   }, [accent]);
 
@@ -247,6 +261,8 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
     applyVessel(mats.coronary, mats.palette.coronary);
     applyMarker(saMarker, 'sa-node', p);
     applyMarker(avMarker, 'av-node', p);
+    applyMarker(rbbMarker, 'rbb', p);
+    applyMarker(lbbMarker, 'lbb', p);
   });
 
   return (
@@ -283,6 +299,15 @@ export default function Heart3D({ accent = '#f43f5e', scale = 1, bpm = 72, highl
         </mesh>
         <mesh ref={avMarker} material={mats.markerAv} position={[0.05, 0.42, 0.12]} visible={false}>
           <sphereGeometry args={[0.07, 16, 16]} />
+        </mesh>
+        {/* bundle branches — schematic fascicles descending the septum from the
+            AV node toward each ventricle; drawn on top (renderOrder) so they are
+            never hidden behind the served ventricle; shown only when highlighted */}
+        <mesh ref={lbbMarker} material={mats.markerLbb} position={[-0.05, 0.06, 0.14]} rotation={[0, 0, 0.32]} renderOrder={5} visible={false}>
+          <cylinderGeometry args={[0.03, 0.03, 0.55, 10]} />
+        </mesh>
+        <mesh ref={rbbMarker} material={mats.markerRbb} position={[0.26, 0.04, 0.16]} rotation={[0, 0, -0.42]} renderOrder={5} visible={false}>
+          <cylinderGeometry args={[0.03, 0.03, 0.55, 10]} />
         </mesh>
 
         {/* great vessels */}

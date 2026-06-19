@@ -10,6 +10,7 @@ import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
 import HRVMetrics from './HRVMetrics.jsx';
 import PathologyTable from './PathologyTable.jsx';
 import { mapEcgToHighlight } from './ecgAnatomy.js';
+import { deriveDiagnosis } from './diagnosis.js';
 
 import ecgService from '../../services/ecgService.js';
 import patientService from '../../services/patientService.js';
@@ -18,12 +19,14 @@ import { useI18n } from '../../i18n/LanguageContext.jsx';
 
 const STATUS_VARIANT = { completed: 'success', processing: 'warning', pending: 'gray', failed: 'danger' };
 
-function ConfidenceBar({ value, abnormal }) {
+const DIAG_BAR = { abnormal: 'bg-danger', maybe: 'bg-warning', normal: 'bg-success' };
+
+function ConfidenceBar({ value, state = 'normal' }) {
   const pct = typeof value === 'number' ? Math.max(0, Math.min(1, value)) * 100 : 0;
   return (
     <div className="w-full h-2 bg-gray-200 rounded">
       <div
-        className={'h-2 rounded transition-all ' + (abnormal ? 'bg-danger' : 'bg-success')}
+        className={'h-2 rounded transition-all ' + (DIAG_BAR[state] || 'bg-success')}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -80,7 +83,7 @@ export default function ECGResult() {
   };
 
   const hrv = ecg.result_hrv_metrics || {};
-  const abnormal = !!ecg.result_arrhythmia_detected;
+  const diag = deriveDiagnosis(ecg, t);
   const hr = hrv.heart_rate_bpm;
   const hrClsRaw = hrv.hr_classification;
   const hrCls = hrClsRaw && hrClsRaw !== 'N/A'
@@ -134,23 +137,31 @@ export default function ECGResult() {
       )}
 
       {ecg.status === 'completed' && (
-        <div className={'rounded-xl shadow-sm border p-5 ' + (abnormal ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50')}>
+        <div className={'rounded-xl shadow-sm border p-5 '
+          + (diag.state === 'abnormal' ? 'border-red-200 bg-red-50'
+            : diag.state === 'maybe' ? 'border-amber-200 bg-amber-50'
+            : 'border-green-200 bg-green-50')}>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('ecg.result.primaryDiagnosis')}</div>
-              <div className={'text-2xl font-bold mt-1 ' + (abnormal ? 'text-danger' : 'text-success')}>
-                {ecg.result_arrhythmia_type || '—'}
+              <div className={'text-2xl font-bold mt-1 '
+                + (diag.state === 'abnormal' ? 'text-danger' : diag.state === 'maybe' ? 'text-warning' : 'text-success')}>
+                {diag.label}
               </div>
               <div className="text-sm text-gray-700 mt-1">
-                {t('ecg.result.statusLabel')}: <strong>{abnormal ? t('ecg.result.abnormal') : t('ecg.result.normal')}</strong>
+                {t('ecg.result.statusLabel')}: <strong>
+                  {diag.state === 'abnormal' ? t('ecg.result.abnormal')
+                    : diag.state === 'maybe' ? t('ecg.result.maybeStatus')
+                    : t('ecg.result.normal')}
+                </strong>
               </div>
             </div>
             <div className="min-w-[180px] flex-1 max-w-sm">
               <div className="flex justify-between text-xs text-gray-700 mb-1">
                 <span>{t('ecg.result.confidence')}</span>
-                <span className="font-medium">{formatPercent(ecg.result_confidence)}</span>
+                <span className="font-medium">{formatPercent(diag.confidence)}</span>
               </div>
-              <ConfidenceBar value={ecg.result_confidence} abnormal={abnormal} />
+              <ConfidenceBar value={diag.confidence} state={diag.state} />
             </div>
           </div>
         </div>
