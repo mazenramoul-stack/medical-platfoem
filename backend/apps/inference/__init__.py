@@ -7,14 +7,15 @@ and a helper that wraps any pipeline call in a hard timeout.
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 
-from .ecg_pipeline import analyze_ecg
-from .echo_pipeline import analyze_echo
-from .eeg_pipeline import analyze_eeg
+from .ecg_pipeline import analyze_ecg, explain_ecg
+from .echo_pipeline import analyze_echo, explain_echo
+from .eeg_pipeline import analyze_eeg, explain_eeg
 from .model_loader import ModelLoader
 from .mri_pipeline import analyze_mri, explain_mri
 
 __all__ = [
-    'analyze_mri', 'explain_mri', 'analyze_ecg', 'analyze_echo', 'analyze_eeg',
+    'analyze_mri', 'explain_mri', 'analyze_ecg', 'explain_ecg',
+    'analyze_echo', 'explain_echo', 'analyze_eeg', 'explain_eeg',
     'ModelLoader', 'run_inference_with_timeout',
 ]
 

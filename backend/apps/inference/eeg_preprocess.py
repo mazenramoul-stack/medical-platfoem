@@ -56,6 +56,10 @@ BIPOLAR_PAIRS = [
     ("FP2", "F4"), ("F4", "C4"), ("C4", "P4"), ("P4", "O2"),
 ]
 
+# Human-readable channel labels for the 16 bipolar rows above (e.g. "FP1-F7"),
+# in the same row order — used by the EEG SHAP explainer's per-channel importance.
+BIPOLAR_CHANNEL_NAMES = [f"{a}-{b}" for a, b in BIPOLAR_PAIRS]
+
 # Old (10-20) -> new (10-10) electrode aliases so either nomenclature resolves.
 _ELECTRODE_ALIASES = {"T3": "T7", "T4": "T8", "T5": "P7", "T6": "P8"}
 

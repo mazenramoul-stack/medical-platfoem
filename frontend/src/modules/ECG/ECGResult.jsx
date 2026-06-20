@@ -9,6 +9,7 @@ import Loader from '../../components/UI/Loader.jsx';
 import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
 import HRVMetrics from './HRVMetrics.jsx';
 import PathologyTable from './PathologyTable.jsx';
+import ECGExplain from './ECGExplain.jsx';
 import { mapEcgToHighlight } from './ecgAnatomy.js';
 import { deriveDiagnosis } from './diagnosis.js';
 
@@ -215,6 +216,8 @@ export default function ECGResult() {
           <PathologyTable results={ecg.result_pathology_probabilities} />
         </div>
       )}
+
+      {ecg.status === 'completed' && <ECGExplain id={ecg.id} />}
 
       {ecg.model_used && (
         <div className="bg-card rounded-xl shadow-sm border border-gray-200 p-5">

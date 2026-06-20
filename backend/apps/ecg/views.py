@@ -12,14 +12,16 @@ import os
 
 from django.conf import settings
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.inference import analyze_ecg, run_inference_with_timeout
+from apps.inference import analyze_ecg, explain_ecg, run_inference_with_timeout
 from apps.patients.access import get_patient_or_404, scope_by_patient
+from core.media import signed_media_url
 
 from .models import ECGAnalysis
 from .serializers import ECGAnalysisSerializer
@@ -165,3 +167,33 @@ class ECGDetailView(generics.RetrieveDestroyAPIView):
                 logger.warning("Could not delete ECG plot %s: %s", absolute, e)
 
         instance.delete()
+
+
+class ECGExplainView(APIView):
+    """POST /api/ecg/{id}/explain/ — on-demand SHAP saliency for one ECG analysis.
+
+    Mirrors MRIExplainView. Doctor-isolated: the record is resolved from the
+    requesting user's scoped queryset, so another doctor's id returns 404 (never
+    an authorization leak). Optional body ``{pathology}`` attributes one of the 7
+    pathologies; an unknown value falls back to the primary diagnosis. Runs
+    synchronously (a few seconds for GradientShap) and returns a signed,
+    time-limited URL for the generated SHAP plot. Never 500s on bad input —
+    failures come back as the structured ``{status:'failed'}`` envelope with 502.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        analysis = get_object_or_404(
+            scope_by_patient(request.user, ECGAnalysis.objects.all()), pk=pk)
+        if not analysis.file:
+            return Response({'detail': 'No signal on this analysis.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        pathology = request.data.get('pathology')
+        result = run_inference_with_timeout(
+            lambda p: explain_ecg(p, pathology), analysis.file.path, timeout_seconds=300)
+        if result.get('status') != 'success':
+            return Response(result, status=status.HTTP_502_BAD_GATEWAY)
+        # Return a signed, time-limited URL for the generated overlay (never raw /media/).
+        result['shap_path'] = signed_media_url(request, _relative_to_media(result.get('shap_path')))
+        return Response(result, status=status.HTTP_200_OK)

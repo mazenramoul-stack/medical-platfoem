@@ -7,6 +7,7 @@ import Badge from '../../components/UI/Badge.jsx';
 import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
 import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
+import EEGExplain from './EEGExplain.jsx';
 import { mapEegToHighlight } from './eegAnatomy.js';
 import eegService from '../../services/eegService.js';
 import patientService from '../../services/patientService.js';
@@ -34,6 +35,7 @@ export default function EEGResult() {
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState(false);
+  const [explainResult, setExplainResult] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -70,7 +72,10 @@ export default function EEGResult() {
     navigate(patient ? `/patients/${patient.id}` : '/patients');
   };
 
-  const brainHighlight = useMemo(() => mapEegToHighlight(eeg), [eeg]);
+  // The 3D brain marker is enriched by the on-demand SHAP result when present
+  // (electrode-localized "where the model looked"), else falls back to the
+  // label-only mapping — exactly as MRI does with/without its Grad-CAM peak.
+  const brainHighlight = useMemo(() => mapEegToHighlight(eeg, explainResult), [eeg, explainResult]);
 
   if (loading) return <Loader />;
   if (!eeg) return null;
@@ -164,6 +169,8 @@ export default function EEGResult() {
       </div>
 
       {eeg.status === 'completed' && <Anatomy3DPanel highlight={brainHighlight} accent={colors.violet} />}
+
+      {eeg.status === 'completed' && <EEGExplain id={eeg.id} onResult={setExplainResult} />}
 
       {eeg.result_report && (
         <div className="holo-panel p-5">

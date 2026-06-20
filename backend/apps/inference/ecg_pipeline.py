@@ -374,3 +374,149 @@ must be made by a qualified cardiologist.
             'error': str(e),
             'error_type': type(e).__name__,
         }
+
+
+# ---- on-demand SHAP explainability ----------------------------------------
+
+def _render_ecg_shap_figure(signal, shap_map, fs, code, probability):
+    """Build the 12-lead SHAP plot: each lead trace with its saliency shaded behind.
+
+    Mirrors analyze_ecg's 6x2 grid; the SHAP saliency is drawn as a vertical-band
+    background (hot colormap) so it reads as "where in time / which lead mattered".
+    Returns an Agg Figure (the caller saves + closes it).
+    """
+    fig, axes = plt.subplots(6, 2, figsize=(14, 12), sharex=True)
+    t_axis = np.arange(signal.shape[1]) / fs
+    full = PATHOLOGY_FULL_NAMES.get(code, code)
+    for i in range(12):
+        ax = axes[i % 6, i // 6]
+        ymin = float(np.min(signal[i]))
+        ymax = float(np.max(signal[i]))
+        if ymax <= ymin:
+            ymax = ymin + 1.0
+        ax.imshow(shap_map[i][np.newaxis, :], aspect='auto', cmap='hot', alpha=0.45,
+                  extent=[float(t_axis[0]), float(t_axis[-1]), ymin, ymax],
+                  origin='lower', vmin=0.0, vmax=1.0)
+        ax.plot(t_axis, signal[i], linewidth=0.5, color='black')
+        ax.set_ylabel(LEAD_NAMES[i], fontsize=8)
+        ax.set_ylim(ymin, ymax)
+        ax.grid(True, alpha=0.2)
+    axes[-1, 0].set_xlabel('Time (s)')
+    axes[-1, 1].set_xlabel('Time (s)')
+    fig.suptitle(f'ECG SHAP saliency — {full} ({probability:.1%})')
+    plt.tight_layout()
+    return fig
+
+
+def explain_ecg(file_path: str, pathology: str | None = None) -> dict:
+    """On-demand SHAP (Captum GradientShap) saliency for the 12-lead ECG model.
+
+    Mirrors ``explain_mri``: returns the standard inference envelope and NEVER
+    raises into the DRF view (Contract 2). Attributes the PRIMARY diagnosis by
+    default, or a specific one of the 7 pathologies when ``pathology`` is given.
+    An invalid ``pathology`` falls back to the primary diagnosis (kept explicit
+    via the returned ``pathology`` field) so a bad client value never breaks the
+    envelope contract.
+
+    THREAD-SAFETY: GradientShap backpropagates on the shared ECG model singleton;
+    safe today only because inference is synchronous (see ecg_shap.py). Do not
+    parallelize ECG requests without revisiting this.
+
+    Args:
+        file_path: absolute path to an ECG file (.csv / .edf / .dat+.hea).
+        pathology: optional pathology code to attribute (one of AFIB, 1AVB, STACH,
+            SBRAD, RBBB, LBBB, PVC); default/invalid -> primary diagnosis.
+
+    Returns:
+        On success: ``{status:'success', shap_path, pathology, pathology_full,
+        probability, per_lead_importance:{lead: score}, top_leads:[...],
+        requested_pathology, elapsed_seconds}``.
+        On failure: ``{status:'failed', error, error_type}``.
+    """
+    t_start = time.time()
+    try:
+        from django.conf import settings
+        from .explainers.ecg_shap import ecg_gradient_shap, per_lead_importance
+
+        loader = ModelLoader()
+        device = loader.get_device()
+
+        # 1. Load + preprocess EXACTLY as analyze_ecg, so the attribution matches
+        #    what the classifier actually sees during normal inference.
+        signal, fs, lead_quality = load_ecg_signal(file_path)  # (12, 5000) @ 500 Hz
+        if signal.shape[0] != 12 or lead_quality.get('padded_from_fewer'):
+            n = lead_quality.get('n_leads_detected', int(signal.shape[0]))
+            return {
+                'status': 'failed',
+                'error': (f'Reduced lead set: only {n} genuine lead(s) detected. SHAP '
+                          f'attribution on a broadcast single lead would be meaningless '
+                          f'— refusing (the 12-lead models require a full 12-lead ECG).'),
+                'error_type': 'InsufficientLeads',
+            }
+        b, a = butter(4, [0.5, 40], btype='bandpass', fs=fs)
+        signal_filtered = filtfilt(b, a, signal, axis=1)
+        signal_normalized = (
+            (signal_filtered - signal_filtered.mean(axis=1, keepdims=True))
+            / (signal_filtered.std(axis=1, keepdims=True) + 1e-8)
+        ).astype(np.float32)
+
+        # 2. Models + per-pathology probabilities (to pick the primary diagnosis).
+        ecg_models = loader.get_ecg_models()
+        if not ecg_models:
+            raise RuntimeError('No ECG pathology models are loaded.')
+        input_tensor = torch.from_numpy(signal_normalized).float().unsqueeze(0).to(device)
+        probs = {}
+        for code, model in ecg_models.items():
+            try:
+                with torch.no_grad():
+                    out = model(input_tensor)
+                probs[code] = _scalar_probability(out)
+            except Exception as e:
+                logger.warning("explain_ecg: probability for %s failed: %s", code, e)
+        if not probs:
+            raise RuntimeError('No ECG pathology models produced a valid prediction.')
+
+        # 3. Choose the target pathology: requested-if-valid, else primary (argmax).
+        requested = pathology.strip().upper() if isinstance(pathology, str) and pathology.strip() else None
+        if requested and requested in ecg_models:
+            target_code = requested
+        else:
+            target_code = max(probs, key=probs.get)
+        target_model = ecg_models[target_code]
+        probability = float(probs.get(target_code, 0.0))
+
+        # 4. GradientShap (OUTSIDE no_grad — it backpropagates).
+        shap_map = ecg_gradient_shap(target_model, signal_normalized)  # (12, 5000) in [0,1]
+        lead_imp = per_lead_importance(shap_map, LEAD_NAMES)
+        top_leads = [lead for lead, _ in sorted(lead_imp.items(), key=lambda x: -x[1])[:3]]
+
+        # 5. Render + persist the 12-lead SHAP plot. Stable name (input stem +
+        #    pathology) so re-runs overwrite instead of accumulating.
+        explanations_dir = os.path.join(settings.MEDIA_ROOT, 'ecg', 'explanations')
+        stem = os.path.splitext(os.path.basename(file_path))[0]
+        out_name = f'{stem}_{target_code}.png'
+        fig = _render_ecg_shap_figure(signal_normalized, shap_map, fs, target_code, probability)
+        shap_path = save_visualization(fig, explanations_dir, out_name)
+        plt.close(fig)
+
+        elapsed = time.time() - t_start
+        logger.info("explain_ecg: %s complete in %.2fs", target_code, elapsed)
+        return _sanitize({
+            'status': 'success',
+            'shap_path': shap_path,
+            'pathology': target_code,
+            'pathology_full': PATHOLOGY_FULL_NAMES.get(target_code, target_code),
+            'probability': probability,
+            'per_lead_importance': lead_imp,
+            'top_leads': top_leads,
+            'requested_pathology': requested,
+            'elapsed_seconds': elapsed,
+        })
+
+    except Exception as e:
+        logger.exception("explain_ecg failed")
+        return {
+            'status': 'failed',
+            'error': str(e),
+            'error_type': type(e).__name__,
+        }

@@ -162,7 +162,12 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
   }, [accent]);
 
   const hasHighlight = !!(highlight && Object.keys(highlight).length);
+  // A positional marker (Grad-CAM / SHAP peak) sits *inside* the brain, so when it
+  // is present we x-ray even the implicated mesh — otherwise a solid cerebrum hides
+  // the dot. XRAY is the see-through opacity for that case.
+  const focusPresent = !!(highlight && highlight.gradcamFocus);
   const GHOST = 0.3;
+  const XRAY = 0.32;
   const setO = (m, t, solid) => { m.opacity = THREE.MathUtils.lerp(m.opacity, t, 0.12); m.depthWrite = solid; };
 
   // Glow the implicated structure and keep it solid; ghost the rest to translucent
@@ -175,7 +180,8 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
       m.color.lerp(baseColor, 0.12);
       m.emissive.set(hl.color);
       m.emissiveIntensity = THREE.MathUtils.lerp(m.emissiveIntensity, hl.intensity, 0.12);
-      setO(m, 1, true);
+      // Solid normally; translucent (x-ray) when a positional dot must show through.
+      setO(m, focusPresent ? XRAY : 1, !focusPresent);
     } else if (hasHighlight) {
       m.color.lerp(mats.palette.grey, 0.1);
       m.emissive.set(mats.palette.grey);
@@ -211,6 +217,10 @@ export default function Brain3D({ accent = '#00ffcc', scale = 1, highlight = nul
     if (!mesh) return;
     mesh.visible = !!focus;
     if (!focus) return;
+    // Draw the dot over the now-translucent brain (no depth test) so its exact
+    // location reads clearly instead of being swallowed by the mesh.
+    mesh.renderOrder = 20;
+    mesh.material.depthTest = false;
     mesh.position.set(focus.x, focus.y, focus.z ?? 0.35);
     mesh.material.emissive.set(focus.color);
     mesh.material.color.set(focus.color);

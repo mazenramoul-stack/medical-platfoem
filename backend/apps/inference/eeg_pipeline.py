@@ -32,9 +32,12 @@ import numpy as np
 import torch
 
 from .eeg_preprocess import (
+    BIPOLAR_CHANNEL_NAMES,
     HARMFUL_CLASSES,
     IIIC_CLASS_NAMES,
     IIIC_CLASSES,
+    SEGMENT_SECONDS,
+    TARGET_RATE,
     edf_to_bipolar,
     segment_recording,
     stack_segments,
@@ -215,4 +218,165 @@ physician.
 
     except Exception as e:
         logger.exception('analyze_eeg failed')
+        return {'status': 'failed', 'error': str(e), 'error_type': type(e).__name__}
+
+
+# ---- on-demand SHAP explainability ----------------------------------------
+
+def _resolve_target_class(value) -> int | None:
+    """Map a requested target class to an IIIC index, or None if invalid.
+
+    Accepts a canonical class name ('SZ', 'Other', case-insensitive) or an index
+    (int or numeric string, 0..5). Anything else -> None (caller falls back to the
+    predicted class). Mirrors ``explain_ecg``'s invalid-pathology handling.
+    """
+    if value is None or isinstance(value, bool):  # bool is an int subclass — exclude
+        return None
+    if isinstance(value, int):
+        return value if 0 <= value < len(IIIC_CLASSES) else None
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return None
+        upper = s.upper()
+        for i, c in enumerate(IIIC_CLASSES):
+            if c.upper() == upper:
+                return i
+        if s.isdigit():
+            idx = int(s)
+            return idx if 0 <= idx < len(IIIC_CLASSES) else None
+    return None
+
+
+def _render_eeg_shap_figure(segment, shap_map, channel_names, fs, code, class_name,
+                            probability):
+    """Build the 16-channel SHAP plot: each bipolar trace with its saliency shaded.
+
+    Mirrors ``_render_ecg_shap_figure`` (one row per channel; the SHAP saliency is
+    drawn as a hot-colormap background band so it reads as "where in time / which
+    channel mattered"). Returns an Agg Figure (the caller saves + closes it).
+    """
+    n = segment.shape[0]
+    fig, axes = plt.subplots(n, 1, figsize=(12, 14), sharex=True)
+    t_axis = np.arange(segment.shape[1]) / fs
+    for i in range(n):
+        ax = axes[i]
+        ymin = float(np.min(segment[i]))
+        ymax = float(np.max(segment[i]))
+        if ymax <= ymin:
+            ymax = ymin + 1.0
+        ax.imshow(shap_map[i][np.newaxis, :], aspect='auto', cmap='hot', alpha=0.45,
+                  extent=[float(t_axis[0]), float(t_axis[-1]), ymin, ymax],
+                  origin='lower', vmin=0.0, vmax=1.0)
+        ax.plot(t_axis, segment[i], linewidth=0.5, color='black')
+        ax.set_ylabel(channel_names[i], fontsize=7, rotation=0, ha='right', va='center')
+        ax.set_ylim(ymin, ymax)
+        ax.set_yticks([])
+        ax.grid(True, axis='x', alpha=0.2)
+    axes[-1].set_xlabel('Time (s)')
+    fig.suptitle(f'EEG SHAP saliency — {code} ({class_name}) {probability:.1%}')
+    plt.tight_layout()
+    return fig
+
+
+def explain_eeg(file_path: str, target_class=None) -> dict:
+    """On-demand SHAP (Captum GradientShap) saliency for the BIOT IIIC EEG model.
+
+    Mirrors ``explain_ecg`` / ``explain_mri``: returns the standard inference
+    envelope and NEVER raises into the DRF view (Contract 2). BIOT is multi-class,
+    so — like the Swin MRI classifier — it attributes the PREDICTED class (argmax of
+    the mean 6-class softmax) by default, or a specific one of the 6 IIIC classes
+    when ``target_class`` is given (by canonical name or index). An invalid value
+    falls back to the predicted class (kept explicit via the returned fields) so a
+    bad client value never breaks the envelope contract.
+
+    A whole recording is many 10 s segments; SHAP attributes the single segment that
+    most strongly expresses the target class (its highest-probability segment) — the
+    most representative window to explain — and reports that segment's index/time.
+
+    THREAD-SAFETY: GradientShap backpropagates on the shared BIOT model singleton;
+    safe today only because inference is synchronous (see eeg_shap.py). Do not
+    parallelize EEG requests without revisiting this.
+
+    Args:
+        file_path: absolute path to a referential 10-20 EDF recording.
+        target_class: optional IIIC class to attribute — canonical name
+            ('SZ'/'LPD'/'GPD'/'LRDA'/'GRDA'/'Other') or index 0..5; default/invalid
+            -> predicted class.
+
+    Returns:
+        On success: ``{status:'success', shap_path, predicted_class, target_class,
+        class_probabilities, probability, per_channel_importance:{channel: score},
+        top_channels:[...], segment_index, segment_seconds, ...}``.
+        On failure: ``{status:'failed', error, error_type}``.
+    """
+    t_start = time.time()
+    try:
+        from django.conf import settings
+        from .explainers.eeg_shap import eeg_gradient_shap, per_channel_importance
+
+        loader = ModelLoader()
+        device = loader.get_device()
+
+        # 1. Load + preprocess EXACTLY as analyze_eeg, so the attribution matches
+        #    what the classifier actually sees during normal inference.
+        bipolar = edf_to_bipolar(file_path)            # (16, T) @ 200 Hz
+        segments = segment_recording(bipolar)          # list of (16, 2000)
+        x = stack_segments(segments)                   # (n, 16, 2000)
+
+        model = loader.get_eeg_model()                 # raises if head not trained
+        probs = _predict_segments(model, x, device)    # (n, 6) softmax
+
+        # 2. Mean softmax per class -> class_probabilities + predicted (argmax).
+        mean_prob = {c: float(probs[:, i].mean()) for i, c in enumerate(IIIC_CLASSES)}
+        predicted_idx = int(np.argmax([mean_prob[c] for c in IIIC_CLASSES]))
+        predicted_class = IIIC_CLASSES[predicted_idx]
+
+        # 3. Resolve the target class: requested-if-valid, else predicted.
+        target_idx = _resolve_target_class(target_class)
+        if target_idx is None:
+            target_idx = predicted_idx
+        target_code = IIIC_CLASSES[target_idx]
+
+        # 4. Attribute the segment that most strongly expresses the target class.
+        seg_idx = int(np.argmax(probs[:, target_idx]))
+        segment = np.asarray(segments[seg_idx], dtype=np.float32)  # (16, 2000)
+
+        # 5. GradientShap (OUTSIDE no_grad — it backpropagates).
+        shap_map = eeg_gradient_shap(model, segment, target_class=target_idx)  # (16, 2000)
+        chan_imp = per_channel_importance(shap_map, BIPOLAR_CHANNEL_NAMES)
+        top_channels = [ch for ch, _ in sorted(chan_imp.items(), key=lambda kv: -kv[1])[:3]]
+
+        # 6. Render + persist. Stable name (input stem + class) so re-runs overwrite.
+        explanations_dir = os.path.join(settings.MEDIA_ROOT, 'eeg', 'explanations')
+        stem = os.path.splitext(os.path.basename(file_path))[0]
+        out_name = f'{stem}_{target_code}.png'
+        fig = _render_eeg_shap_figure(
+            segment, shap_map, BIPOLAR_CHANNEL_NAMES, TARGET_RATE,
+            target_code, IIIC_CLASS_NAMES[target_code], mean_prob[target_code])
+        shap_path = save_visualization(fig, explanations_dir, out_name)
+        plt.close(fig)
+
+        elapsed = time.time() - t_start
+        logger.info('explain_eeg: %s complete in %.2fs', target_code, elapsed)
+        return {
+            'status': 'success',
+            'shap_path': shap_path,
+            'predicted_class': predicted_class,
+            'predicted_class_name': IIIC_CLASS_NAMES[predicted_class],
+            'target_class': target_code,
+            'target_class_name': IIIC_CLASS_NAMES[target_code],
+            'requested_class': target_class if isinstance(target_class, (str, int)) else None,
+            'probability': mean_prob[target_code],
+            'class_probabilities': mean_prob,
+            'per_channel_importance': chan_imp,
+            'top_channels': top_channels,
+            'segment_index': seg_idx,
+            'segment_seconds': seg_idx * SEGMENT_SECONDS,
+            'segments_analyzed': len(segments),
+            'elapsed_seconds': elapsed,
+        }
+
+    except Exception as e:
+        logger.exception('explain_eeg failed')
         return {'status': 'failed', 'error': str(e), 'error_type': type(e).__name__}

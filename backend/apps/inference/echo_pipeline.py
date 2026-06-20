@@ -227,3 +227,155 @@ made by a qualified physician.
     except Exception as e:
         logger.exception('analyze_echo failed')
         return {'status': 'failed', 'error': str(e), 'error_type': type(e).__name__}
+
+
+# ---- on-demand SHAP explainability ----------------------------------------
+
+def _build_ef_clip(norm_fchw: np.ndarray, start: int = 0):
+    """Build ONE EF clip (3, CLIP_LEN, H, W) the same way ``_predict_ef`` does.
+
+    Loops the video if it is shorter than one clip span, then samples CLIP_LEN
+    frames at stride CLIP_PERIOD starting at ``start``. Returns the (3, T, H, W)
+    clip plus the looped source (so the caller can fetch aligned display frames).
+    """
+    span = CLIP_LEN * CLIP_PERIOD
+    src = norm_fchw
+    if src.shape[0] < span:
+        reps = int(np.ceil(span / src.shape[0]))
+        src = np.tile(src, (reps, 1, 1, 1))
+    clip = src[start:start + span:CLIP_PERIOD]          # (CLIP_LEN, 3, H, W)
+    clip_3thw = np.transpose(clip, (1, 0, 2, 3))        # (3, T, H, W)
+    return clip_3thw, src
+
+
+def _render_echo_shap_figure(disp_frames, saliency, t_imp, ef, sel_idx, top_idx,
+                             clip_period):
+    """Build the Echo SHAP figure: saliency overlay montage + temporal curve.
+
+    Top row: ``sel_idx`` representative clip frames (the most salient ones, in
+    temporal order) with the SHAP saliency heat-overlaid on the 2D echo plane.
+    Bottom: the per-frame importance curve over the analysed clip, with the top
+    frames marked. Returns an Agg Figure (the caller saves + closes it).
+    """
+    k = len(sel_idx)
+    fig = plt.figure(figsize=(3.2 * max(k, 2), 6.5))
+    gs = fig.add_gridspec(2, max(k, 2), height_ratios=[3, 2])
+    for j, idx in enumerate(sel_idx):
+        ax = fig.add_subplot(gs[0, j])
+        ax.imshow(disp_frames[idx].astype(np.uint8))
+        ax.imshow(saliency[idx], cmap='hot', alpha=0.45, vmin=0.0, vmax=1.0)
+        ax.set_title(f'frame {idx * clip_period}', fontsize=9)
+        ax.axis('off')
+    axc = fig.add_subplot(gs[1, :])
+    x = np.arange(len(t_imp))
+    axc.plot(x, t_imp, color='#d62728', linewidth=1.5)
+    axc.fill_between(x, t_imp, color='#d62728', alpha=0.15)
+    if top_idx:
+        axc.scatter(top_idx, [t_imp[i] for i in top_idx], color='black', zorder=3, s=18)
+    axc.set_xlabel('Clip frame (≈ time)')
+    axc.set_ylabel('Frame importance')
+    axc.set_ylim(0.0, 1.05)
+    axc.grid(True, alpha=0.2)
+    fig.suptitle(f'Echo EF SHAP saliency — EF {ef:.1f}% ({_ef_category(ef)})')
+    plt.tight_layout()
+    return fig
+
+
+def explain_echo(file_path: str, n_samples: int = 8) -> dict:
+    """On-demand SHAP (Captum GradientShap) saliency for the EchoNet EF model.
+
+    Mirrors ``explain_ecg``: returns the standard inference envelope and NEVER
+    raises into the DRF view (Contract 2). Attributes the SINGLE EF regression
+    output (``target=0``) over ONE representative clip — "which frames and which
+    regions of the 2D view drove the EF estimate".
+
+    HONESTY: this is pixel/temporal saliency over a single 2D ultrasound plane —
+    NOT regional wall-motion analysis (EchoNet gives a GLOBAL EF) and NOT a
+    clinical rationale. (Attributing the LV segmentation model is left as a
+    documented hook for a future v2 — EF is the clinically primary output.)
+
+    THREAD-SAFETY: GradientShap backpropagates on the shared EF model singleton;
+    safe today only because echo inference is synchronous (see echo_shap.py). Do
+    not parallelize echo requests without revisiting this. R(2+1)D-18 over a clip
+    is heavy on CPU, so the default ``n_samples`` is small; a GPU host (CUDA) makes
+    a larger value affordable.
+
+    Args:
+        file_path: absolute path to an echo video (.avi / .mp4 / ...).
+        n_samples: GradientShap samples (more = smoother, slower).
+
+    Returns:
+        On success: ``{status:'success', shap_path, ef, target:'ef',
+        frame_importance:[...], top_frames:[{clip_index, video_frame, importance}],
+        n_frames, elapsed_seconds}``.
+        On failure: ``{status:'failed', error, error_type}``.
+    """
+    t_start = time.time()
+    try:
+        from django.conf import settings
+        from .explainers.echo_shap import echo_gradient_shap, frame_importance
+
+        loader = ModelLoader()
+        device = loader.get_device()
+
+        # 1. Load + normalise EXACTLY as analyze_echo, so the attribution matches
+        #    what the EF model actually sees during normal inference.
+        frames = load_echo_video(file_path)                 # (F,H,W,3) 0-255
+        norm = _normalize(frames)                           # (F,3,H,W)
+
+        seg_model, ef_model = loader.get_echo_models()      # raises if not bundled
+
+        # 2. Build ONE representative clip (first clip, _predict_ef construction).
+        clip_3thw, _ = _build_ef_clip(norm, start=0)        # (3, T, H, W)
+        # Aligned display frames (looped the same way) for the overlay montage.
+        disp_clip, _ = _build_ef_clip(np.transpose(frames, (0, 3, 1, 2)), start=0)
+        disp_frames = np.transpose(disp_clip, (1, 2, 3, 0))  # (T, H, W, 3)
+
+        # 3. EF for context (under no_grad — display only).
+        with torch.no_grad():
+            ctx = torch.from_numpy(clip_3thw).unsqueeze(0).float().to(device)
+            ef = float(ef_model(ctx).item())
+        ef = float(max(0.0, min(100.0, ef)))
+
+        # 4. GradientShap (OUTSIDE no_grad — it backpropagates).
+        saliency = echo_gradient_shap(ef_model, clip_3thw, n_samples=n_samples)  # (T,H,W)
+        t_imp = frame_importance(saliency)                  # (T,) in [0,1]
+        n_frames = int(saliency.shape[0])
+
+        # 5. Top-3 frames by importance; selection for the montage = those frames
+        #    in temporal order (left-to-right reads as time).
+        order = [int(i) for i in np.argsort(t_imp)[::-1]]
+        top_idx = order[:3]
+        sel_idx = sorted(top_idx)
+        top_frames = [
+            {'clip_index': i, 'video_frame': int(i * CLIP_PERIOD),
+             'importance': float(t_imp[i])}
+            for i in top_idx
+        ]
+
+        # 6. Render + persist the SHAP montage + temporal curve. Stable name
+        #    (input stem) so re-runs overwrite instead of accumulating.
+        explanations_dir = os.path.join(settings.MEDIA_ROOT, 'echo', 'explanations')
+        stem = os.path.splitext(os.path.basename(file_path))[0]
+        out_name = f'{stem}_ef.png'
+        fig = _render_echo_shap_figure(
+            disp_frames, saliency, t_imp, ef, sel_idx, top_idx, CLIP_PERIOD)
+        shap_path = save_visualization(fig, explanations_dir, out_name)
+        plt.close(fig)
+
+        elapsed = time.time() - t_start
+        logger.info('explain_echo: complete in %.2fs (EF=%.1f%%)', elapsed, ef)
+        return {
+            'status': 'success',
+            'shap_path': shap_path,
+            'ef': ef,
+            'target': 'ef',
+            'frame_importance': [float(v) for v in t_imp],
+            'top_frames': top_frames,
+            'n_frames': n_frames,
+            'elapsed_seconds': elapsed,
+        }
+
+    except Exception as e:
+        logger.exception('explain_echo failed')
+        return {'status': 'failed', 'error': str(e), 'error_type': type(e).__name__}

@@ -11,14 +11,16 @@ import os
 
 from django.conf import settings
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.inference import analyze_echo, run_inference_with_timeout
+from apps.inference import analyze_echo, explain_echo, run_inference_with_timeout
 from apps.patients.access import get_patient_or_404, scope_by_patient
+from core.media import signed_media_url
 
 from .models import EchoAnalysis
 from .serializers import EchoAnalysisSerializer
@@ -144,3 +146,33 @@ class EchoDetailView(generics.RetrieveDestroyAPIView):
             except OSError as e:
                 logger.warning('Could not delete echo artifact %s: %s', absolute, e)
         instance.delete()
+
+
+class EchoExplainView(APIView):
+    """POST /api/echo/{id}/explain/ — on-demand SHAP saliency for the EF estimate.
+
+    Mirrors ECGExplainView / EEGExplainView. Doctor-isolated: the record is resolved
+    from the requesting user's scoped queryset, so another doctor's id returns 404
+    (never an authorization leak). Runs synchronously (R(2+1)D-18 GradientShap over
+    one clip — heavier than ECG, so a 300 s budget) and returns a signed,
+    time-limited URL for the generated SHAP montage. Never 500s on bad input —
+    failures come back as the structured ``{status:'failed'}`` envelope with 502.
+
+    The 2D saliency overlay + temporal frame-importance is signal/pixel-level
+    saliency over a single ultrasound plane — NOT regional wall-motion analysis.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        analysis = get_object_or_404(
+            scope_by_patient(request.user, EchoAnalysis.objects.all()), pk=pk)
+        if not analysis.file:
+            return Response({'detail': 'No video on this analysis.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        result = run_inference_with_timeout(explain_echo, analysis.file.path, 300)
+        if result.get('status') != 'success':
+            return Response(result, status=status.HTTP_502_BAD_GATEWAY)
+        # Return a signed, time-limited URL for the generated montage (never raw /media/).
+        result['shap_path'] = signed_media_url(request, _relative_to_media(result.get('shap_path')))
+        return Response(result, status=status.HTTP_200_OK)

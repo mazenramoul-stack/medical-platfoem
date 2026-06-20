@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/UI/ConfirmDialog.jsx';
 import Loader from '../../components/UI/Loader.jsx';
 import Anatomy3DPanel from '../../components/three/Anatomy3DPanel.jsx';
 import EFGauge from './EFGauge.jsx';
+import EchoExplain from './EchoExplain.jsx';
 import { mapEchoToHighlight } from './echoAnatomy.js';
 import echoService from '../../services/echoService.js';
 import patientService from '../../services/patientService.js';
@@ -154,6 +155,8 @@ export default function EchoResult() {
       </div>
 
       {echo.status === 'completed' && <Anatomy3DPanel highlight={heartHighlight} />}
+
+      {echo.status === 'completed' && <EchoExplain id={echo.id} />}
 
       {echo.result_report && (
         <div className="holo-panel p-5">

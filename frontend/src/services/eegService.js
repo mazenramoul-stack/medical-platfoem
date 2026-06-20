@@ -18,6 +18,10 @@ const eegService = {
   getById:      (id) => api.get(`/eeg/${id}/`).then((r) => r.data),
   getByPatient: (patientId) => api.get(`/eeg/?patient_id=${patientId}`).then((r) => r.data),
   delete:       (id) => api.delete(`/eeg/${id}/`).then((r) => r.data),
+  // On-demand SHAP explainability: signal-level saliency (which channels/segments
+  // drove the prediction) for the predicted IIIC class or a chosen one.
+  explain:      (id, targetClass) =>
+    api.post(`/eeg/${id}/explain/`, targetClass ? { target_class: targetClass } : {}).then((r) => r.data),
 };
 
 export default eegService;

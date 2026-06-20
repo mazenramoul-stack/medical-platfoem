@@ -18,6 +18,9 @@ const echoService = {
   getById:      (id) => api.get(`/echo/${id}/`).then((r) => r.data),
   getByPatient: (patientId) => api.get(`/echo/?patient_id=${patientId}`).then((r) => r.data),
   delete:       (id) => api.delete(`/echo/${id}/`).then((r) => r.data),
+  // On-demand SHAP explainability: pixel/temporal saliency over the 2D view (which
+  // frames and regions drove the EF estimate) — a single EF output, so no chooser.
+  explain:      (id) => api.post(`/echo/${id}/explain/`, {}).then((r) => r.data),
 };
 
 export default echoService;
