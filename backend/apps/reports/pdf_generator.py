@@ -306,10 +306,12 @@ class MedicalReportGenerator:
         return flow
 
     def _ecg_section(self) -> list:
-        flow = [Paragraph('12-LEAD ECG ANALYSIS', self._styles['h2'])]
+        hrv = self.ecg.result_hrv_metrics or {}
+        single_lead = bool(hrv.get('single_lead'))
+        title = 'SINGLE-LEAD (LEAD I) ECG SCREENING' if single_lead else '12-LEAD ECG ANALYSIS'
+        flow = [Paragraph(title, self._styles['h2'])]
         flow.append(self._models_used_paragraph(self.ecg.model_used))
 
-        hrv = self.ecg.result_hrv_metrics or {}
         conf = f'{(self.ecg.result_confidence or 0) * 100:.2f}%' if self.ecg.result_confidence is not None else '—'
         hr_value = hrv.get('heart_rate_bpm')
         hr = f'{hr_value:.1f} bpm' if isinstance(hr_value, (int, float)) else '—'
@@ -374,8 +376,10 @@ class MedicalReportGenerator:
             img = _sized_image(plot, max_width_in=5.5, max_height_in=5.0)
             if img is not None:
                 flow.append(img)
-                flow.append(Paragraph('Figure: 12-lead ECG (Lead II R-peaks marked in red).',
-                                      self._styles['image_cap']))
+                caption = ('Figure: Single-lead (Lead I) smartwatch ECG (R-peaks marked).'
+                           if single_lead
+                           else 'Figure: 12-lead ECG (Lead II R-peaks marked in red).')
+                flow.append(Paragraph(caption, self._styles['image_cap']))
 
         # Rule-based flags
         flags = hrv.get('additional_flags') or []

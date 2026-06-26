@@ -33,6 +33,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 MRI_SAMPLE = BACKEND_DIR / "media" / "mri" / "test_sample.png"
 ECG_SAMPLE = BACKEND_DIR / "media" / "ecg" / "test_sample.csv"
+SMARTWATCH_SAMPLE = BACKEND_DIR / "media" / "ecg" / "test_smartwatch.pdf"
 
 
 # ---------------------------------------------------------------------------
@@ -143,6 +144,30 @@ class ECGPipelineTest(SimpleTestCase):
             self.assertIn("detected", entry)
             self.assertGreaterEqual(entry["probability"], 0.0)
             self.assertLessEqual(entry["probability"], 1.0)
+
+
+@unittest.skipUnless(SMARTWATCH_SAMPLE.exists(),
+                     f"Missing sample smartwatch PDF at {SMARTWATCH_SAMPLE}")
+class SmartwatchAnalyzePipelineTest(SimpleTestCase):
+    """analyze_smartwatch_ecg: single-lead screening envelope + HR ground truth."""
+
+    def test_analyze_smartwatch_envelope(self):
+        from apps.inference import analyze_smartwatch_ecg
+
+        result = analyze_smartwatch_ecg(str(SMARTWATCH_SAMPLE))
+        self.assertEqual(result.get("status"), "success", msg=f"failed: {result}")
+        # Single lead — no fabricated 12-lead pathology probabilities.
+        self.assertIsNone(result["all_pathology_probabilities"])
+        self.assertTrue(result["single_lead"])
+        self.assertTrue(result["hrv_metrics"]["single_lead"])
+        self.assertEqual(result["hrv_metrics"]["lead"], "I")
+        # Ground truth: the watch printed 76 bpm.
+        self.assertAlmostEqual(result["heart_rate_bpm"], 76.0, delta=6.0,
+                               msg=f'HR {result["heart_rate_bpm"]} far from 76')
+        for key in ("diagnosis", "hr_classification", "plot_path", "report", "models_used"):
+            self.assertIn(key, result)
+        # The disclaimer must make the single-lead limitation explicit.
+        self.assertIn("single-lead", result["report"].lower())
 
 
 # ---------------------------------------------------------------------------
@@ -295,6 +320,30 @@ class APITest(APITestCase):
         self.assertIn(resp.status_code, (201, 202), msg=resp.content)
         self.assertIn("status", resp.data)
         self.assertEqual(resp.data["patient"], pid)
+
+    @unittest.skipUnless(SMARTWATCH_SAMPLE.exists(),
+                         f"Missing sample smartwatch PDF at {SMARTWATCH_SAMPLE}")
+    def test_ecg_smartwatch_pdf_upload_saves_single_lead(self):
+        """A smartwatch PDF uploaded on the ECG page becomes a completed
+        single-lead analysis (HR/rhythm), not a refused 12-lead diagnosis."""
+        self._auth()
+        pid = self.client.post("/api/patients/", {
+            "full_name": "Watch Patient", "age": 41, "gender": "M",
+        }, format="json").data["id"]
+
+        with open(SMARTWATCH_SAMPLE, "rb") as fh:
+            upload = SimpleUploadedFile("watch.pdf", fh.read(), content_type="application/pdf")
+        resp = self.client.post("/api/ecg/upload/", {
+            "patient_id": pid, "file": upload,
+        }, format="multipart")
+        self.assertEqual(resp.status_code, 201, msg=resp.content)
+        self.assertEqual(resp.data["status"], "completed")
+        self.assertEqual(resp.data["patient"], pid)
+        # Single-lead: HRV flagged single_lead, no 12-lead pathology table.
+        self.assertTrue(resp.data["result_hrv_metrics"].get("single_lead"))
+        self.assertIsNone(resp.data["result_pathology_probabilities"])
+        self.assertIn("Single-lead", resp.data["result_arrhythmia_type"])
+        self.assertAlmostEqual(resp.data["result_hrv_metrics"]["heart_rate_bpm"], 76.0, delta=6.0)
 
     def test_report_generation(self):
         """Reports require at least one *completed* analysis. If our synthetic

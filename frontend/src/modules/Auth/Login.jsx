@@ -105,6 +105,7 @@ export default function Login() {
             </div>
 
             <div className="holo-panel p-7" style={{ boxShadow: '0 0 50px var(--glow-soft)' }}>
+              <img src="/neuracard-logo.png" alt="NeuraCard" className="w-20 h-20 mx-auto mb-4 object-contain" />
               <h2 className="text-lg font-mono font-bold text-hi mb-1 tracking-wide">{t('auth.login.accessTerminal')}</h2>
               <p className="text-xs text-low mb-6">{t('auth.login.subtitle')}</p>
               <form onSubmit={onSubmit} noValidate className="space-y-4">

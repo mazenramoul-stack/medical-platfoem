@@ -1,0 +1,19 @@
+{
+  "lines": [
+    { "id": "s01", "text": "You see NeuraCard — a multimodal medical AI platform for clinical decision support." },
+    { "id": "s02", "text": "The main problem is simple: one patient might need a brain scan, a heart tracing, an ultrasound, and a brain-wave recording. Each of these tests gets ordered, done, and read separately." },
+    { "id": "s03", "text": "Different specialists, different machines, different schedules — no one ever sees the whole patient at once." },
+    { "id": "s04", "text": "AI tools exist for each test type, but today's models only do one thing. They are built for a single task, and rarely leave the research lab." },
+    { "id": "s05", "text": "Even worse, when these models give a result, they cannot explain how they got there. A verdict with no reasoning is not something a clinician can trust when a patient's life is on the line." },
+    { "id": "s06", "text": "So the big picture never comes together, right when you need to decide. Data stays fragmented — and that means slower, less confident, less complete care." },
+    { "id": "s07", "text": "NeuraCard solves this with one platform for every test type — Brain MRI, twelve-lead ECG, Echocardiogram, and EEG." },
+    { "id": "s08", "text": "The workflow is simple: open a patient, upload any test, and get an instant AI reading — all in one secure workspace." },
+    { "id": "s09", "text": "Start with Brain MRI. The platform detects the tumour and classifies it, and shows you exactly where it looked. The evidence is shown, not hidden." },
+    { "id": "s10", "text": "Switch to the twelve-lead ECG. You get rhythm, heart rate, and heart-rate variability — every finding flagged and explained, right next to the waveform." },
+    { "id": "s11", "text": "In the Echocardiogram module, you see the ejection fraction and chamber segmentation, measured directly from the echo loop, alongside the ultrasound frames and a three-D heart." },
+    { "id": "s12", "text": "For EEG, the platform reviews the brain-wave recording for harmful activity — multi-channel waveforms, key indicators, and a clear summary." },
+    { "id": "s13", "text": "Throughout, NeuraCard is built for explainability. Grad-CAM and SHAP show exactly where each model focused, so a doctor checks the reasoning, not just the answer. That is how you move from a black box to a tool you can trust." },
+    { "id": "s14", "text": "Looking forward, the roadmap brings learned multimodal fusion, to find brain-heart links no single test can show, plus hospital trials, real-time monitoring, and full E-H-R integration." },
+    { "id": "s15", "text": "And every test result flows into one combined PDF report, ready for the doctor to use." }
+  ]
+}

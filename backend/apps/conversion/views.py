@@ -75,6 +75,28 @@ class ConvertView(APIView):
                 return self._fail(str(e) or 'Conversion failed.',
                                   type(e).__name__, status.HTTP_422_UNPROCESSABLE_ENTITY)
 
+            # Inline-result converters (e.g. smartwatch single-lead ECG) carry an
+            # analysis + preview to show on the page; return JSON with the CSV
+            # text embedded so the client can both display the result and offer a
+            # download — instead of a bare file attachment.
+            if meta.get('inline_result'):
+                with open(out_path, 'r', encoding='utf-8') as fh:
+                    csv_text = fh.read()
+                return Response({
+                    'status': 'success',
+                    'modality': meta.get('modality'),
+                    'single_lead': meta.get('single_lead', False),
+                    'lead': meta.get('lead'),
+                    'fs': meta.get('output_sampling_hz'),
+                    'n_samples': meta.get('n_samples'),
+                    'n_strips': meta.get('n_strips'),
+                    'duration_s': meta.get('duration_s'),
+                    'screening': meta.get('screening'),
+                    'signal_preview': meta.get('signal_preview'),
+                    'csv_filename': meta.get('filename'),
+                    'csv_text': csv_text,
+                }, status=status.HTTP_200_OK)
+
             with open(out_path, 'rb') as fh:
                 payload = fh.read()
 

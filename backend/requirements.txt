@@ -31,6 +31,7 @@ transformers==4.38.0
 huggingface-hub==0.20.3
 reportlab==4.0.9
 captum>=0.7,<0.8
+PyMuPDF==1.27.2.3   # read smartwatch ECG PDFs (single-lead) for the technician converter
 # celery / redis removed — there is no async task layer using them. For a shared
 # DRF-throttle cache in production, set REDIS_URL and `pip install django-redis`
 # (see core/settings.py).

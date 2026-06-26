@@ -12,10 +12,12 @@ from .echo_pipeline import analyze_echo, explain_echo
 from .eeg_pipeline import analyze_eeg, explain_eeg
 from .model_loader import ModelLoader
 from .mri_pipeline import analyze_mri, explain_mri
+from .smartwatch_ecg import analyze_smartwatch_ecg
 
 __all__ = [
     'analyze_mri', 'explain_mri', 'analyze_ecg', 'explain_ecg',
     'analyze_echo', 'explain_echo', 'analyze_eeg', 'explain_eeg',
+    'analyze_smartwatch_ecg',
     'ModelLoader', 'run_inference_with_timeout',
 ]
 

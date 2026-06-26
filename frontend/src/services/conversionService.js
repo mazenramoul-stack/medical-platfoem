@@ -48,6 +48,18 @@ const conversionService = {
     );
     return { blob: resp.data, filename };
   },
+
+  // Smartwatch single-lead ECG PDF: the server returns JSON (screening + trace
+  // preview + the CSV text embedded), not a file download — so the Convert page
+  // can show a result inline and offer the CSV via a Download button.
+  async convertEcgPdf(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const resp = await api.post('/convert/ecg/', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return resp.data;
+  },
 };
 
 export default conversionService;

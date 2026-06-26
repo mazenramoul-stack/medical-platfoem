@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, Brain, FileCog, FileText, Heart, HeartPulse, Home, LogOut, Users, Waves, X } from 'lucide-react';
+import { Brain, FileCog, FileText, Heart, HeartPulse, Home, LogOut, Users, Waves, X } from 'lucide-react';
 
 import { useAuth } from '../../hooks/useAuth.js';
 import { useI18n } from '../../i18n/LanguageContext.jsx';
@@ -40,12 +40,11 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         {/* brand */}
         <div className="p-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--edge)' }}>
           <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-ink"
-              style={{ background: 'linear-gradient(135deg, var(--neuro), var(--violet))', boxShadow: '0 0 16px var(--glow-strong)' }}
-            >
-              <Activity size={18} />
-            </div>
+            <img
+              src="/neuracard-logo.png"
+              alt="NeuraCard"
+              className="w-9 h-9 rounded-lg object-contain"
+            />
             <div>
               <div className="font-mono font-semibold text-hi text-sm leading-tight tracking-wider">NEURACARD</div>
               <div className="text-[10px] text-low leading-tight tracking-[0.3em] uppercase">Constantine 2</div>

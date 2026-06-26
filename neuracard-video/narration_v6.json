@@ -1,0 +1,23 @@
+{
+  "voice": "bm_george", "speed": 0.85,
+  "note": "v6: new dedicated ECG demo video becomes THE doctor demonstration (login->patient->ECG->SHAP->save). doc_demo + old ecg walkthrough consolidated into s09.",
+  "lines": [
+    { "id": "s01", "text": "You see NeuraCard — a multimodal medical AI platform for clinical decision support." },
+    { "id": "s02", "text": "The main problem is simple: one patient might need a brain scan, a heart tracing, an ultrasound, and a brain-wave recording — many separate tests." },
+    { "id": "s03", "text": "Each test is read in isolation — different specialists, different machines, different schedules. No one ever sees the whole patient at once." },
+    { "id": "s04", "text": "AI tools do exist for each test type. But today's models only do one thing — built for a single task, and rarely leaving the research lab." },
+    { "id": "s05", "text": "Even worse, when a model gives a result, it cannot explain how it got there — a verdict with no reasoning that no clinician can really trust." },
+    { "id": "s06", "text": "So the big picture never comes together, right when you need to decide. Data stays fragmented — and that means slower, less complete care." },
+    { "id": "s07", "text": "NeuraCard solves this — one platform for every test type, used by two roles that work together: a technician, and a doctor." },
+    { "id": "s08", "text": "First, the technician. After registering, they open the Convert Data tool and load the raw files — DICOM scans and any other raw data the models can't read directly — and the platform standardises and prepares them. With one click, the cleaned data is uploaded to the patient's record, ready for the doctor to analyse." },
+    { "id": "s09", "text": "Now let's see how a doctor uses it — we'll take the ECG as our example. The doctor logs in, opens a patient, and selects the ECG analysis. NeuraCard reads all twelve leads and returns the result — here, atrial fibrillation, with the heart rate and rhythm. One click on SHAP reveals the model's reasoning: exactly which beats drove the decision, so it's never a black box. The doctor reviews it, and saves it to the patient's record. And the very same process works for every other test." },
+    { "id": "s10", "text": "Take Brain MRI — it detects the tumour and classifies its type, and shows you exactly where it looked. The evidence is shown, not hidden." },
+    { "id": "s11", "text": "The Echocardiogram measures the ejection fraction and chamber segmentation, straight from the echo loop, with the ultrasound frames beside it." },
+    { "id": "s12", "text": "And the EEG reviews the brain-wave recording for harmful activity — multi-channel waveforms, key indicators, and a clear summary." },
+    { "id": "s13", "text": "Every result is explainable. Grad-CAM and SHAP show exactly where each model focused, so a doctor always checks the reasoning, not just the answer." },
+    { "id": "s14", "text": "And it brings them together — findings from brain and heart, combined into one clear, readable interpretation." },
+    { "id": "s15", "text": "Every test result then flows into one combined PDF report — imaging, signals, and interpretation, side by side, ready for the doctor to read, sign, and act on." },
+    { "id": "s16", "text": "Looking ahead, the roadmap is ambitious: learned multimodal fusion, to find brain-heart links no single test can show; prospective hospital trials; real-time monitoring at the bedside and on wearables; and full integration with hospital record systems — on the path to a certified clinical tool." },
+    { "id": "s17", "text": "NeuraCard — every signal, together, for faster, more confident care." }
+  ]
+}

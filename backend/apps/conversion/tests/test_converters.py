@@ -10,7 +10,9 @@ CI does not run these (it skips the heavy-lib suites); run locally with
 import io
 import os
 import tempfile
+import unittest
 import zipfile
+from pathlib import Path
 
 import numpy as np
 from django.contrib.auth import get_user_model
@@ -18,6 +20,12 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
 User = get_user_model()
+
+# Optional real smartwatch ECG sample (gitignored under media/; present locally
+# after a manual drop). When present, it backs the HR-vs-printed-bpm ground-truth
+# check; otherwise that one test skips, like the inference-pipeline sample tests.
+BACKEND_DIR = Path(__file__).resolve().parents[3]
+SMARTWATCH_SAMPLE = BACKEND_DIR / "media" / "ecg" / "test_smartwatch.pdf"
 
 
 # --- fixture builders ------------------------------------------------------
@@ -224,6 +232,31 @@ def _ecg_dicom_bytes(n=1000, fs=500, n_leads=12):
     return buf.getvalue()
 
 
+def _smartwatch_ecg_pdf_bytes(n_strips=3, w=1200, strip_gap=250, top=200):
+    """Synthesize a smartwatch-style ECG PDF: red trace on white, N strips.
+
+    Each strip is a flat red baseline (dense rows -> detectable strip) with
+    periodic upward QRS-like spikes, embedded as the page image — exactly the
+    raster-only shape the digitizer must handle. No grid/text needed.
+    """
+    from PIL import Image, ImageDraw
+
+    h = top + strip_gap * n_strips + 100
+    img = Image.new("RGB", (w, h), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    red = (220, 30, 40)
+    x0, x1 = 60, w - 60
+    for s in range(n_strips):
+        base_y = top + s * strip_gap
+        draw.line([(x0, base_y), (x1, base_y)], fill=red, width=3)  # baseline
+        for x in range(x0 + 60, x1 - 20, 110):                       # QRS spikes
+            draw.line([(x, base_y), (x + 4, base_y - 55)], fill=red, width=3)
+            draw.line([(x + 4, base_y - 55), (x + 8, base_y)], fill=red, width=3)
+    buf = io.BytesIO()
+    img.save(buf, format="PDF")
+    return buf.getvalue()
+
+
 # --- tests -----------------------------------------------------------------
 
 class ConverterSmokeTest(APITestCase):
@@ -318,3 +351,45 @@ class ConverterSmokeTest(APITestCase):
         resp = self._post('ecg', 'scan.xml', b'<ecg/>')
         self.assertEqual(resp.status_code, 422)
         self.assertEqual(resp.data['error_type'], 'UnsupportedFormat')
+
+    # ECG — smartwatch single-lead PDF --------------------------------------
+    def test_ecg_smartwatch_pdf_returns_inline_result(self):
+        resp = self._post('ecg', 'watch.pdf', _smartwatch_ecg_pdf_bytes(n_strips=3))
+        self.assertEqual(resp.status_code, 200, getattr(resp, 'data', resp.content))
+        # Inline analysis result (JSON), not a bare file download.
+        self.assertEqual(resp.data['status'], 'success')
+        self.assertTrue(resp.data['single_lead'])
+        self.assertEqual(resp.data['lead'], 'I')
+        self.assertEqual(resp.data['n_samples'], 15000)  # 3 strips x 10 s x 500 Hz
+        self.assertIn('screening', resp.data)
+        self.assertIn('signal_preview', resp.data)
+        self.assertGreater(len(resp.data['signal_preview']), 0)
+        # The CSV is embedded for download — single 'I' column.
+        import pandas as pd
+        df = pd.read_csv(io.StringIO(resp.data['csv_text']))
+        self.assertEqual(list(df.columns), ['I'])
+        self.assertEqual(len(df), 15000)
+        self.assertTrue(resp.data['csv_filename'].endswith('_leadI.csv'))
+
+    def test_ecg_pdf_without_trace_is_clean_422(self):
+        """A PDF with no red ECG trace fails cleanly (422), never a 500."""
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new('RGB', (400, 300), (255, 255, 255)).save(buf, format='PDF')
+        resp = self._post('ecg', 'blank.pdf', buf.getvalue())
+        self.assertEqual(resp.status_code, 422)
+        self.assertEqual(resp.data['error_type'], 'NoTraceFound')
+
+    @unittest.skipUnless(SMARTWATCH_SAMPLE.exists(),
+                         f"Missing real smartwatch sample at {SMARTWATCH_SAMPLE}")
+    def test_ecg_smartwatch_real_sample_hr_matches_printed(self):
+        """Ground truth: the reference watch PDF prints 76 bpm — the server's own
+        single-lead screening must reproduce it (end-to-end CV correctness)."""
+        with open(SMARTWATCH_SAMPLE, 'rb') as fh:
+            resp = self._post('ecg', 'watch.pdf', fh.read())
+        self.assertEqual(resp.status_code, 200, getattr(resp, 'data', resp.content))
+        hr = resp.data['screening']['mean_hr_bpm']
+        self.assertIsNotNone(hr)
+        self.assertAlmostEqual(hr, 76.0, delta=6.0,
+                               msg=f'screened HR {hr} far from printed 76 bpm')
+        self.assertEqual(resp.data['screening']['hr_classification'], 'Normal')

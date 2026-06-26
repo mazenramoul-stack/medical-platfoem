@@ -1,0 +1,24 @@
+{
+  "lang": "en",
+  "speed": 1.0,
+  "bgm": { "mode": "none" },
+  "lines": [
+    { "id": "s01", "text": "NeuraCard — a multimodal medical AI platform for clinical decision support." },
+    { "id": "s02", "text": "Think about a single patient. They might need a brain MRI, an ECG, an echocardiogram, and an EEG — many different tests." },
+    { "id": "s03", "text": "Today, each one is read on its own — a different specialist, a different system, a different day. No one sees the whole patient at once." },
+    { "id": "s04", "text": "AI can help read them. But the models are scattered — each built for a single task, and most never leave the research lab." },
+    { "id": "s05", "text": "And they behave like black boxes, giving an answer with no reason. A doctor cannot safely trust that with a patient's life." },
+    { "id": "s06", "text": "So the full picture never comes together — at the very moment the decision must be made." },
+    { "id": "s07", "text": "That is the gap NeuraCard closes. One platform, for every modality." },
+    { "id": "s08", "text": "It is a single, secure workspace. Open a patient, upload any test, and get an instant, AI-powered reading — all in one place." },
+    { "id": "s09", "text": "Brain MRI is analysed for tumours — and the platform shows the evidence behind the result." },
+    { "id": "s10", "text": "A twelve-lead ECG is screened for arrhythmias, with heart rate and variability — and every finding is flagged." },
+    { "id": "s11", "text": "An echocardiogram measures the ejection fraction and outlines the heart's chambers, straight from the ultrasound." },
+    { "id": "s12", "text": "And an EEG is screened, second by second, for harmful brain activity." },
+    { "id": "s13", "text": "Every answer is explained. Grad-CAM and SHAP show exactly where each model looked — so the clinician checks the reasoning, not just the result." },
+    { "id": "s14", "text": "And NeuraCard brings them together — combining brain and heart into one, readable interpretation." },
+    { "id": "s15", "text": "Every test flows into a single, combined report — the complete picture, ready for the doctor to act on. This is the integration that was missing." },
+    { "id": "s16", "text": "From here, the vision grows: a fusion model that reveals links no single test can see; validation with a hospital partner; continuous monitoring at the bedside and on wearables; and secure integration with hospital systems — on the path to a certified clinical tool." },
+    { "id": "s17", "text": "NeuraCard — every signal, together, for more confident decisions. Thank you." }
+  ]
+}

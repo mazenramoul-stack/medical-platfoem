@@ -19,7 +19,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.inference import analyze_ecg, explain_ecg, run_inference_with_timeout
+from apps.inference import (
+    analyze_ecg, analyze_smartwatch_ecg, explain_ecg, run_inference_with_timeout,
+)
 from apps.patients.access import get_patient_or_404, scope_by_patient
 from core.media import signed_media_url
 
@@ -31,7 +33,10 @@ logger = logging.getLogger(__name__)
 
 # File validation ----------------------------------------------------------
 
-ALLOWED_ECG_EXTENSIONS = {'.csv', '.edf', '.dat', '.hea'}
+# .pdf = a single-lead smartwatch ECG export (Apple Watch / Samsung / Withings /
+# KardiaMobile). It is digitized to Lead I and run through a single-lead
+# rate/rhythm screening — NOT the 12-lead pathology models (see analyze_smartwatch_ecg).
+ALLOWED_ECG_EXTENSIONS = {'.csv', '.edf', '.dat', '.hea', '.pdf'}
 MAX_ECG_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
 
 
@@ -92,8 +97,11 @@ class ECGUploadView(APIView):
                     analysis.pk, patient.pk, analysis.file.name, uploaded.size)
 
         file_disk_path = analysis.file.path
-        logger.info("ECG inference start: analysis_id=%s", analysis.pk)
-        result = run_inference_with_timeout(analyze_ecg, file_disk_path, timeout_seconds=300)
+        # A smartwatch PDF is a single lead → single-lead screening, not the
+        # 12-lead pathology models (which would refuse / fake a 1-lead input).
+        pipeline = analyze_smartwatch_ecg if ext == '.pdf' else analyze_ecg
+        logger.info("ECG inference start: analysis_id=%s pipeline=%s", analysis.pk, pipeline.__name__)
+        result = run_inference_with_timeout(pipeline, file_disk_path, timeout_seconds=300)
         logger.info("ECG inference done: analysis_id=%s status=%s", analysis.pk, result.get('status'))
 
         with transaction.atomic():

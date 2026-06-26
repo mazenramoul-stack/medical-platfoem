@@ -6,6 +6,11 @@ backend/.env
 !*.env.example
 
 # ====================================================================
+# Brainstorm visual-companion scratch (mockups) — not part of the project
+# ====================================================================
+.superpowers/
+
+# ====================================================================
 # Patient data / PHI — uploads, masks, overlays, generated PDF reports
 # ====================================================================
 backend/media/

@@ -1,15 +1,22 @@
-"""ECG converter: DICOM ECG waveform (.dcm) -> 12-lead .csv at 500 Hz.
+"""ECG converter:
+    * DICOM ECG waveform (.dcm) -> 12-lead .csv at 500 Hz, OR
+    * smartwatch ECG export (.pdf) -> single-lead (Lead I) .csv at 500 Hz.
 
-Extracts the 12-lead samples from a DICOM ``WaveformSequence``, maps channels to
-the canonical lead order (deriving III/aVR/aVL/aVF from I & II when an 8-lead
-acquisition omits them), resamples to the model's 500 Hz, and writes a .csv the
-ECG upload page accepts (column headers are the canonical lead names, which
+DICOM path: extracts the 12-lead samples from a DICOM ``WaveformSequence``, maps
+channels to the canonical lead order (deriving III/aVR/aVL/aVF from I & II when an
+8-lead acquisition omits them), resamples to the model's 500 Hz, and writes a .csv
+the ECG upload page accepts (canonical lead-name headers, which
 ``apps.inference.utils.load_ecg_signal`` recognises).
 
-DICOM is the only supported source today. The module is structured so a vendor
-XML / SCP parser can be added later (a new ``_read_*`` branch), but any other
-input returns a clean, friendly error — scanned paper-printout digitisation is
-explicitly out of scope. Heavy libs (pydicom, pandas, scipy) are imported lazily.
+PDF path: consumer-watch ECGs (Apple Watch / Samsung / Withings / KardiaMobile)
+are a SINGLE lead drawn as a raster image. ``smartwatch_ecg.digitize`` recovers
+the Lead I waveform by computer vision; we write it as a one-column ('I') CSV.
+This is genuinely single-lead — it can NOT become a 12-lead CSV (the watch only
+ever measured one electrical view), so it is a data export, not something the
+12-lead pathology models will accept (they correctly refuse a reduced lead set).
+
+Any other input returns a clean, friendly error. Heavy libs (pydicom, pandas,
+scipy, PyMuPDF) are imported lazily.
 """
 
 from __future__ import annotations
@@ -17,6 +24,9 @@ from __future__ import annotations
 import os
 
 import numpy as np
+
+from apps.inference import smartwatch_ecg
+from apps.inference.smartwatch_ecg import SmartwatchDigitizeError
 
 from .base import ConversionError, detected_extension, output_path_for
 
@@ -26,11 +36,13 @@ TARGET_FS = 500  # the ecglib DenseNet-1D models expect 500 Hz
 
 def convert(input_path, **params):
     ext = detected_extension(input_path)
+    if ext == '.pdf':
+        return _convert_smartwatch_pdf(input_path)
     if ext != '.dcm':
         raise ConversionError(
-            'Unsupported ECG source format: only DICOM ECG waveforms (.dcm) are '
-            'supported. Vendor XML/SCP exports and scanned paper printouts are '
-            'not yet supported.',
+            'Unsupported ECG source format: DICOM ECG waveforms (.dcm) and '
+            'single-lead smartwatch ECG exports (.pdf) are supported. Vendor '
+            'XML/SCP exports and scanned 12-lead paper printouts are not.',
             'UnsupportedFormat')
 
     leads, fs = _read_dicom_ecg(input_path)
@@ -50,6 +62,45 @@ def convert(input_path, **params):
         'output_sampling_hz': TARGET_FS,
         'n_samples': n_samples,
         'leads_present': sorted(leads.keys()),
+    }
+    return out_path, meta
+
+
+def _convert_smartwatch_pdf(input_path):
+    """Digitize a single-lead smartwatch ECG PDF into a one-column ('I') CSV.
+
+    Unlike the file-only conversions, this also runs a single-lead rate/rhythm
+    screening and a trace preview, surfaced inline on the Convert page (the view
+    returns JSON when ``inline_result`` is set, instead of a bare file download).
+    """
+    try:
+        signal, fs, dig_meta = smartwatch_ecg.digitize(input_path)
+    except SmartwatchDigitizeError as e:
+        # Map the inference-layer error to the conversion envelope (clean 422).
+        raise ConversionError(str(e), e.error_type)
+
+    import pandas as pd
+    df = pd.DataFrame({smartwatch_ecg.LEAD_NAME: signal})
+    out_path = output_path_for(input_path, '.csv', suffix='_leadI')
+    df.to_csv(out_path, index=False)
+
+    meta = {
+        'content_type': 'text/csv',
+        'filename': os.path.basename(out_path),
+        'modality': 'ecg',
+        'source_format': 'smartwatch_pdf',
+        'output_sampling_hz': fs,
+        'n_samples': int(signal.shape[0]),
+        'leads_present': [dig_meta['lead']],
+        'single_lead': True,
+        'lead': dig_meta['lead'],
+        'n_strips': dig_meta['n_strips'],
+        'duration_s': dig_meta['duration_s'],
+        # Inline result: the view returns JSON (screening + preview + CSV text)
+        # rather than a file download, so the Convert page can show a result.
+        'inline_result': True,
+        'screening': smartwatch_ecg.screen(signal, fs),
+        'signal_preview': smartwatch_ecg.preview(signal),
     }
     return out_path, meta
 

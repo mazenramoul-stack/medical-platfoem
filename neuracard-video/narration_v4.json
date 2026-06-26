@@ -1,0 +1,24 @@
+{
+  "voice": "bm_george", "speed": 0.85,
+  "note": "v4: Solution becomes an end-to-end role demo. s08=technician, s09=doctor inserted; modality lines reworded.",
+  "lines": [
+    { "id": "s01", "text": "You see NeuraCard — a multimodal medical AI platform for clinical decision support." },
+    { "id": "s02", "text": "The main problem is simple: one patient might need a brain scan, a heart tracing, an ultrasound, and a brain-wave recording — many separate tests." },
+    { "id": "s03", "text": "Each test is read in isolation — different specialists, different machines, different schedules. No one ever sees the whole patient at once." },
+    { "id": "s04", "text": "AI tools do exist for each test type. But today's models only do one thing — built for a single task, and rarely leaving the research lab." },
+    { "id": "s05", "text": "Even worse, when a model gives a result, it cannot explain how it got there — a verdict with no reasoning that no clinician can really trust." },
+    { "id": "s06", "text": "So the big picture never comes together, right when you need to decide. Data stays fragmented — and that means slower, less complete care." },
+    { "id": "s07", "text": "NeuraCard solves this — one platform for every test type, used by two roles that work together: a technician, and a doctor." },
+    { "id": "s08", "text": "First, the technician. They register, then prepare and convert the raw data — scans and signals — and upload it into the platform, ready for analysis." },
+    { "id": "s09", "text": "Then the doctor. They register, open the patient, and with a single click run the AI analysis across every modality." },
+    { "id": "s10", "text": "Brain MRI detects the tumour and classifies its type, and shows you exactly where it looked. The evidence is shown, not hidden." },
+    { "id": "s11", "text": "The twelve-lead ECG gives the rhythm, the heart rate, and heart-rate variability — every finding flagged and explained, right beside the waveform." },
+    { "id": "s12", "text": "The Echocardiogram measures the ejection fraction and chamber segmentation, straight from the echo loop, with the ultrasound frames beside it." },
+    { "id": "s13", "text": "And the EEG reviews the brain-wave recording for harmful activity — multi-channel waveforms, key indicators, and a clear summary." },
+    { "id": "s14", "text": "Throughout, NeuraCard is built for explainability. Grad-CAM and SHAP show exactly where each model focused, so a doctor checks the reasoning, not just the answer." },
+    { "id": "s15", "text": "And it brings them together — findings from brain and heart, combined into one clear, readable interpretation." },
+    { "id": "s16", "text": "Every test result then flows into one combined PDF report — imaging, signals, and interpretation, side by side, ready for the doctor to read, sign, and act on." },
+    { "id": "s17", "text": "Looking ahead, the roadmap is ambitious: learned multimodal fusion, to find brain-heart links no single test can show; prospective hospital trials; real-time monitoring at the bedside and on wearables; and full integration with hospital record systems — on the path to a certified clinical tool." },
+    { "id": "s18", "text": "NeuraCard — every signal, together, for faster, more confident care." }
+  ]
+}

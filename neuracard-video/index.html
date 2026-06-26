@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root{
+        --bg:#070b14; --ink:#eaf1fb; --muted:#9fb0cc;
+        --teal:#00ffcc; --violet:#a78bfa; --amber:#f6b24a; --red:#fb7185; --green:#34d399;
+      }
+      *{margin:0;padding:0;box-sizing:border-box}
+      html,body{width:1920px;height:1080px;overflow:hidden;background:#070b14;font-family:"Inter",sans-serif;color:var(--ink)}
+      #root{position:relative;width:1920px;height:1080px;overflow:hidden;
+        background:
+          radial-gradient(1400px 760px at 78% -8%, rgba(0,255,204,.10), transparent 60%),
+          radial-gradient(1200px 680px at 4% 112%, rgba(167,139,250,.14), transparent 55%),
+          #070b14;}
+      .scene{position:absolute;inset:0;display:grid;place-items:center;padding:120px 180px;box-sizing:border-box;text-align:center}
+      .kicker{font-size:24px;letter-spacing:.4em;text-transform:uppercase;color:var(--teal);font-weight:600;opacity:.9}
+      .kicker.amber{color:var(--amber)} .kicker.violet{color:var(--violet)} .kicker.muted{color:var(--muted)}
+      .h1{font-size:104px;font-weight:800;line-height:1.14;letter-spacing:-.01em}
+      .h2{font-size:70px;font-weight:750;line-height:1.1;letter-spacing:-.01em}
+      .line{font-size:62px;font-weight:750;line-height:1.16;max-width:1480px;letter-spacing:-.005em}
+      .sub{font-size:34px;color:var(--muted);font-weight:400;max-width:1280px;line-height:1.45}
+      .stack > *{display:block}
+      .row{display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
+      .chip{display:inline-block;font-size:30px;font-weight:600;letter-spacing:.02em;padding:16px 34px;border-radius:16px;border:1px solid #243149;background:#0d1626;color:#c6d3ea}
+      .chip.amber{border-style:dashed;border-color:#5a431f;color:#f0cd9a;background:rgba(246,178,74,.06)}
+      .chip.live{border-color:#0e6;color:#bafff1;background:rgba(0,255,204,.10);box-shadow:0 0 34px rgba(0,255,204,.18)}
+      .blackbox{width:340px;height:188px;border-radius:18px;border:1px solid #3a2c12;display:grid;place-items:center;font-size:112px;font-weight:800;color:var(--amber);background:repeating-linear-gradient(45deg,#0a0a0a,#0a0a0a 14px,#141414 14px,#141414 28px)}
+      .bb-dot{position:absolute;left:0;width:16px;height:16px;border-radius:50%;background:var(--teal);box-shadow:0 0 14px var(--teal);opacity:0}
+      #p4-q{display:inline-block}
+      .silo{width:280px;height:160px;border-radius:16px;border:1px solid #4a3a22;background:rgba(246,178,74,.05);display:grid;place-items:center;font-size:28px;color:#f0cd9a;font-weight:600}
+      /* ===== problem illustrations ===== */
+      .psc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;padding:80px 70px;text-align:center}
+      .phead{font-size:58px;font-weight:800;line-height:1.12;letter-spacing:-.01em}
+      .phead .am{color:var(--amber)} .phead .tl{color:var(--teal)} .phead .vi{color:var(--violet)}
+      .illu{position:relative}
+      .tcard{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px;width:168px;padding:18px 12px;border-radius:18px;background:#0c1422;border:2px solid var(--c);box-shadow:0 12px 30px rgba(0,0,0,.5)}
+      .tcard .ic{font-size:48px;line-height:1}.tcard .tl{font-size:22px;font-weight:700;color:#e6eefb}
+      .pat{position:absolute;filter:drop-shadow(0 0 26px rgba(0,255,204,.4))}
+      .link{stroke:#3a4d72;stroke-width:3;stroke-dasharray:7 9;fill:none;opacity:0}
+      .silo2{position:relative;width:250px;height:300px;border-radius:18px;background:#0b1322;border:1px solid #1e2a44;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+      .silo2 .ic{font-size:56px}.silo2 .tl{font-size:27px;font-weight:750;color:#e6eefb}.silo2 .doc{font-size:17px;color:#8aa0c0}
+      .nolink{font-size:30px;color:var(--red);opacity:0}
+      .aicard{width:236px;padding:22px 16px;border-radius:16px;background:#0c1422;border:2px solid #243149;text-align:center}
+      .aicard .em{font-size:44px}.aicard .lbl{font-size:25px;font-weight:750;color:#cdd9ee;margin-top:6px}.aicard .st{font-size:15px;color:#5f6e8c;margin-top:6px;letter-spacing:.04em}
+      .ioc{position:absolute;width:215px;padding:18px 14px;border-radius:16px;background:#0c1422;border:2px solid var(--c);text-align:center}
+      .ioc .ic{font-size:44px}.ioc .tl{font-size:21px;font-weight:700;color:#e6eefb;margin-top:6px}.ioc .sl{font-size:15px;color:#88a0c0;margin-top:2px}
+      .arr{position:absolute;font-size:46px;color:#3a4d72}
+      .frag{position:absolute;width:215px;height:160px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#0c1422;border:2px solid var(--c)}
+      .frag .ic{font-size:40px}.frag .tl{font-size:23px;font-weight:700;color:#e6eefb}
+      .mark{display:flex;align-items:center;gap:28px;justify-content:center}
+      .mark .logo{width:104px;height:104px;border-radius:26px;background:linear-gradient(135deg,var(--teal),var(--violet));box-shadow:0 0 60px rgba(0,255,204,.45);display:grid;place-items:center;font-size:54px}
+      .mark .word{font-size:120px;font-weight:800;letter-spacing:.04em;background:linear-gradient(90deg,var(--teal),#e7fffb 45%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+      .stage{position:absolute;top:150px;left:240px;width:1440px;height:660px;border-radius:20px;overflow:hidden;border:1px solid rgba(0,255,204,.22);box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 50px rgba(0,255,204,.10);background:#0a1322}
+      .stage img{width:100%;height:100%;object-fit:cover;object-position:top center;transform-origin:60% 42%}
+      .modtitle{position:absolute;top:60px;left:240px;display:flex;align-items:center;gap:20px}
+      .modtitle .num{font-size:30px;color:var(--teal);font-weight:700;font-variant-numeric:tabular-nums}
+      .modtitle .t{font-size:46px;font-weight:750}
+      .caption{position:absolute;left:240px;bottom:74px;max-width:1440px;display:flex;align-items:center;gap:18px;font-size:34px;font-weight:600;color:#eaf6ff;background:rgba(6,12,22,.72);border-left:4px solid var(--teal);padding:18px 26px;border-radius:12px}
+      .caption.violet{border-left-color:var(--violet)}
+      #report-vid,#tech-vid,#doc-vid,#ecgw-vid{position:absolute;top:120px;left:240px;width:1440px;height:720px;object-fit:cover;object-position:top center;border-radius:20px;border:1px solid rgba(0,255,204,.22);box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 50px rgba(0,255,204,.12);z-index:1}
+      #sc-report,#sc-tech,#sc-doc,#sc-ecgw{z-index:2}
+      .xgrid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:18px;width:1740px;height:740px}
+      .xcell{position:relative;border:1px solid #233149;border-radius:14px;overflow:hidden;background:#0a1322;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+      .xcell img{width:100%;height:100%;object-fit:contain;background:#0a1322}
+      .xcell .lab{position:absolute;top:12px;left:12px;z-index:2;font-size:21px;font-weight:700;color:#eaf6ff;background:rgba(6,12,22,.82);border-left:3px solid var(--ac);padding:8px 15px;border-radius:9px}
+      .bullets{list-style:none;display:flex;flex-direction:column;gap:26px;align-items:flex-start;margin-top:20px}
+      .bullets li{font-size:42px;font-weight:600;color:#e9eefb;display:flex;align-items:flex-start;gap:24px;line-height:1.25;text-align:left}
+      .bullets .dot{width:18px;height:18px;border-radius:50%;margin-top:14px;background:linear-gradient(135deg,var(--teal),var(--violet));box-shadow:0 0 18px rgba(0,255,204,.5);flex:none}
+      .bullets b{color:#fff;font-weight:750}
+      .ty{font-size:64px;font-weight:700;color:#fff;letter-spacing:.02em}
+      .credits{font-size:30px;color:var(--muted);letter-spacing:.06em}
+      .disc{position:absolute;left:0;right:0;bottom:36px;text-align:center;font-size:24px;color:#7c8bab;z-index:3}
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="233" data-width="1920" data-height="1080" data-fps="30">
+
+      <!-- NARRATION — each line ANCHORED to its scene start (precise sync, bm_george 0.85x) -->
+      <audio id="vo01" src="assets/voice/s01.wav" data-start="0.3"    data-duration="6.93"  data-track-index="6"></audio>
+      <audio id="vo02" src="assets/voice/s02.wav" data-start="8.3"    data-duration="11.26" data-track-index="6"></audio>
+      <audio id="vo03" src="assets/voice/s03.wav" data-start="19.62"  data-duration="10.01" data-track-index="6"></audio>
+      <audio id="vo04" src="assets/voice/s04.wav" data-start="30.3"   data-duration="10.58" data-track-index="6"></audio>
+      <audio id="vo05" src="assets/voice/s05.wav" data-start="42.3"   data-duration="10.35" data-track-index="6"></audio>
+      <audio id="vo06" src="assets/voice/s06.wav" data-start="53.3"   data-duration="10.03" data-track-index="6"></audio>
+      <audio id="vo07" src="assets/voice/s07.wav" data-start="63.39"  data-duration="9.62"  data-track-index="6"></audio>
+      <audio id="vo08" src="assets/voice/s08.wav" data-start="73.07"  data-duration="23.47" data-track-index="6"></audio>
+      <audio id="vo09" src="assets/voice/s09.wav" data-start="96.6"   data-duration="32.85" data-track-index="6"></audio>
+      <audio id="vo10" src="assets/voice/s10.wav" data-start="131.3"  data-duration="10.62" data-track-index="6"></audio>
+      <audio id="vo11" src="assets/voice/s11.wav" data-start="143.3"  data-duration="10.69" data-track-index="6"></audio>
+      <audio id="vo12" src="assets/voice/s12.wav" data-start="155.3"  data-duration="10.22" data-track-index="6"></audio>
+      <audio id="vo13" src="assets/voice/s13.wav" data-start="166.3"  data-duration="11.29" data-track-index="6"></audio>
+      <audio id="vo14" src="assets/voice/s14.wav" data-start="179.3"  data-duration="8.13"  data-track-index="6"></audio>
+      <audio id="vo15" src="assets/voice/s15.wav" data-start="188.3"  data-duration="13.67" data-track-index="6"></audio>
+      <audio id="vo16" src="assets/voice/s16.wav" data-start="204.3"  data-duration="21.99" data-track-index="6"></audio>
+      <audio id="vo17" src="assets/voice/s17.wav" data-start="226.35" data-duration="5.29"  data-track-index="6"></audio>
+
+      <!-- 01 TITLE 0–8 -->
+      <section id="sc-title" class="scene clip stack" data-start="0" data-duration="8" data-track-index="1">
+        <div class="mark"><span class="logo" id="title-logo">🧠</span><span class="word" id="title-word">NEURACARD</span></div>
+        <div class="sub" id="title-sub" style="margin-top:34px;font-size:40px">Multimodal Medical AI &nbsp;·&nbsp; Decision support</div>
+        <div class="kicker muted" id="title-foot" style="margin-top:30px;font-size:22px;letter-spacing:.3em">MASTER'S PFE · UNIVERSITÉ CONSTANTINE 2</div>
+      </section>
+
+      <!-- 02 PROBLEM 1 8–19  (one patient → many tests) -->
+      <section id="sc-p1" class="scene clip psc" data-start="8" data-duration="11" data-track-index="2">
+        <div class="kicker amber">The problem</div>
+        <div class="phead">One patient — <span class="am">many separate tests</span></div>
+        <div class="illu" style="width:1040px;height:470px">
+          <svg viewBox="0 0 1040 470" style="position:absolute;inset:0;width:100%;height:100%">
+            <path class="link p1-link" d="M520 235 L250 120"/><path class="link p1-link" d="M520 235 L790 120"/>
+            <path class="link p1-link" d="M520 235 L250 350"/><path class="link p1-link" d="M520 235 L790 350"/>
+          </svg>
+          <svg class="pat" id="p1-pat" viewBox="0 0 100 112" style="left:445px;top:140px;width:150px;height:168px">
+            <defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00ffcc"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
+            <circle cx="50" cy="28" r="22" fill="url(#pg)"/><path d="M10 112 C10 80 30 66 50 66 C70 66 90 80 90 112 Z" fill="url(#pg)"/>
+          </svg>
+          <div class="tcard p1-tc" id="tc1" style="left:166px;top:46px;--c:#00ffcc"><span class="ic">🧠</span><span class="tl">Brain MRI</span></div>
+          <div class="tcard p1-tc" id="tc2" style="left:706px;top:46px;--c:#34d399"><span class="ic">❤️</span><span class="tl">12-lead ECG</span></div>
+          <div class="tcard p1-tc" id="tc3" style="left:166px;top:300px;--c:#fb7185"><span class="ic">❤️</span><span class="tl">Echo</span></div>
+          <div class="tcard p1-tc" id="tc4" style="left:706px;top:300px;--c:#a78bfa"><span class="ic">🧠</span><span class="tl">EEG</span></div>
+        </div>
+      </section>
+
+      <!-- 03 PROBLEM 2 19–30  (read in isolation) -->
+      <section id="sc-p2" class="scene clip psc" data-start="19" data-duration="11" data-track-index="1">
+        <div class="phead">Each test, read <span class="am">in isolation</span></div>
+        <div class="illu" style="width:1300px;height:320px;display:flex;gap:24px;justify-content:center;align-items:center">
+          <div class="silo2 p2-box"><span class="ic">🧠</span><span class="tl">MRI</span><span class="doc">Radiology</span></div>
+          <span class="nolink p2-nl">✕</span>
+          <div class="silo2 p2-box"><span class="ic">❤️</span><span class="tl">ECG</span><span class="doc">Cardiology</span></div>
+          <span class="nolink p2-nl">✕</span>
+          <div class="silo2 p2-box"><span class="ic">❤️</span><span class="tl">Echo</span><span class="doc">Cardiology</span></div>
+          <span class="nolink p2-nl">✕</span>
+          <div class="silo2 p2-box"><span class="ic">🧠</span><span class="tl">EEG</span><span class="doc">Neurology</span></div>
+        </div>
+      </section>
+
+      <!-- 04 PROBLEM 3 30–42  (AI, one at a time) -->
+      <section id="sc-p3" class="scene clip psc" data-start="30" data-duration="12" data-track-index="2">
+        <div class="phead">AI can read them — <span class="tl">but one at a time</span></div>
+        <div class="illu" style="width:1320px;height:300px;display:flex;gap:34px;justify-content:center;align-items:center">
+          <div class="aicard p3-ai"><div class="em">🤖</div><div class="lbl">AI · MRI</div><div class="st">single-purpose</div></div>
+          <div class="aicard p3-ai"><div class="em">🤖</div><div class="lbl">AI · ECG</div><div class="st">single-purpose</div></div>
+          <div class="aicard p3-ai"><div class="em">🤖</div><div class="lbl">AI · Echo</div><div class="st">single-purpose</div></div>
+          <div class="aicard p3-ai"><div class="em">🤖</div><div class="lbl">AI · EEG</div><div class="st">single-purpose</div></div>
+        </div>
+      </section>
+
+      <!-- 05 PROBLEM 4 42–53  (black box → verdict, no reasoning) -->
+      <section id="sc-p4" class="scene clip psc" data-start="42" data-duration="11" data-track-index="1">
+        <div class="phead">A verdict, with <span class="am">no reasoning</span></div>
+        <div class="illu" style="width:1300px;height:300px">
+          <div class="ioc" id="p4-in" style="left:30px;top:78px;--c:#00ffcc"><span class="ic">🧠</span><div class="tl">Brain MRI</div><div class="sl">data in</div></div>
+          <span class="arr" id="p4-a1" style="left:292px;top:120px">→</span>
+          <div id="bb-stage" style="position:absolute;left:392px;top:46px;width:520px;height:210px">
+            <span class="bb-dot" id="bbd1" style="top:34px"></span>
+            <span class="bb-dot" id="bbd2" style="top:97px"></span>
+            <span class="bb-dot" id="bbd3" style="top:160px"></span>
+            <div class="blackbox" id="p4-box" style="position:absolute;left:90px;top:11px;margin:0"><span id="p4-q">?</span></div>
+          </div>
+          <span class="arr" id="p4-a2" style="left:922px;top:120px">→</span>
+          <div class="ioc" id="p4-out" style="left:1024px;top:74px;--c:#fb7185"><span class="ic">⚠️</span><div class="tl">"Glioma · 94%"</div><div class="sl" style="color:#fb7185">…but why?</div></div>
+        </div>
+      </section>
+
+      <!-- 06 PROBLEM 5 53–62  (the picture never comes together) -->
+      <section id="sc-p5" class="scene clip psc" data-start="53" data-duration="9" data-track-index="2">
+        <div class="phead">The full picture <span class="am">never comes together</span></div>
+        <div class="illu" style="width:680px;height:380px">
+          <div class="frag p5-fr" id="p5fr1" style="left:30px;top:20px;--c:#00ffcc"><span class="ic">🧠</span><span class="tl">MRI</span></div>
+          <div class="frag p5-fr" id="p5fr2" style="left:435px;top:20px;--c:#34d399"><span class="ic">❤️</span><span class="tl">ECG</span></div>
+          <div class="frag p5-fr" id="p5fr3" style="left:30px;top:200px;--c:#fb7185"><span class="ic">❤️</span><span class="tl">Echo</span></div>
+          <div class="frag p5-fr" id="p5fr4" style="left:435px;top:200px;--c:#a78bfa"><span class="ic">🧠</span><span class="tl">EEG</span></div>
+          <div id="p5-gap" style="position:absolute;left:262px;top:118px;width:156px;height:144px;border:2px dashed #3a4d72;border-radius:14px;display:grid;place-items:center;font-size:54px;color:#fb7185;opacity:0">?</div>
+        </div>
+      </section>
+
+      <!-- 07 SOLUTION REVEAL 62–71 -->
+      <section id="sc-rv" class="scene clip stack" data-start="62" data-duration="10" data-track-index="1">
+        <div class="kicker">The solution</div>
+        <div class="h1" id="rv-line" style="margin-top:24px"><span style="display:block">One platform.</span><span style="display:block">Every modality.</span></div>
+        <div class="row" id="rv-chips" style="margin-top:44px">
+          <span class="chip live rv-chip">Brain MRI</span><span class="chip live rv-chip">12-lead ECG</span>
+          <span class="chip live rv-chip">Echocardiogram</span><span class="chip live rv-chip">EEG</span>
+        </div>
+      </section>
+
+      <!-- 08 TECHNICIAN DEMO 72–94 -->
+      <video id="tech-vid" class="clip" src="assets/tech_demo.mp4" data-start="72" data-duration="22" data-track-index="4" muted playsinline></video>
+      <section id="sc-tech" class="scene clip" data-start="72" data-duration="22" data-track-index="5" style="padding:0">
+        <div class="modtitle"><span class="num" style="color:var(--violet)">◆</span><span class="t">The Technician</span></div>
+        <div class="caption violet">Registers, then prepares &amp; uploads the raw data — ready for analysis</div>
+      </section>
+
+      <!-- 09 DOCTOR — full ECG demonstration 94–131 -->
+      <video id="doc-vid" class="clip" src="assets/ecg_demo.mp4" data-start="94" data-duration="37" data-track-index="3" muted playsinline></video>
+      <section id="sc-doc" class="scene clip" data-start="94" data-duration="37" data-track-index="7" style="padding:0">
+        <div class="modtitle"><span class="num" style="color:var(--green)">▶</span><span class="t">The Doctor — an ECG, end to end</span></div>
+        <div class="caption">Log in → open a patient → run the ECG → read the result → click SHAP for the reasoning → save</div>
+      </section>
+
+      <!-- 10 MRI 131–143 -->
+      <section id="sc-mri" class="scene clip" data-start="131" data-duration="12" data-track-index="1" style="padding:0">
+        <div class="modtitle"><span class="num">01</span><span class="t">Brain MRI</span></div>
+        <div class="stage" data-layout-allow-overflow><img id="kb-mri" src="assets/mri_result.png" alt=""></div>
+        <div class="caption">The tumour is detected and classified — and you see exactly where it looked</div>
+      </section>
+
+      <!-- 11 ECHO 143–155 -->
+      <section id="sc-echo" class="scene clip" data-start="143" data-duration="12" data-track-index="1" style="padding:0">
+        <div class="modtitle"><span class="num">02</span><span class="t">Echocardiogram</span></div>
+        <div class="stage" data-layout-allow-overflow><img id="kb-echo" src="assets/echo_result.png" alt=""></div>
+        <div class="caption">Ejection fraction &amp; chamber segmentation, from the echo loop</div>
+      </section>
+
+      <!-- 12 EEG 155–166 -->
+      <section id="sc-eeg" class="scene clip" data-start="155" data-duration="11" data-track-index="2" style="padding:0">
+        <div class="modtitle"><span class="num">03</span><span class="t">EEG</span></div>
+        <div class="stage" data-layout-allow-overflow><img id="kb-eeg" src="assets/eeg_result.png" alt=""></div>
+        <div class="caption">Screening the brain-wave recording for harmful activity</div>
+      </section>
+
+      <!-- 13 EXPLAINABILITY GRID 166–179 -->
+      <section id="sc-xai" class="scene clip" data-start="166" data-duration="13" data-track-index="1" style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:22px;padding:60px 80px;text-align:center">
+        <div>
+          <div class="kicker violet">Trust, not a black box</div>
+          <div class="h2" id="xai-h" style="margin-top:12px;font-size:52px">Every model explains itself</div>
+        </div>
+        <div class="xgrid" id="xai-grid">
+          <div class="xcell" style="--ac:var(--teal)"><span class="lab">MRI · Grad-CAM + SHAP</span><img src="assets/mri_xai.png" alt=""></div>
+          <div class="xcell" style="--ac:var(--green)"><span class="lab">ECG · SHAP saliency</span><img src="assets/ecg_explain.png" alt=""></div>
+          <div class="xcell" style="--ac:var(--amber)"><span class="lab">Echo · EF SHAP saliency</span><img src="assets/echo_explain.png" alt=""></div>
+          <div class="xcell" style="--ac:var(--violet)"><span class="lab">EEG · channel saliency</span><img src="assets/eeg_explain.png" alt=""></div>
+        </div>
+      </section>
+
+      <!-- 14 INTEGRATION 179–188 -->
+      <section id="sc-int" class="scene clip stack" data-start="179" data-duration="9" data-track-index="2">
+        <div class="kicker">One picture</div>
+        <div class="h2" id="int-h" style="margin-top:24px">And it brings them together.</div>
+        <div class="sub" id="int-sub" style="margin-top:28px">Findings from brain and heart combine into a single, readable interpretation — not four disconnected results.</div>
+      </section>
+
+      <!-- 15 COMBINED REPORT (video) 188–204 -->
+      <video id="report-vid" class="clip" src="assets/report.mp4" data-start="188" data-duration="16" data-media-start="16" data-track-index="4" muted playsinline></video>
+      <section id="sc-report" class="scene clip" data-start="188" data-duration="16" data-track-index="5" style="padding:0">
+        <div class="modtitle"><span class="num" style="color:var(--violet)">→</span><span class="t">The payoff</span></div>
+        <div class="caption violet">Every test flows into <span style="color:var(--violet)">&nbsp;one combined PDF report</span> — ready for the doctor to use</div>
+      </section>
+
+      <!-- 16 FUTURE WORK 204–226 -->
+      <section id="sc-fut" class="scene clip" data-start="204" data-duration="22" data-track-index="1" style="place-items:center">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;max-width:1560px">
+          <div class="kicker violet">What's next</div>
+          <ul class="bullets">
+            <li class="fut-li"><span class="dot"></span><span><b>Learned multimodal fusion</b> — uncover brain–heart links no single test can reveal</span></li>
+            <li class="fut-li"><span class="dot"></span><span><b>Prospective validation</b> with a hospital partner, on real patients</span></li>
+            <li class="fut-li"><span class="dot"></span><span><b>To the bedside</b> — continuous, real-time monitoring &amp; wearables</span></li>
+            <li class="fut-li"><span class="dot"></span><span><b>Hospital-ready</b> — EHR integration, new modalities (CT, pathology, genomics) &amp; private federated learning</span></li>
+          </ul>
+          <div class="kicker muted" id="fut-foot" style="margin-top:34px;font-size:22px">— on the path to a certified clinical tool</div>
+        </div>
+      </section>
+
+      <!-- 17 CONCLUSION 226–233 -->
+      <section id="sc-out" class="scene clip stack" data-start="226" data-duration="7" data-track-index="2">
+        <div class="mark"><span class="logo" id="out-logo">🧠</span><span class="word" id="out-word">NEURACARD</span></div>
+        <div class="h2" id="out-concl" style="margin-top:26px;font-size:56px">Every signal — <span style="color:var(--teal)">together.</span></div>
+        <div class="sub" id="out-sub" style="margin-top:20px;font-size:32px;max-width:1240px">From four tests read in isolation — to one clear, explainable, combined decision.</div>
+        <div class="row" id="out-pills" style="margin-top:30px">
+          <span class="chip live oc-pill">Unified</span><span class="chip live oc-pill">Explainable</span><span class="chip live oc-pill">One report</span>
+        </div>
+        <div class="credits" id="out-cr" style="margin-top:30px">Author · Supervisor · Jury — Université Constantine 2 · 2026</div>
+      </section>
+
+      <div class="disc" id="disc">Research / educational prototype — not a certified medical device.</div>
+
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const inUp = (sel,t,d=0.7)=>tl.fromTo(sel,{opacity:0,y:24},{opacity:1,y:0,duration:d,ease:"power2.out"},t);
+      const S = { t:0, p1:8, p2:19, p3:30, p4:42, p5:53, rv:62, tech:72, doc:94, mri:131, echo:143, eeg:155, xai:166, int:179, rep:188, fut:204, out:226 };
+
+      // TITLE
+      tl.fromTo("#title-logo",{scale:.5,opacity:0,rotate:-12},{scale:1,opacity:1,rotate:0,duration:1.1,ease:"back.out(1.6)"},0.2);
+      tl.fromTo("#title-word",{opacity:0,x:40},{opacity:1,x:0,duration:1.0,ease:"power3.out"},0.5);
+      inUp("#title-sub",1.5,0.9); inUp("#title-foot",2.1,0.9);
+
+      // ===== PROBLEM 1 — one patient, many tests emerge & orbit =====
+      tl.fromTo("#sc-p1 .kicker",{opacity:0,y:-16},{opacity:1,y:0,duration:0.6},S.p1+0.2);
+      inUp("#sc-p1 .phead",S.p1+0.4,0.6);
+      tl.fromTo("#p1-pat",{scale:0,opacity:0},{scale:1,opacity:1,duration:0.6,ease:"back.out(1.6)"},S.p1+0.7);
+      tl.to("#p1-pat",{scale:1.06,duration:1.3,ease:"sine.inOut",yoyo:true,repeat:3},S.p1+1.6);
+      [["#tc1",270,140],["#tc2",-270,140],["#tc3",270,-115],["#tc4",-270,-115]].forEach(function(o,i){
+        tl.fromTo(o[0],{x:o[1],y:o[2],scale:.3,opacity:0},{x:0,y:0,scale:1,opacity:1,duration:0.7,ease:"back.out(1.5)"},S.p1+1.1+i*0.25);
+      });
+      tl.to(".p1-link",{opacity:.8,duration:0.5,stagger:0.12},S.p1+2.7);
+      tl.to(".p1-tc",{y:"-=10",duration:1.9,ease:"sine.inOut",yoyo:true,repeat:2,stagger:0.2},S.p1+5.0);
+
+      // ===== PROBLEM 2 — four silos, broken links =====
+      inUp("#sc-p2 .phead",S.p2+0.2,0.6);
+      tl.fromTo(".p2-box",{opacity:0,y:26,scale:.9},{opacity:1,y:0,scale:1,duration:0.6,ease:"back.out(1.4)",stagger:0.16},S.p2+0.7);
+      tl.fromTo(".p2-nl",{opacity:0,scale:.4},{opacity:1,scale:1,duration:0.5,ease:"back.out(2)",stagger:0.2},S.p2+2.5);
+      tl.to(".p2-box",{y:"-=8",duration:2.0,ease:"sine.inOut",yoyo:true,repeat:2,stagger:0.25},S.p2+4.6);
+
+      // ===== PROBLEM 3 — AI tools light ONE AT A TIME =====
+      inUp("#sc-p3 .phead",S.p3+0.2,0.6);
+      tl.fromTo(".p3-ai",{opacity:0,y:24,scale:.92},{opacity:1,y:0,scale:1,duration:0.55,ease:"power2.out",stagger:0.12},S.p3+0.7);
+      tl.to(".p3-ai",{keyframes:{scale:[1,1.08,1],borderColor:["#243149","#00ffcc","#243149"],boxShadow:["0 0 0 rgba(0,255,204,0)","0 0 30px rgba(0,255,204,.5)","0 0 0 rgba(0,255,204,0)"]},duration:1.1,ease:"sine.inOut",stagger:0.85,repeat:1},S.p3+2.6);
+
+      // ===== PROBLEM 4 — input → BLACK BOX → confident verdict, no reason =====
+      inUp("#sc-p4 .phead",S.p4+0.2,0.6);
+      tl.fromTo("#p4-in",{opacity:0,x:-20},{opacity:1,x:0,duration:0.6,ease:"power2.out"},S.p4+0.5);
+      tl.fromTo("#p4-a1",{opacity:0},{opacity:1,duration:0.4},S.p4+1.0);
+      tl.fromTo("#p4-box",{opacity:0,scale:.8},{opacity:1,scale:1,duration:0.7,ease:"back.out(1.4)"},S.p4+1.1);
+      tl.to(".bb-dot",{keyframes:{x:[0,55,92],opacity:[0,1,0]},duration:1.3,ease:"power1.inOut",stagger:0.3,repeat:4,repeatDelay:0.3},S.p4+1.6);
+      tl.to("#p4-box",{rotation:2,x:5,duration:1.1,ease:"sine.inOut",yoyo:true,repeat:5},S.p4+1.8);
+      tl.to("#p4-box",{boxShadow:"0 0 46px rgba(246,178,74,.35)",duration:1.1,ease:"sine.inOut",yoyo:true,repeat:5},S.p4+1.8);
+      tl.to("#p4-q",{scale:1.2,duration:0.85,ease:"sine.inOut",yoyo:true,repeat:6},S.p4+1.8);
+      tl.fromTo("#p4-a2",{opacity:0},{opacity:1,duration:0.4},S.p4+3.2);
+      tl.fromTo("#p4-out",{opacity:0,x:-16,scale:.9},{opacity:1,x:0,scale:1,duration:0.6,ease:"back.out(1.5)"},S.p4+3.5);
+      tl.to("#p4-out",{boxShadow:"0 0 36px rgba(251,113,133,.45)",duration:0.9,ease:"sine.inOut",yoyo:true,repeat:4},S.p4+4.4);
+
+      // ===== PROBLEM 5 — fragments lean in but never fit =====
+      inUp("#sc-p5 .phead",S.p5+0.2,0.6);
+      tl.fromTo(".p5-fr",{opacity:0,scale:.8,y:20},{opacity:1,scale:1,y:0,duration:0.55,ease:"back.out(1.4)",stagger:0.12},S.p5+0.5);
+      tl.fromTo("#p5-gap",{opacity:0,scale:.7},{opacity:1,scale:1,duration:0.6,ease:"back.out(1.6)"},S.p5+1.6);
+      tl.to("#p5-gap",{scale:1.12,duration:0.9,ease:"sine.inOut",yoyo:true,repeat:3},S.p5+2.4);
+      [["#p5fr1",18,14],["#p5fr2",-18,14],["#p5fr3",18,-14],["#p5fr4",-18,-14]].forEach(function(o){
+        tl.to(o[0],{x:o[1],y:o[2],duration:1.4,ease:"sine.inOut",yoyo:true,repeat:2},S.p5+2.4);
+      });
+
+      // REVEAL
+      tl.fromTo("#sc-rv .kicker",{opacity:0,y:-16},{opacity:1,y:0,duration:0.6},S.rv+0.2);
+      tl.fromTo("#rv-line",{opacity:0,scale:.92,y:20},{opacity:1,scale:1,y:0,duration:0.9,ease:"power3.out"},S.rv+0.6);
+      tl.fromTo(".rv-chip",{opacity:0,y:24,scale:.9},{opacity:1,y:0,scale:1,duration:0.55,ease:"back.out(1.6)",stagger:0.12},S.rv+1.4);
+
+      // TECHNICIAN DEMO (video plays automatically; animate the label + caption)
+      tl.fromTo("#sc-tech .modtitle",{opacity:0,x:-24},{opacity:1,x:0,duration:0.6},S.tech+0.3);
+      inUp("#sc-tech .caption",S.tech+1.0,0.6);
+
+      // DOCTOR DEMO
+      tl.fromTo("#sc-doc .modtitle",{opacity:0,x:-24},{opacity:1,x:0,duration:0.6},S.doc+0.3);
+      inUp("#sc-doc .caption",S.doc+1.0,0.6);
+
+      // MRI
+      tl.fromTo("#sc-mri .modtitle",{opacity:0,x:-24},{opacity:1,x:0,duration:0.6},S.mri+0.2);
+      tl.fromTo("#sc-mri .stage",{opacity:0,scale:.97},{opacity:1,scale:1,duration:0.7,ease:"power2.out"},S.mri+0.2);
+      tl.fromTo("#kb-mri",{scale:1.0},{scale:1.12,duration:12,ease:"none"},S.mri);
+      inUp("#sc-mri .caption",S.mri+0.9,0.6);
+
+      // ECHO
+      tl.fromTo("#sc-echo .modtitle",{opacity:0,x:-24},{opacity:1,x:0,duration:0.6},S.echo+0.2);
+      tl.fromTo("#sc-echo .stage",{opacity:0,scale:.97},{opacity:1,scale:1,duration:0.7,ease:"power2.out"},S.echo+0.2);
+      tl.fromTo("#kb-echo",{scale:1.0},{scale:1.12,duration:11,ease:"none"},S.echo);
+      inUp("#sc-echo .caption",S.echo+0.9,0.6);
+
+      // EEG
+      tl.fromTo("#sc-eeg .modtitle",{opacity:0,x:-24},{opacity:1,x:0,duration:0.6},S.eeg+0.2);
+      tl.fromTo("#sc-eeg .stage",{opacity:0,scale:.97},{opacity:1,scale:1,duration:0.7,ease:"power2.out"},S.eeg+0.2);
+      tl.fromTo("#kb-eeg",{scale:1.0},{scale:1.12,duration:11,ease:"none"},S.eeg);
+      inUp("#sc-eeg .caption",S.eeg+0.9,0.6);
+
+      // EXPLAINABILITY GRID
+      tl.fromTo("#sc-xai .kicker",{opacity:0,y:-16},{opacity:1,y:0,duration:0.6},S.xai+0.3);
+      inUp("#xai-h",S.xai+0.6,0.6);
+      tl.fromTo("#xai-grid .xcell",{opacity:0,y:30,scale:.96},{opacity:1,y:0,scale:1,duration:0.6,ease:"power2.out",stagger:0.18},S.xai+1.1);
+
+      // INTEGRATION
+      tl.fromTo("#sc-int .kicker",{opacity:0,y:-16},{opacity:1,y:0,duration:0.6},S.int+0.3);
+      inUp("#int-h",S.int+0.6,0.8); inUp("#int-sub",S.int+1.3,0.8);
+
+      // REPORT
+      tl.fromTo("#sc-report .modtitle",{opacity:0,x:-24},{opacity:1,x:0,duration:0.6},S.rep+0.4);
+      inUp("#sc-report .caption",S.rep+1.0,0.7);
+
+      // FUTURE
+      tl.fromTo("#sc-fut .kicker",{opacity:0,y:-16},{opacity:1,y:0,duration:0.6},S.fut+0.4);
+      tl.fromTo(".fut-li",{opacity:0,x:-30},{opacity:1,x:0,duration:0.7,ease:"power2.out",stagger:0.55},S.fut+1.0);
+      inUp("#fut-foot",S.fut+4.0,0.7);
+
+      // CONCLUSION
+      tl.fromTo("#out-logo",{scale:.6,opacity:0},{scale:1,opacity:1,duration:0.9,ease:"back.out(1.5)"},S.out+0.3);
+      tl.fromTo("#out-word",{opacity:0,x:30},{opacity:1,x:0,duration:0.9,ease:"power3.out"},S.out+0.6);
+      inUp("#out-concl",S.out+1.3,0.7);
+      inUp("#out-sub",S.out+1.9,0.7);
+      tl.fromTo(".oc-pill",{opacity:0,y:20,scale:.9},{opacity:1,y:0,scale:1,duration:0.5,ease:"back.out(1.5)",stagger:0.12},S.out+2.6);
+      tl.fromTo("#out-cr",{opacity:0},{opacity:1,duration:0.7},S.out+3.4);
+
+      // disclaimer
+      tl.fromTo("#disc",{opacity:0},{opacity:.7,duration:1},1.2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

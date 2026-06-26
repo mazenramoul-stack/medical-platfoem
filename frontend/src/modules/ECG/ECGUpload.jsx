@@ -12,6 +12,8 @@ import { useI18n } from '../../i18n/LanguageContext.jsx';
 const ACCEPT = {
   'text/csv':                  ['.csv'],
   'application/octet-stream':  ['.edf', '.dat', '.hea'],
+  // Smartwatch ECG export (single lead) → single-lead rate/rhythm screening.
+  'application/pdf':           ['.pdf'],
 };
 
 export default function ECGUpload({ patient, onComplete }) {
