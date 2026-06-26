@@ -34,12 +34,33 @@ RUN git clone --depth 1 --branch main \
 
 WORKDIR /home/user/app/backend
 
+# ---- Model weights baked into the image ------------------------------------
+# The large *.pt / *.safetensors / *.ckpt files are gitignored, so the GitHub
+# clone above does NOT include them. Without them Echo + EEG crash with
+# "weights not found" and MRI has to download the stock model at request time
+# (slow / fragile). We upload the real weights into THIS Space repo with
+# tools/deploy_weights_to_space.py, then copy them over the cloned sidecar
+# configs here so everything is on disk before the server starts.
+#   * Echo  -> models_weights/echonet/{echonet_seg.pt, echonet_ef.pt}
+#   * EEG   -> models_weights/biot/{EEG-PREST-16-channels.ckpt, biot_iiic.pt}
+#   * MRI   -> models_weights/vit_brain_tumor/model.safetensors (the 95.4% Swin)
+#   * ECG   -> models_weights/ecg_finetuned/*.pt (optional; ECG already works)
+COPY --chown=user models_weights/ /home/user/app/backend/models_weights/
+
 # ---- Python dependencies ----------------------------------------------------
 # dnspython is required for pymongo to resolve Atlas `mongodb+srv://` URIs.
 # gunicorn is the production WSGI server.
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir gunicorn dnspython
+
+# ---- Pre-warm the small U-Net so MRI does not download at request time ------
+# The Swin classifier is now baked in (above), but the segmentation U-Net still
+# loads from torch.hub. Fetch it at build time so the first MRI request is fast
+# and offline. Non-fatal: if the hub is unreachable at build it falls back to a
+# runtime download (unchanged old behaviour).
+RUN python -c "import torch; torch.hub.load('mateuszbuda/brain-segmentation-pytorch','unet',in_channels=3,out_channels=1,init_features=32,pretrained=True,trust_repo=True)" \
+    || echo "U-Net prewarm skipped (will download at runtime)"
 
 EXPOSE 7860
 
